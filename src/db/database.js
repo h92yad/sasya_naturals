@@ -35,6 +35,7 @@ function getDb() {
   dbInstance.exec('PRAGMA foreign_keys = ON;');
   initSchema(dbInstance);
   seedDatabaseIfEmpty(dbInstance);
+  ensureCompleteSection3CatalogAndCustomerAddresses(dbInstance);
   return dbInstance;
 }
 
@@ -989,6 +990,258 @@ function seedDatabaseIfEmpty(db) {
     INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
     VALUES ('SN-2026-1001', 'EMAIL', 'ananya.iyer@example.com', 'ORDER_SHIPPED', 'Your Sasya Naturals Order SN-2026-1001 has been shipped', 'Dispatched via Blue Dart Express (AWB: BD804921184IN)')
   `).run();
+}
+
+function ensureCompleteSection3CatalogAndCustomerAddresses(db) {
+  // 1. Ensure extra notification templates exist in store_settings (Section 8)
+  const extraTemplates = [
+    ['email_template_order_delivered', 'Namaste {{customer_name}}, your Sasya Naturals order {{order_number}} has been marked Delivered. Thank you for choosing unpolished Indian staples.'],
+    ['email_template_order_cancelled', 'Your Sasya Naturals order {{order_number}} has been updated to {{status}}. Any eligible refund is processed back to your original payment method.']
+  ];
+  const insertTpl = db.prepare('INSERT OR IGNORE INTO store_settings (key, value) VALUES (?, ?)');
+  for (const [k, v] of extraTemplates) {
+    insertTpl.run(k, v);
+  }
+
+  // 2. Seed sample saved addresses for customer Ananya Iyer (Section 4 Customer Account)
+  const cust = db.prepare("SELECT id FROM users WHERE email = 'ananya.iyer@example.com'").get();
+  if (cust) {
+    const addrCount = db.prepare('SELECT COUNT(*) AS cnt FROM customer_addresses WHERE user_id = ?').get(cust.id).cnt;
+    if (addrCount === 0) {
+      const insAddr = db.prepare(`
+        INSERT INTO customer_addresses (user_id, label, recipient_name, phone, line1, line2, city, state, pincode, is_default)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      insAddr.run(
+        cust.id,
+        'Home (Bengaluru)',
+        'Ananya Iyer',
+        '+91 98450 22334',
+        'Flat 402, Banyan Courtyard, Indiranagar 12th Main',
+        'HAL 2nd Stage',
+        'Bengaluru',
+        'Karnataka',
+        '560038',
+        1
+      );
+      insAddr.run(
+        cust.id,
+        'Parents Residence (Mysuru)',
+        'Saraswathi & Ramesh Iyer',
+        '+91 98450 99881',
+        'No. 28, Temple Road, V.V. Mohalla',
+        'Near Kalidasa Road',
+        'Mysuru',
+        'Karnataka',
+        '570002',
+        0
+      );
+    }
+  }
+
+  // 3. Seed the 6 remaining Section 3.1 standalone products if not already present:
+  // Dry Fruits: Raisins, Dates | Millets: Barnyard Millet, Bajra | Spices: Cloves, Coriander Powder
+  const extraProducts = [
+    {
+      skuBase: 'SN-DF-RSN',
+      slug: 'nashik-seedless-black-raisins-kali-kishmish',
+      name: 'Nashik Seedless Black Raisins (Kali Kishmish)',
+      catId: 1,
+      shortDesc: 'Shade-dried, naturally sweet Sharad seedless black raisins without mineral oil glaze.',
+      desc: 'Harvested from late-season Sharad black grapes in the Niphad valley of Nashik, Maharashtra. Dried in ventilated shade houses so the skins stay soft and iron-rich without sulphur fumigation or petroleum jelly coating.',
+      origin: 'Nashik, Maharashtra',
+      batch: 'SN-RSN-2611G',
+      shelfLife: 9,
+      fssai: 'Unsulphured shade-dried fruit. Rinse briefly in warm water before soaking.',
+      ingredients: '100% Sun & Shade Dried Seedless Black Grapes (Vitis vinifera)',
+      allergen: 'Packed in a facility that handles tree nuts.',
+      gst: 5,
+      hsn: '080620',
+      image: '/images/cat-dry-fruits.jpg',
+      caption: 'Shade-dried Nashik seedless black raisins',
+      featured: 0,
+      newArrival: 1,
+      bestseller: 1,
+      rating: 4.8,
+      reviews: 36,
+      base100gMrp: 11000,
+      base100gSell: 8500
+    },
+    {
+      skuBase: 'SN-DF-DAT',
+      slug: 'king-medjool-ajwa-soft-dates-khajoor',
+      name: 'Soft Pitted Medjool & Kutch Crown Dates (Khajoor)',
+      catId: 1,
+      shortDesc: 'Fleshy, caramel-toned soft dates harvested ripe and packed without glucose syrup.',
+      desc: 'Large, thin-skinned soft dates with a rich caramel pulp that melts on the palate. Free from invert sugar glaze and artificial preservatives, making them an immediate natural sweetener for milkshakes, laddoos, and pre-workout snacks.',
+      origin: 'Mundra Belt (Kutch) / Packed in Bengaluru',
+      batch: 'SN-DAT-2611H',
+      shelfLife: 9,
+      fssai: '100% natural unglazed dates. Store in a cool, dry place.',
+      ingredients: '100% Whole Soft Dates (Phoenix dactylifera)',
+      allergen: 'May contain occasional natural fruit pit fragments.',
+      gst: 12,
+      hsn: '080410',
+      image: '/images/cat-dry-fruits.jpg',
+      caption: 'Soft caramel-toned whole dates',
+      featured: 0,
+      newArrival: 1,
+      bestseller: 0,
+      rating: 4.9,
+      reviews: 41,
+      base100gMrp: 18500,
+      base100gSell: 15500
+    },
+    {
+      skuBase: 'SN-ML-BRN',
+      slug: 'uttarakhand-unpolished-barnyard-millet-sanwa',
+      name: 'Uttarakhand Unpolished Barnyard Millet (Sanwa / Oodalu)',
+      catId: 2,
+      shortDesc: 'Fast-cooking Himalayan barnyard millet high in insoluble fiber and plant iron.',
+      desc: 'Cultivated on terraced rain-fed slopes in Almora, Uttarakhand, our barnyard millet (Sanwa or Oodalu) cooks into light, separate grains in under 12 minutes. Popular across India for both daily millet rice bowls and traditional fasting (vrat) kheer or khichdi.',
+      origin: 'Almora, Uttarakhand',
+      batch: 'SN-BRN-2611F',
+      shelfLife: 9,
+      fssai: 'Unpolished Siridhanya grain. Soak 20 minutes prior to boiling.',
+      ingredients: '100% Unpolished Barnyard Millet (Echinochloa frumentacea)',
+      allergen: 'Naturally Gluten-Free.',
+      gst: 5,
+      hsn: '100821',
+      image: '/images/cat-millets-grains.jpg',
+      caption: 'Unpolished Barnyard Millet (Sanwa / Oodalu)',
+      featured: 0,
+      newArrival: 1,
+      bestseller: 0,
+      rating: 4.8,
+      reviews: 27,
+      base100gMrp: 6200,
+      base100gSell: 4800
+    },
+    {
+      skuBase: 'SN-ML-BAJ',
+      slug: 'rajasthani-deshi-pearl-millet-bajra-sajje',
+      name: 'Barmer Deshi Pearl Millet (Bajra / Sajje Whole Grain)',
+      catId: 2,
+      shortDesc: 'Heirloom non-hybrid desert pearl millet with sweet, nutty winter warmth.',
+      desc: 'Sourced from dryland farms in Barmer, Rajasthan, this heirloom small-seeded Deshi Bajra produces far sweeter rotlas and khichdi than bitter commercial hybrid pearl millet. Gravity-cleaned and ready for fresh home milling or whole-grain porridge.',
+      origin: 'Barmer, Rajasthan',
+      batch: 'SN-BAJ-2611G',
+      shelfLife: 9,
+      fssai: 'Whole unpolished pearl millet grain rich in iron and zinc.',
+      ingredients: '100% Heirloom Pearl Millet (Pennisetum glaucum)',
+      allergen: 'Naturally Gluten-Free.',
+      gst: 5,
+      hsn: '100821',
+      image: '/images/cat-millets-grains.jpg',
+      caption: 'Barmer heirloom Deshi Bajra pearl millet',
+      featured: 0,
+      newArrival: 0,
+      bestseller: 1,
+      rating: 4.8,
+      reviews: 33,
+      base100gMrp: 4000,
+      base100gSell: 3000
+    },
+    {
+      skuBase: 'SN-SP-CLV',
+      slug: 'kanyakumari-hand-picked-whole-cloves-laung',
+      name: 'Kanyakumari Hand-Picked Whole Cloves (Laung)',
+      catId: 3,
+      shortDesc: 'Full-crowned hill cloves from Maramalai estates with high natural eugenol oil.',
+      desc: 'Harvested by hand from high-elevation spice gardens in the Maramalai hills of Kanyakumari, Tamil Nadu. Each clove bud retains its round, unopened crown cap and exudes sweet, numbing eugenol oil when pressed between two fingers.',
+      origin: 'Maramalai Hills, Kanyakumari, Tamil Nadu',
+      batch: 'SN-CLV-2611F',
+      shelfLife: 18,
+      fssai: 'Unextracted whole clove buds with intact flower crowns.',
+      ingredients: '100% Whole Dried Clove Buds (Syzygium aromaticum)',
+      allergen: 'None.',
+      gst: 5,
+      hsn: '090710',
+      image: '/images/cat-spices.jpg',
+      caption: 'Whole Kanyakumari hill cloves with intact crowns',
+      featured: 0,
+      newArrival: 1,
+      bestseller: 0,
+      rating: 4.9,
+      reviews: 38,
+      base100gMrp: 24000,
+      base100gSell: 19500
+    },
+    {
+      skuBase: 'SN-SP-COR',
+      slug: 'kumbakonam-cold-milled-coriander-powder-dhaniya',
+      name: 'Single-Origin Cold-Milled Coriander Powder (Dhaniya)',
+      catId: 3,
+      shortDesc: 'Aromatic split-husk green coriander seeds stone-ground at low temperature.',
+      desc: 'Prepared from sun-ripened eagle-grade coriander seeds grown in the fertile Cauvery delta. We roast the seeds lightly to release their citrusy linalool aroma and cold-mill them in small batches without husk bran fillers or synthetic green tint.',
+      origin: 'Cauvery Delta, Tamil Nadu',
+      batch: 'SN-COR-2611G',
+      shelfLife: 12,
+      fssai: '100% pure ground coriander seed. Zero husk filler.',
+      ingredients: '100% Whole Coriander Seeds (Coriandrum sativum)',
+      allergen: 'None.',
+      gst: 5,
+      hsn: '090922',
+      image: '/images/cat-spices.jpg',
+      caption: 'Freshly cold-milled aromatic coriander powder',
+      featured: 0,
+      newArrival: 0,
+      bestseller: 1,
+      rating: 4.8,
+      reviews: 45,
+      base100gMrp: 8500,
+      base100gSell: 6800
+    }
+  ];
+
+  const checkProd = db.prepare('SELECT id FROM products WHERE sku_base = ?');
+  const insertProd = db.prepare(`
+    INSERT INTO products (
+      sku_base, slug, name, category_id, short_description, description,
+      origin_region, harvest_batch, shelf_life_months, fssai_notes,
+      ingredients, allergen_info, gst_percent, hsn_code, image_url, image_caption,
+      is_featured, is_new_arrival, is_bestseller, is_active, rating_value, review_count
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+  `);
+  const insertVar = db.prepare(`
+    INSERT INTO product_variants (
+      product_id, sku, pack_label, weight_grams, mrp_paise,
+      selling_price_paise, promo_price_paise, stock_qty, low_stock_threshold, is_active
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 10, 1)
+  `);
+  const packMultipliers = [
+    { label: '100 g', grams: 100, suffix: '100G', mult: 1.0, stock: 45 },
+    { label: '250 g', grams: 250, suffix: '250G', mult: 2.35, stock: 60 },
+    { label: '500 g', grams: 500, suffix: '500G', mult: 4.45, stock: 35 },
+    { label: '1 kg',  grams: 1000, suffix: '1KG', mult: 8.5, stock: 20 }
+  ];
+
+  for (const p of extraProducts) {
+    const existing = checkProd.get(p.skuBase);
+    if (!existing) {
+      const info = insertProd.run(
+        p.skuBase, p.slug, p.name, p.catId, p.shortDesc, p.desc,
+        p.origin, p.batch, p.shelfLife, p.fssai,
+        p.ingredients, p.allergen, p.gst, p.hsn, p.image, p.caption,
+        p.featured, p.newArrival, p.bestseller, p.rating, p.reviews
+      );
+      const productId = Number(info.lastInsertRowid);
+      for (const pm of packMultipliers) {
+        const mrp = Math.round((p.base100gMrp * pm.mult) / 500) * 500;
+        const sell = Math.round((p.base100gSell * pm.mult) / 500) * 500;
+        insertVar.run(
+          productId,
+          `${p.skuBase}-${pm.suffix}`,
+          pm.label,
+          pm.grams,
+          mrp,
+          sell,
+          sell,
+          pm.stock
+        );
+      }
+    }
+  }
 }
 
 module.exports = {

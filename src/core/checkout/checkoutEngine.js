@@ -918,6 +918,90 @@ function updateOrderFulfilmentAndShipping({
   }
 }
 
+function recordPaymentAdminAction({
+  orderNumber,
+  actionType = 'MARK_COD_COLLECTED', // MARK_COD_COLLECTED | RECORD_REFUND
+  refundReason = 'Customer requested refund',
+  refundAmountPaise = null,
+  actorEmail = 'accounts@sasynaturals.com',
+  actorRole = 'ACCOUNTS_MANAGER'
+}) {
+  const db = getDb();
+  const order = db.prepare('SELECT * FROM orders WHERE order_number = ?').get(String(orderNumber || '').trim());
+  if (!order) {
+    throw new Error(`Order ${orderNumber} not found.`);
+  }
+
+  if (actionType === 'MARK_COD_COLLECTED') {
+    db.exec('BEGIN IMMEDIATE TRANSACTION;');
+    try {
+      db.prepare(`
+        UPDATE orders
+        SET payment_status = 'COD_COLLECTED',
+            updated_at = datetime('now')
+        WHERE id = ?
+      `).run(order.id);
+
+      db.prepare(`
+        UPDATE payments
+        SET status = 'COD_COLLECTED',
+            cod_collected_at = datetime('now'),
+            updated_at = datetime('now')
+        WHERE order_id = ?
+      `).run(order.id);
+
+      db.prepare(`
+        INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, details_json)
+        VALUES (?, ?, 'COD_PAYMENT_COLLECTED', 'PAYMENT', ?, ?)
+      `).run(actorEmail, actorRole, order.order_number, JSON.stringify({ amountPaise: order.total_paise }));
+
+      db.exec('COMMIT;');
+      return db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
+    } catch (err) {
+      db.exec('ROLLBACK;');
+      throw err;
+    }
+  }
+
+  if (actionType === 'RECORD_REFUND') {
+    const finalRefundPaise = refundAmountPaise !== null && Number(refundAmountPaise) > 0
+      ? Math.min(order.total_paise, Math.round(Number(refundAmountPaise)))
+      : order.total_paise;
+
+    // Delegate full order status & atomic stock restoration
+    const updatedOrder = updateOrderFulfilmentAndShipping({
+      orderNumber: order.order_number,
+      fulfilmentStatus: 'Refunded',
+      actorEmail,
+      actorRole
+    });
+
+    db.prepare(`
+      UPDATE payments
+      SET status = 'REFUNDED',
+          refund_amount_paise = ?,
+          refund_reason = ?,
+          refunded_by = ?,
+          updated_at = datetime('now')
+      WHERE order_id = ?
+    `).run(finalRefundPaise, String(refundReason || 'Approved Refund').trim(), actorEmail, order.id);
+
+    db.prepare(`
+      INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, details_json)
+      VALUES (?, ?, 'PAYMENT_REFUND_RECORDED', 'PAYMENT', ?, ?)
+    `).run(
+      actorEmail,
+      actorRole,
+      order.order_number,
+      JSON.stringify({ refundAmountPaise: finalRefundPaise, refundReason })
+    );
+
+    return updatedOrder;
+  }
+
+  throw new Error(`Unsupported payment actionType: ${actionType}`);
+}
+
 module.exports = {
   rustWasm,
   wasmLineTotalPaise,
@@ -940,5 +1024,6 @@ module.exports = {
   calculateCartPricing,
   createOrder,
   verifyAndCaptureOnlinePayment,
-  updateOrderFulfilmentAndShipping
+  updateOrderFulfilmentAndShipping,
+  recordPaymentAdminAction
 };

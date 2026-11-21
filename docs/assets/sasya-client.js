@@ -921,7 +921,8 @@
           courierName: fd.get('courierName'),
           trackingNumber: fd.get('trackingNumber'),
           trackingUrl: fd.get('trackingUrl'),
-          dispatchDate: fd.get('dispatchDate')
+          dispatchDate: fd.get('dispatchDate'),
+          manualShippingChargeInr: fd.get('manualShippingChargeInr')
         };
 
         if (IS_STATIC_SHOWCASE) {
@@ -930,7 +931,7 @@
             showToast(`RBAC Permission Denied: ${email} cannot update shipping/fulfilment.`);
             return;
           }
-          showToast(`[Showcase RBAC Verified] Updated ${payload.orderNumber} to "${payload.fulfilmentStatus}"`);
+          showToast(`[Showcase RBAC Verified] Updated ${payload.orderNumber} to "${payload.fulfilmentStatus}" (Shipping ₹${payload.manualShippingChargeInr || 0})`);
           return;
         }
 
@@ -962,7 +963,7 @@
             showToast(`RBAC Permission Denied: ${email} cannot modify inventory.`);
             return;
           }
-          showToast(`[Showcase RBAC Verified] Updated stock for variant #${fd.get('variantId')}`);
+          showToast(`[Showcase RBAC Verified] Updated stock & threshold for variant #${fd.get('variantId')}`);
           return;
         }
 
@@ -975,6 +976,7 @@
           body: JSON.stringify({
             variantId: Number(fd.get('variantId')),
             newStockQty: Number(fd.get('newStockQty')),
+            lowStockThreshold: Number(fd.get('lowStockThreshold') || 10),
             reason: fd.get('reason') || 'ADMIN_STOCK_UPDATE'
           })
         });
@@ -983,10 +985,27 @@
           showToast(data.error || 'RBAC denied');
           return;
         }
-        showToast(`Stock updated for variant #${fd.get('variantId')}`);
+        showToast(`Stock & threshold updated for variant #${fd.get('variantId')}`);
         setTimeout(() => window.location.reload(), 600);
       });
     });
+
+    // Inventory SKU search & low-stock filter
+    const invSearch = document.getElementById('sn-admin-inv-search');
+    const invLowOnly = document.getElementById('sn-admin-inv-low-only');
+    function filterAdminInventoryRows() {
+      const q = (invSearch ? invSearch.value : '').trim().toLowerCase();
+      const lowOnly = invLowOnly ? invLowOnly.checked : false;
+      document.querySelectorAll('#sn-admin-inventory-table tbody tr').forEach(tr => {
+        const sku = tr.getAttribute('data-inv-sku') || '';
+        const isLow = tr.getAttribute('data-inv-low') === '1';
+        const matchQ = !q || sku.includes(q) || tr.textContent.toLowerCase().includes(q);
+        const matchLow = !lowOnly || isLow;
+        tr.style.display = (matchQ && matchLow) ? '' : 'none';
+      });
+    }
+    if (invSearch) invSearch.addEventListener('input', filterAdminInventoryRows);
+    if (invLowOnly) invLowOnly.addEventListener('change', filterAdminInventoryRows);
 
     // 5. Create New Product (with Optional Product Photo)
     const newProdForm = document.getElementById('sn-admin-create-product-form');
@@ -1041,6 +1060,210 @@
       });
     }
 
+    // 6. Edit Existing Product, Pack Prices, Flags & Publish/Deactivate
+    const editProdForm = document.getElementById('sn-admin-edit-product-form');
+    if (editProdForm) {
+      editProdForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(editProdForm);
+        const payload = Object.fromEntries(fd.entries());
+        if (IS_STATIC_SHOWCASE) {
+          const email = getActiveAdminEmail();
+          if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can edit products.');
+            return;
+          }
+          showToast(`[Showcase Verified] Updated product #${payload.productId} settings & pack prices!`);
+          return;
+        }
+        const res = await fetch('/api/admin/products/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': getActiveAdminEmail()
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Product update failed');
+          return;
+        }
+        showToast(`Updated product "${data.name}"!`);
+        setTimeout(() => window.location.reload(), 700);
+      });
+    }
+
+    // Inline Product Publish/Deactivate Toggle Buttons
+    document.querySelectorAll('[data-toggle-prod-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const productId = Number(btn.getAttribute('data-toggle-prod-id'));
+        const curActive = btn.getAttribute('data-toggle-prod-active') === '1';
+        const nextActive = curActive ? 0 : 1;
+        if (IS_STATIC_SHOWCASE) {
+          const email = getActiveAdminEmail();
+          if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can publish/deactivate products.');
+            return;
+          }
+          btn.setAttribute('data-toggle-prod-active', String(nextActive));
+          btn.textContent = nextActive ? 'Active' : 'Inactive';
+          btn.className = `sn-btn ${nextActive ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm`;
+          showToast(`Product #${productId} is now ${nextActive ? 'Published (Active)' : 'Deactivated'}`);
+          return;
+        }
+        const res = await fetch('/api/admin/products/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': getActiveAdminEmail()
+          },
+          body: JSON.stringify({ productId, isActive: nextActive })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to toggle product status');
+          return;
+        }
+        showToast(`Product "${data.name}" ${nextActive ? 'Published' : 'Deactivated'}!`);
+        setTimeout(() => window.location.reload(), 500);
+      });
+    });
+
+    // Inline Category Publish/Deactivate Toggle Buttons
+    document.querySelectorAll('[data-toggle-cat-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const categoryId = Number(btn.getAttribute('data-toggle-cat-id'));
+        const curActive = btn.getAttribute('data-toggle-cat-active') === '1';
+        const nextActive = curActive ? 0 : 1;
+        if (IS_STATIC_SHOWCASE) {
+          const email = getActiveAdminEmail();
+          if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can toggle categories.');
+            return;
+          }
+          btn.setAttribute('data-toggle-cat-active', String(nextActive));
+          btn.textContent = nextActive ? 'Published (Active)' : 'Deactivated';
+          btn.className = `sn-btn ${nextActive ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm`;
+          showToast(`Category #${categoryId} is now ${nextActive ? 'Published' : 'Deactivated'}`);
+          return;
+        }
+        const res = await fetch('/api/admin/categories/toggle-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': getActiveAdminEmail()
+          },
+          body: JSON.stringify({ categoryId, isActive: nextActive })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to toggle category status');
+          return;
+        }
+        showToast(`Category #${categoryId} ${nextActive ? 'Published' : 'Deactivated'}!`);
+        setTimeout(() => window.location.reload(), 500);
+      });
+    });
+
+    // 7. Accounts Manager Payment Actions (Mark COD Collected & Record Refund)
+    document.querySelectorAll('[data-payment-action]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const actionType = btn.getAttribute('data-payment-action');
+        const orderNumber = btn.getAttribute('data-order-number');
+        if (IS_STATIC_SHOWCASE) {
+          const email = getActiveAdminEmail();
+          if (email !== 'superadmin@sasynaturals.com' && email !== 'accounts@sasynaturals.com') {
+            showToast(`403 RBAC Permission Denied: Role for ${email} cannot perform ${actionType}.`);
+            return;
+          }
+          showToast(`[Showcase Verified] Executed ${actionType} on order ${orderNumber}`);
+          return;
+        }
+        const res = await fetch('/api/admin/payments/action', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': getActiveAdminEmail()
+          },
+          body: JSON.stringify({ orderNumber, actionType, refundReason: 'Approved Admin Refund' })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Payment action failed');
+          return;
+        }
+        showToast(`Order ${orderNumber} updated (${actionType})`);
+        setTimeout(() => window.location.reload(), 600);
+      });
+    });
+
+    // 8. Staff RBAC Create & Update Forms (Panel 7)
+    const createStaffForm = document.getElementById('sn-admin-create-staff-form');
+    if (createStaffForm) {
+      createStaffForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(createStaffForm);
+        const payload = Object.fromEntries(fd.entries());
+        if (IS_STATIC_SHOWCASE) {
+          if (getActiveAdminEmail() !== 'superadmin@sasynaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can create staff accounts.');
+            return;
+          }
+          showToast(`[Showcase Verified] Created staff user ${payload.email} (${payload.role})`);
+          createStaffForm.reset();
+          return;
+        }
+        const res = await fetch('/api/admin/staff/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': getActiveAdminEmail()
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to create staff user');
+          return;
+        }
+        showToast(`Created staff account ${data.staff.email} (${data.staff.role})`);
+        setTimeout(() => window.location.reload(), 700);
+      });
+    }
+
+    document.querySelectorAll('.sn-admin-staff-update-form').forEach(form => {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(form);
+        const payload = Object.fromEntries(fd.entries());
+        if (IS_STATIC_SHOWCASE) {
+          if (getActiveAdminEmail() !== 'superadmin@sasynaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can modify staff roles and permissions.');
+            return;
+          }
+          showToast(`[Showcase Verified] Updated staff #${payload.userId} role/permissions!`);
+          return;
+        }
+        const res = await fetch('/api/admin/staff/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': getActiveAdminEmail()
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to update staff user');
+          return;
+        }
+        showToast(`Updated staff #${data.userId} (${data.role})`);
+        setTimeout(() => window.location.reload(), 600);
+      });
+    });
+
+    // 9. Delivery Policy & Business Compliance / Notification Templates Forms (Panel 8)
     const shipPolicyForm = document.getElementById('sn-admin-shipping-policy-form');
     if (shipPolicyForm) {
       shipPolicyForm.addEventListener('submit', async (e) => {
@@ -1075,6 +1298,295 @@
         setTimeout(() => window.location.reload(), 700);
       });
     }
+
+    const complianceForm = document.getElementById('sn-admin-compliance-form');
+    if (complianceForm) {
+      complianceForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(complianceForm);
+        const payload = Object.fromEntries(fd.entries());
+        if (IS_STATIC_SHOWCASE) {
+          if (getActiveAdminEmail() !== 'superadmin@sasynaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can update compliance & notification templates.');
+            return;
+          }
+          showToast('[Showcase Verified] Saved Business Legal, GSTIN, FSSAI & Notification Templates!');
+          return;
+        }
+        const res = await fetch('/api/admin/settings/compliance', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': getActiveAdminEmail()
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to save compliance settings');
+          return;
+        }
+        showToast('Saved Business Legal, GSTIN, FSSAI & Notification Templates!');
+        setTimeout(() => window.location.reload(), 700);
+      });
+    }
+  }
+
+  function initAdminAuthForms() {
+    const adminLoginForm = document.getElementById('sn-admin-login-form');
+    if (adminLoginForm) {
+      adminLoginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(adminLoginForm);
+        const email = String(fd.get('email') || '').trim();
+        const password = String(fd.get('password') || '');
+        if (IS_STATIC_SHOWCASE) {
+          localStorage.setItem(ADMIN_ROLE_STORAGE_KEY, email);
+          const roleSelect = document.getElementById('sn-admin-role-switcher');
+          if (roleSelect) roleSelect.value = email;
+          showToast(`Signed in as staff ${email}`);
+          return;
+        }
+        const res = await fetch('/api/admin/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Staff sign-in failed');
+          return;
+        }
+        localStorage.setItem(ADMIN_ROLE_STORAGE_KEY, data.user.email);
+        showToast(`Signed in as ${data.user.fullName} (${data.user.role})`);
+        setTimeout(() => window.location.reload(), 500);
+      });
+    }
+
+    const adminLogoutBtn = document.getElementById('sn-admin-logout-btn');
+    if (adminLogoutBtn) {
+      adminLogoutBtn.addEventListener('click', async () => {
+        if (!IS_STATIC_SHOWCASE) {
+          await fetch('/api/admin/auth/logout', { method: 'POST' });
+        }
+        showToast('Signed out of staff session');
+        setTimeout(() => window.location.reload(), 500);
+      });
+    }
+  }
+
+  function initCustomerAccountPage() {
+    const accRoot = document.getElementById('sn-customer-account-page');
+    if (!accRoot) return;
+
+    const loginForm = document.getElementById('sn-customer-login-form');
+    if (loginForm) {
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(loginForm);
+        const email = String(fd.get('email') || '').trim();
+        const password = String(fd.get('password') || '');
+        if (IS_STATIC_SHOWCASE) {
+          const badge = document.getElementById('sn-account-active-badge');
+          if (badge) badge.textContent = `Signed In: ${email}`;
+          showToast(`Signed in to Customer Account (${email})`);
+          return;
+        }
+        const res = await fetch('/api/account/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Sign-in failed');
+          return;
+        }
+        showToast(`Welcome back, ${data.user.fullName}!`);
+        setTimeout(() => window.location.reload(), 500);
+      });
+    }
+
+    const regForm = document.getElementById('sn-customer-register-form');
+    if (regForm) {
+      regForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(regForm);
+        const payload = Object.fromEntries(fd.entries());
+        if (IS_STATIC_SHOWCASE) {
+          const badge = document.getElementById('sn-account-active-badge');
+          if (badge) badge.textContent = `Signed In: ${payload.email}`;
+          const nameInput = document.getElementById('cust-prof-name');
+          const emailInput = document.getElementById('cust-prof-email');
+          const phoneInput = document.getElementById('cust-prof-phone');
+          if (nameInput) nameInput.value = payload.fullName;
+          if (emailInput) emailInput.value = payload.email;
+          if (phoneInput) phoneInput.value = payload.phone;
+          showToast(`Registered & signed in as ${payload.fullName}!`);
+          regForm.reset();
+          return;
+        }
+        const res = await fetch('/api/account/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Registration failed');
+          return;
+        }
+        showToast(`Account created for ${data.user.fullName}!`);
+        setTimeout(() => window.location.reload(), 500);
+      });
+    }
+
+    const logoutBtn = document.getElementById('sn-customer-logout-btn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async () => {
+        if (!IS_STATIC_SHOWCASE) {
+          await fetch('/api/account/logout', { method: 'POST' });
+        }
+        showToast('Signed out of customer account');
+        setTimeout(() => window.location.reload(), 500);
+      });
+    }
+
+    const profForm = document.getElementById('sn-customer-profile-form');
+    if (profForm) {
+      profForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(profForm);
+        const payload = Object.fromEntries(fd.entries());
+        if (IS_STATIC_SHOWCASE) {
+          showToast(`Saved profile for ${payload.fullName}!`);
+          return;
+        }
+        const res = await fetch('/api/account/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Profile update failed');
+          return;
+        }
+        showToast(`Updated profile for ${data.user.fullName}!`);
+      });
+    }
+
+    const addAddrForm = document.getElementById('sn-customer-add-address-form');
+    if (addAddrForm) {
+      addAddrForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(addAddrForm);
+        const payload = Object.fromEntries(fd.entries());
+        if (IS_STATIC_SHOWCASE) {
+          const list = document.getElementById('sn-customer-addresses-list');
+          if (list) {
+            const div = document.createElement('div');
+            div.className = 'sn-card';
+            div.style.cssText = 'padding:12px 16px;background-color:var(--sn-bg-parchment);';
+            div.innerHTML = `
+              <div><strong>${payload.label}</strong> • ${payload.recipientName} (${payload.phone})</div>
+              <div style="font-size:0.82rem;color:var(--sn-text-secondary);">${payload.line1}, ${payload.city}, ${payload.state} - <strong>${payload.pincode}</strong></div>
+            `;
+            list.appendChild(div);
+          }
+          addAddrForm.reset();
+          showToast(`Saved delivery address "${payload.label}"!`);
+          return;
+        }
+        const res = await fetch('/api/account/addresses/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to save address');
+          return;
+        }
+        showToast(`Saved delivery address "${data.address.label}"!`);
+        setTimeout(() => window.location.reload(), 500);
+      });
+    }
+
+    document.querySelectorAll('[data-set-default-addr]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const addressId = Number(btn.getAttribute('data-set-default-addr'));
+        if (IS_STATIC_SHOWCASE) {
+          showToast(`Set address #${addressId} as default delivery address`);
+          return;
+        }
+        await fetch('/api/account/addresses/default', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ addressId })
+        });
+        showToast('Updated default delivery address');
+        setTimeout(() => window.location.reload(), 400);
+      });
+    });
+
+    document.querySelectorAll('[data-delete-addr]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const addressId = Number(btn.getAttribute('data-delete-addr'));
+        if (IS_STATIC_SHOWCASE) {
+          const card = btn.closest('[data-address-card]');
+          if (card) card.remove();
+          showToast('Removed saved address');
+          return;
+        }
+        await fetch('/api/account/addresses/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ addressId })
+        });
+        showToast('Removed saved address');
+        setTimeout(() => window.location.reload(), 400);
+      });
+    });
+  }
+
+  function initCatalogClientFilters() {
+    const filterForm = document.getElementById('catalog-filter-form');
+    const grid = document.getElementById('sn-catalog-product-grid');
+    if (!filterForm || !grid || !IS_STATIC_SHOWCASE) return;
+
+    filterForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const q = (document.getElementById('catalog-search-input')?.value || '').trim().toLowerCase();
+      const tag = document.getElementById('catalog-tag-select')?.value || 'all';
+      const maxPrice = document.getElementById('catalog-price-select')?.value || 'all';
+      const cards = Array.from(grid.querySelectorAll('.sn-product-card'));
+      let visibleCount = 0;
+
+      for (const card of cards) {
+        const text = card.textContent.toLowerCase();
+        const isFeat = card.getAttribute('data-product-featured') === '1';
+        const isBest = card.getAttribute('data-product-bestseller') === '1';
+        const isNew = card.getAttribute('data-product-new') === '1';
+        const isStock = card.getAttribute('data-product-instock') === '1';
+        const minInr = Number(card.getAttribute('data-product-min-inr') || 0);
+
+        let match = (!q || text.includes(q));
+        if (tag === 'bestseller' && !isBest) match = false;
+        if (tag === 'featured' && !isFeat) match = false;
+        if (tag === 'new_arrival' && !isNew) match = false;
+        if (tag === 'in_stock' && !isStock) match = false;
+        if (maxPrice !== 'all' && minInr > Number(maxPrice)) match = false;
+
+        card.style.display = match ? '' : 'none';
+        if (match) visibleCount++;
+      }
+
+      const label = document.getElementById('sn-catalog-count-label');
+      if (label) {
+        label.innerHTML = `Showing <strong>${visibleCount}</strong> of <strong>${cards.length}</strong> products`;
+      }
+    });
   }
 
   function appendCategoryToAdminDom(cat) {
@@ -1085,7 +1597,8 @@
         <td><img src="${cat.imageUrl}" alt="${cat.name}" data-category-img-id="${cat.id}" style="width:68px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" /></td>
         <td><strong>${cat.name}</strong><br/><span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">/category/${cat.slug}</span></td>
         <td style="font-size:0.82rem;">${cat.subtitle}</td>
-        <td><span class="sn-status sn-status-paid">Active</span></td>
+        <td><span class="sn-status sn-status-paid">Published (Active)</span></td>
+        <td><span style="font-size:0.75rem;color:var(--sn-text-muted);">Custom Category</span></td>
       `;
       tbody.appendChild(tr);
     }
@@ -1148,7 +1661,10 @@
     updateCartBadges();
     bindGlobalListeners();
     initPdpGalleryAndShowcaseOverrides();
+    initCatalogClientFilters();
     initCheckoutPage();
+    initCustomerAccountPage();
+    initAdminAuthForms();
     initAdminPortal();
   });
 })();

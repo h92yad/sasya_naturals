@@ -54,23 +54,32 @@ function hasPermission(user, requiredPermission) {
   if (!user || !user.role || !user.is_active) return false;
   if (user.role === STAFF_ROLES.SUPER_ADMIN) return true;
 
+  let customPerms = [];
+  if (user.permissions_json) {
+    try {
+      const parsed = typeof user.permissions_json === 'string'
+        ? JSON.parse(user.permissions_json)
+        : user.permissions_json;
+      if (Array.isArray(parsed)) customPerms = parsed;
+    } catch {
+      customPerms = [];
+    }
+  }
+
+  if (customPerms.includes('*') || customPerms.includes(requiredPermission)) {
+    return true;
+  }
+
+  // For STAFF role, if explicit permissions are assigned in permissions_json, strictly enforce only those
+  if (user.role === STAFF_ROLES.STAFF && customPerms.length > 0) {
+    return false;
+  }
+
   const rolePerms = ROLE_PERMISSIONS_MATRIX[user.role] || [];
   if (rolePerms.includes('*') || rolePerms.includes(requiredPermission)) {
     return true;
   }
 
-  if (user.permissions_json) {
-    try {
-      const customPerms = typeof user.permissions_json === 'string'
-        ? JSON.parse(user.permissions_json)
-        : user.permissions_json;
-      if (Array.isArray(customPerms) && (customPerms.includes('*') || customPerms.includes(requiredPermission))) {
-        return true;
-      }
-    } catch {
-      // ignore invalid json
-    }
-  }
   return false;
 }
 

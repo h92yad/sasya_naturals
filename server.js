@@ -13,19 +13,24 @@ const {
   BRAND_NAME,
   BRAND_TAGLINE
 } = require('./src/config/appConfig');
-const { getDb } = require('./src/db/database');
+const { getDb, hashPassword } = require('./src/db/database');
 const {
   calculateCartPricing,
   createOrder,
   verifyAndCaptureOnlinePayment,
-  updateOrderFulfilmentAndShipping
+  updateOrderFulfilmentAndShipping,
+  recordPaymentAdminAction
 } = require('./src/core/checkout/checkoutEngine');
 const {
   requestCodOtp,
   verifyCodOtp,
   validatePincodeServiceability
 } = require('./src/core/checkout/codProtection');
-const { uploadProductImage } = require('./src/core/checkout/imageUploader');
+const {
+  uploadProductImage,
+  uploadCategoryImage,
+  saveVerifiedImageToUploads
+} = require('./src/core/checkout/imageUploader');
 const {
   assertAdminPermission,
   recordAuditLog
@@ -36,10 +41,14 @@ const {
 } = require('./src/core/auth/credentialVault');
 const {
   SESSION_COOKIE_NAME,
+  CUSTOMER_COOKIE_NAME,
   verifySessionToken,
   loginAdminWithPassword,
+  loginCustomerWithPassword,
+  registerCustomerAccount,
   parseCookies,
-  buildSessionCookieHeader
+  buildSessionCookieHeader,
+  buildCustomerCookieHeader
 } = require('./src/core/auth/sessionManager');
 const { lintContentText } = require('./src/core/content/contentLinter');
 const {
@@ -49,6 +58,8 @@ const {
   renderCheckoutPage,
   renderTrackOrderPage,
   renderGstInvoicePage,
+  renderCustomerAccountPage,
+  renderAdminLoginRequiredPage,
   renderAdminPortalPage,
   renderStaticInfoPage,
   renderMarkdownTwin
@@ -98,9 +109,9 @@ const INFO_PAGES = {
   },
   'shipping-returns': {
     title: 'Shipping, Cancellation, Return & Refund Policy',
-    subtitle: 'India-Wide Dispatch, Damaged Parcel Replacement & Refund Timelines',
+    subtitle: '4-Zone + 500g Weight-Slab Courier Dispatch, Damaged Parcel Replacement & Refund Timelines',
     paragraphs: [
-      'Orders above Rs. 799 qualify for complimentary India-wide delivery. Standard orders below Rs. 799 carry a flat Rs. 60 shipping fee.',
+      'Delivery charges are calculated transparently using our 4-Zone (Local Bengaluru, South India, National, and Remote/NE) + 500g billable weight-slab engine (including 150g protective carton tare weight). Orders meeting the active free-delivery threshold and weight cap qualify for complimentary shipping.',
       'Orders may be cancelled prior to dispatch. If a parcel arrives damaged or tampered, contact care@sasynaturals.com within 48 hours of delivery for a verified replacement or refund to your original payment source.'
     ]
   },
@@ -177,6 +188,19 @@ function resolveAdminUser(req) {
     return db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1').get(String(headerEmail).trim());
   }
   return null;
+}
+
+function resolveCustomerUser(req) {
+  const db = getDb();
+  const cookies = parseCookies(req.headers.cookie || '');
+  if (cookies[CUSTOMER_COOKIE_NAME]) {
+    const verified = verifySessionToken(cookies[CUSTOMER_COOKIE_NAME]);
+    if (verified && verified.email) {
+      const user = db.prepare('SELECT * FROM users WHERE lower(email) = ? AND is_active = 1').get(verified.email.toLowerCase());
+      if (user) return user;
+    }
+  }
+  return db.prepare("SELECT * FROM users WHERE email = 'ananya.iyer@example.com'").get();
 }
 
 function createServerHandler() {
@@ -339,6 +363,104 @@ function createServerHandler() {
         );
       }
 
+      // Customer Account Auth, Profile & Saved Delivery Addresses APIs (Section 4)
+      if (pathname === '/api/account/login' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const clientIp = req.socket.remoteAddress || '127.0.0.1';
+        const authRes = loginCustomerWithPassword(body.email, body.password, clientIp);
+        return sendJson(
+          res,
+          200,
+          { user: authRes.user },
+          { 'Set-Cookie': buildCustomerCookieHeader(authRes.sessionToken, false) }
+        );
+      }
+
+      if (pathname === '/api/account/register' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const regRes = registerCustomerAccount(body);
+        return sendJson(
+          res,
+          201,
+          { user: regRes.user },
+          { 'Set-Cookie': buildCustomerCookieHeader(regRes.sessionToken, false) }
+        );
+      }
+
+      if (pathname === '/api/account/logout' && req.method === 'POST') {
+        return sendJson(
+          res,
+          200,
+          { loggedOut: true },
+          { 'Set-Cookie': buildCustomerCookieHeader('', true) }
+        );
+      }
+
+      if (pathname === '/api/account/profile' && req.method === 'POST') {
+        const cust = resolveCustomerUser(req);
+        if (!cust) return sendJson(res, 401, { error: 'Please sign in to update your profile.' });
+        const body = await readJsonBody(req);
+        const fullName = String(body.fullName || cust.full_name).trim();
+        const phone = String(body.phone || cust.phone).trim();
+        db.prepare('UPDATE users SET full_name = ?, phone = ? WHERE id = ?').run(fullName, phone, cust.id);
+        return sendJson(res, 200, { user: { id: cust.id, email: cust.email, fullName, phone } });
+      }
+
+      if (pathname === '/api/account/addresses/add' && req.method === 'POST') {
+        const cust = resolveCustomerUser(req);
+        if (!cust) return sendJson(res, 401, { error: 'Please sign in to manage addresses.' });
+        const body = await readJsonBody(req);
+        const label = String(body.label || 'Home').trim();
+        const recipientName = String(body.recipientName || cust.full_name).trim();
+        const phone = String(body.phone || cust.phone).trim();
+        const line1 = String(body.line1 || '').trim();
+        const line2 = String(body.line2 || '').trim();
+        const city = String(body.city || '').trim();
+        const state = String(body.state || '').trim();
+        const pincode = String(body.pincode || '').trim();
+        if (!line1 || !city || !state || !/^\d{6}$/.test(pincode)) {
+          return sendJson(res, 400, { error: 'Complete street address, city, state, and 6-digit PIN code are required.' });
+        }
+        const info = db.prepare(`
+          INSERT INTO customer_addresses (user_id, label, recipient_name, phone, line1, line2, city, state, pincode, is_default)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+        `).run(cust.id, label, recipientName, phone, line1, line2, city, state, pincode);
+        return sendJson(res, 201, {
+          address: {
+            id: Number(info.lastInsertRowid),
+            user_id: cust.id,
+            label,
+            recipient_name: recipientName,
+            phone,
+            line1,
+            line2,
+            city,
+            state,
+            pincode,
+            is_default: 0
+          }
+        });
+      }
+
+      if (pathname === '/api/account/addresses/default' && req.method === 'POST') {
+        const cust = resolveCustomerUser(req);
+        if (!cust) return sendJson(res, 401, { error: 'Please sign in.' });
+        const body = await readJsonBody(req);
+        const addrId = Number(body.addressId);
+        db.prepare('UPDATE customer_addresses SET is_default = 0 WHERE user_id = ?').run(cust.id);
+        db.prepare('UPDATE customer_addresses SET is_default = 1 WHERE id = ? AND user_id = ?').run(addrId, cust.id);
+        return sendJson(res, 200, { defaultAddressId: addrId });
+      }
+
+      if (pathname === '/api/account/addresses/delete' && req.method === 'POST') {
+        const cust = resolveCustomerUser(req);
+        if (!cust) return sendJson(res, 401, { error: 'Please sign in.' });
+        const body = await readJsonBody(req);
+        const addrId = Number(body.addressId);
+        db.prepare('DELETE FROM customer_addresses WHERE id = ? AND user_id = ?').run(addrId, cust.id);
+        return sendJson(res, 200, { deletedAddressId: addrId });
+      }
+
       if (pathname === '/api/admin/vault/status' && req.method === 'GET') {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'settings.manage');
@@ -365,6 +487,43 @@ function createServerHandler() {
         const { updateShippingPolicySettings } = require('./src/core/checkout/checkoutEngine');
         const policy = updateShippingPolicySettings(body, adminUser.email, adminUser.role);
         return sendJson(res, 200, { policy });
+      }
+
+      if (pathname === '/api/admin/settings/compliance' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'settings.manage');
+        const body = await readJsonBody(req);
+        const allowedKeys = [
+          'business_legal_name',
+          'gstin',
+          'fssai_license',
+          'support_email',
+          'support_phone',
+          'registered_address',
+          'email_template_order_confirmed',
+          'email_template_order_shipped',
+          'email_template_order_delivered',
+          'email_template_order_cancelled'
+        ];
+        const upsert = db.prepare("INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))");
+        const updated = {};
+        for (const k of allowedKeys) {
+          if (body[k] !== undefined) {
+            const val = String(body[k]).trim();
+            upsert.run(k, val);
+            updated[k] = val;
+          }
+        }
+        recordAuditLog({
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role,
+          action: 'COMPLIANCE_AND_TEMPLATES_UPDATED',
+          entityType: 'SETTINGS',
+          entityId: 'COMPLIANCE_TEMPLATES',
+          details: updated
+        });
+        return sendJson(res, 200, { settings: updated });
       }
 
       if (pathname === '/api/checkout/cod-otp/request' && req.method === 'POST') {
@@ -413,12 +572,31 @@ function createServerHandler() {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'shipping.update');
         const body = await readJsonBody(req);
+        const manualShippingChargePaise = body.manualShippingChargePaise !== undefined
+          ? Number(body.manualShippingChargePaise)
+          : (body.manualShippingChargeInr !== undefined ? Math.round(Number(body.manualShippingChargeInr) * 100) : 0);
         const updated = updateOrderFulfilmentAndShipping({
           ...body,
+          manualShippingChargePaise,
           actorEmail: adminUser.email,
           actorRole: adminUser.role
         });
         return sendJson(res, 200, { order: updated });
+      }
+
+      if (pathname === '/api/admin/payments/action' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'payments.refund');
+        const body = await readJsonBody(req);
+        const updatedOrder = recordPaymentAdminAction({
+          orderNumber: body.orderNumber,
+          actionType: body.actionType,
+          refundReason: body.refundReason,
+          refundAmountPaise: body.refundAmountInr ? Math.round(Number(body.refundAmountInr) * 100) : null,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role
+        });
+        return sendJson(res, 200, { order: updatedOrder });
       }
 
       if (pathname === '/api/admin/inventory/adjust' && req.method === 'POST') {
@@ -430,8 +608,12 @@ function createServerHandler() {
         const variant = db.prepare('SELECT * FROM product_variants WHERE id = ?').get(variantId);
         if (!variant) return sendJson(res, 404, { error: 'Variant not found' });
 
+        const lowStockThreshold = body.lowStockThreshold !== undefined
+          ? Math.max(1, Number(body.lowStockThreshold))
+          : variant.low_stock_threshold;
+
         const delta = newStockQty - variant.stock_qty;
-        db.prepare('UPDATE product_variants SET stock_qty = ? WHERE id = ?').run(newStockQty, variantId);
+        db.prepare('UPDATE product_variants SET stock_qty = ?, low_stock_threshold = ? WHERE id = ?').run(newStockQty, lowStockThreshold, variantId);
         db.prepare(`
           INSERT INTO inventory_movements (variant_id, delta_qty, previous_qty, new_qty, reason, reference_id, actor_name)
           VALUES (?, ?, ?, ?, ?, 'ADMIN_PORTAL', ?)
@@ -444,10 +626,10 @@ function createServerHandler() {
           action: 'INVENTORY_ADJUSTED',
           entityType: 'VARIANT',
           entityId: variant.sku,
-          details: { previousQty: variant.stock_qty, newQty: newStockQty }
+          details: { previousQty: variant.stock_qty, newQty: newStockQty, lowStockThreshold }
         });
 
-        return sendJson(res, 200, { variantId, newStockQty });
+        return sendJson(res, 200, { variantId, newStockQty, lowStockThreshold });
       }
 
       if (pathname === '/api/admin/categories/create' && req.method === 'POST') {
@@ -500,6 +682,27 @@ function createServerHandler() {
         return sendJson(res, 201, {
           category: { id: newCatId, slug, name, subtitle, description, imageUrl }
         });
+      }
+
+      if (pathname === '/api/admin/categories/toggle-status' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'products.write');
+        const body = await readJsonBody(req);
+        const catId = Number(body.categoryId);
+        const cat = db.prepare('SELECT * FROM categories WHERE id = ?').get(catId);
+        if (!cat) return sendJson(res, 404, { error: 'Category not found' });
+        const nextActive = body.isActive !== undefined ? (Number(body.isActive) ? 1 : 0) : (cat.is_active ? 0 : 1);
+        db.prepare('UPDATE categories SET is_active = ? WHERE id = ?').run(nextActive, catId);
+        recordAuditLog({
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role,
+          action: nextActive ? 'CATEGORY_PUBLISHED' : 'CATEGORY_DEACTIVATED',
+          entityType: 'CATEGORY',
+          entityId: cat.slug,
+          details: { categoryId: catId, isActive: nextActive }
+        });
+        return sendJson(res, 200, { categoryId: catId, isActive: nextActive });
       }
 
       if (pathname === '/api/admin/categories/upload-image' && req.method === 'POST') {
@@ -606,7 +809,151 @@ function createServerHandler() {
         return sendJson(res, 201, { product: { id: newProdId, name: body.name, slug, imageUrl } });
       }
 
-      // 5. Storefront, GST Tax Invoice & Admin SSR HTML Routes
+      if (pathname === '/api/admin/products/update' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'products.write');
+        const body = await readJsonBody(req);
+        const productId = Number(body.productId);
+        const prod = db.prepare('SELECT * FROM products WHERE id = ?').get(productId);
+        if (!prod) return sendJson(res, 404, { error: 'Product not found' });
+
+        const nextName = body.name && String(body.name).trim() ? String(body.name).trim() : prod.name;
+        const nextShortDesc = body.shortDescription && String(body.shortDescription).trim()
+          ? String(body.shortDescription).trim()
+          : prod.short_description;
+
+        const lintCheck = lintContentText(`${nextName} ${nextShortDesc}`, 'edit_product');
+        if (!lintCheck.valid) {
+          return sendJson(res, 400, { error: lintCheck.issues.join(' ') });
+        }
+
+        const nextGst = body.gstPercent !== undefined && body.gstPercent !== '' ? Number(body.gstPercent) : prod.gst_percent;
+        const nextHsn = body.hsnCode && String(body.hsnCode).trim() ? String(body.hsnCode).trim() : prod.hsn_code;
+        const nextFeatured = body.isFeatured !== undefined && body.isFeatured !== '' ? (Number(body.isFeatured) ? 1 : 0) : prod.is_featured;
+        const nextBestseller = body.isBestseller !== undefined && body.isBestseller !== '' ? (Number(body.isBestseller) ? 1 : 0) : prod.is_bestseller;
+        const nextNewArrival = body.isNewArrival !== undefined && body.isNewArrival !== '' ? (Number(body.isNewArrival) ? 1 : 0) : prod.is_new_arrival;
+        const nextActive = body.isActive !== undefined && body.isActive !== '' ? (Number(body.isActive) ? 1 : 0) : prod.is_active;
+
+        db.prepare(`
+          UPDATE products
+          SET name = ?,
+              short_description = ?,
+              gst_percent = ?,
+              hsn_code = ?,
+              is_featured = ?,
+              is_bestseller = ?,
+              is_new_arrival = ?,
+              is_active = ?
+          WHERE id = ?
+        `).run(nextName, nextShortDesc, nextGst, nextHsn, nextFeatured, nextBestseller, nextNewArrival, nextActive, productId);
+
+        if (body.base100gSellInr && Number(body.base100gSellInr) >= 10) {
+          const baseSellPaise = Math.round(Number(body.base100gSellInr) * 100);
+          const baseMrpPaise = body.base100gMrpInr && Number(body.base100gMrpInr) >= Number(body.base100gSellInr)
+            ? Math.round(Number(body.base100gMrpInr) * 100)
+            : Math.round(baseSellPaise * 1.15);
+          const multMap = { 100: 1.0, 250: 2.35, 500: 4.45, 1000: 8.5 };
+          const pVars = db.prepare('SELECT * FROM product_variants WHERE product_id = ?').all(productId);
+          for (const v of pVars) {
+            const mult = multMap[v.weight_grams] || (v.weight_grams / 100);
+            const newSell = Math.round((baseSellPaise * mult) / 500) * 500;
+            const newMrp = Math.round((baseMrpPaise * mult) / 500) * 500;
+            db.prepare('UPDATE product_variants SET selling_price_paise = ?, promo_price_paise = ?, mrp_paise = ? WHERE id = ?').run(newSell, newSell, newMrp, v.id);
+          }
+        }
+
+        recordAuditLog({
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role,
+          action: 'PRODUCT_UPDATED',
+          entityType: 'PRODUCT',
+          entityId: prod.sku_base,
+          details: { productId, name: nextName, isActive: nextActive, isFeatured: nextFeatured, isBestseller: nextBestseller }
+        });
+
+        return sendJson(res, 200, { productId, name: nextName, isActive: nextActive });
+      }
+
+      if (pathname === '/api/admin/staff/create' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'staff.manage');
+        const body = await readJsonBody(req);
+        const fullName = String(body.fullName || '').trim();
+        const email = String(body.email || '').trim().toLowerCase();
+        const phone = String(body.phone || '').trim();
+        const password = String(body.password || 'Sasya@2026');
+        const role = String(body.role || 'STAFF').trim().toUpperCase();
+        if (!fullName || !email || !email.includes('@')) {
+          return sendJson(res, 400, { error: 'Staff full name and valid email address are required.' });
+        }
+        const permsArray = String(body.permissionsCsv || 'orders.view, shipping.update')
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean);
+        const passHash = hashPassword(password);
+        const resStaff = db.prepare(`
+          INSERT INTO users (email, full_name, phone, password_hash, role, permissions_json, is_active)
+          VALUES (?, ?, ?, ?, ?, ?, 1)
+        `).run(email, fullName, phone, passHash, role, JSON.stringify(permsArray));
+
+        recordAuditLog({
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role,
+          action: 'STAFF_USER_CREATED',
+          entityType: 'USER',
+          entityId: email,
+          details: { fullName, role, permissions: permsArray }
+        });
+
+        return sendJson(res, 201, {
+          staff: { id: Number(resStaff.lastInsertRowid), fullName, email, role, permissions: permsArray }
+        });
+      }
+
+      if (pathname === '/api/admin/staff/update' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'staff.manage');
+        const body = await readJsonBody(req);
+        const userId = Number(body.userId);
+        const targetUser = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+        if (!targetUser) return sendJson(res, 404, { error: 'Staff user not found' });
+
+        const nextRole = String(body.role || targetUser.role).trim().toUpperCase();
+        const nextActive = body.isActive !== undefined ? (Number(body.isActive) ? 1 : 0) : targetUser.is_active;
+        let nextPermsJson = targetUser.permissions_json;
+        if (body.permissionsJson !== undefined) {
+          const raw = String(body.permissionsJson).trim();
+          try {
+            const parsed = JSON.parse(raw);
+            nextPermsJson = JSON.stringify(Array.isArray(parsed) ? parsed : [String(parsed)]);
+          } catch {
+            nextPermsJson = JSON.stringify(raw.split(',').map(s => s.trim()).filter(Boolean));
+          }
+        }
+
+        db.prepare('UPDATE users SET role = ?, permissions_json = ?, is_active = ? WHERE id = ?').run(
+          nextRole,
+          nextPermsJson,
+          nextActive,
+          userId
+        );
+
+        recordAuditLog({
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role,
+          action: 'STAFF_PERMISSIONS_UPDATED',
+          entityType: 'USER',
+          entityId: targetUser.email,
+          details: { role: nextRole, permissionsJson: nextPermsJson, isActive: nextActive }
+        });
+
+        return sendJson(res, 200, { userId, role: nextRole, permissionsJson: nextPermsJson, isActive: nextActive });
+      }
+
+      // 5. Storefront, Customer Account, GST Tax Invoice & Admin SSR HTML Routes
       const categories = db.prepare('SELECT * FROM categories WHERE is_active = 1 ORDER BY display_order').all();
       const allProducts = db.prepare('SELECT * FROM products WHERE is_active = 1 ORDER BY id').all();
       const allVariants = db.prepare('SELECT * FROM product_variants WHERE is_active = 1 ORDER BY weight_grams').all();
@@ -643,6 +990,12 @@ function createServerHandler() {
 
         const q = (parsedUrl.searchParams.get('q') || '').trim();
         const sort = parsedUrl.searchParams.get('sort') || 'featured';
+        const tag = parsedUrl.searchParams.get('tag') || 'all';
+        const maxPrice = parsedUrl.searchParams.get('maxPrice') || 'all';
+        const pack = parsedUrl.searchParams.get('pack') || 'all';
+        const pageParam = Math.max(1, Number(parsedUrl.searchParams.get('page') || 1));
+        const limitParam = parsedUrl.searchParams.get('limit') === 'all' ? 999 : 12;
+
         let filtered = activeCategory
           ? allProducts.filter(p => p.category_id === activeCategory.id)
           : [...allProducts];
@@ -654,6 +1007,32 @@ function createServerHandler() {
             p.short_description.toLowerCase().includes(ql) ||
             p.origin_region.toLowerCase().includes(ql)
           );
+        }
+
+        if (tag === 'bestseller') filtered = filtered.filter(p => p.is_bestseller);
+        if (tag === 'featured') filtered = filtered.filter(p => p.is_featured);
+        if (tag === 'new_arrival') filtered = filtered.filter(p => p.is_new_arrival);
+        if (tag === 'in_stock') {
+          filtered = filtered.filter(p => {
+            const pv = allVariants.filter(v => v.product_id === p.id);
+            return pv.some(v => v.stock_qty > 0);
+          });
+        }
+
+        if (maxPrice !== 'all' && Number(maxPrice) > 0) {
+          const maxPaise = Number(maxPrice) * 100;
+          filtered = filtered.filter(p => {
+            const pv = allVariants.filter(v => v.product_id === p.id);
+            const minSell = pv.length ? Math.min(...pv.map(v => v.selling_price_paise)) : 0;
+            return minSell <= maxPaise;
+          });
+        }
+
+        if (pack !== 'all') {
+          filtered = filtered.filter(p => {
+            const pv = allVariants.filter(v => v.product_id === p.id);
+            return pv.some(v => v.pack_label === pack && v.stock_qty > 0);
+          });
         }
 
         if (sort === 'price_asc' || sort === 'price_desc') {
@@ -669,13 +1048,24 @@ function createServerHandler() {
           );
         }
 
+        const totalMatchingCount = filtered.length;
+        const totalPages = Math.max(1, Math.ceil(totalMatchingCount / limitParam));
+        const currentPage = Math.min(pageParam, totalPages);
+        const pagedProducts = filtered.slice((currentPage - 1) * limitParam, currentPage * limitParam);
+
         const html = renderCatalogPage({
           categories,
           activeCategory,
-          products: filtered,
+          products: pagedProducts,
           variants: allVariants,
           searchQuery: q,
-          sortBy: sort
+          sortBy: sort,
+          tagFilter: tag,
+          maxPriceInr: maxPrice,
+          packFilter: pack,
+          currentPage,
+          totalPages,
+          totalMatchingCount
         });
         return sendHtml(res, 200, html, pathname);
       }
@@ -719,26 +1109,61 @@ function createServerHandler() {
         return sendHtml(res, 200, html, '/track-order');
       }
 
+      if (pathname === '/account') {
+        const customer = resolveCustomerUser(req);
+        const addresses = customer
+          ? db.prepare('SELECT * FROM customer_addresses WHERE user_id = ? ORDER BY is_default DESC, id ASC').all(customer.id)
+          : [];
+        const custOrders = customer
+          ? db.prepare('SELECT * FROM orders WHERE user_id = ? OR lower(customer_email) = ? ORDER BY id DESC').all(customer.id, customer.email.toLowerCase())
+          : db.prepare('SELECT * FROM orders ORDER BY id DESC LIMIT 5').all();
+        const allOrderItems = db.prepare('SELECT * FROM order_items').all();
+        const html = renderCustomerAccountPage({
+          customer,
+          addresses,
+          orders: custOrders,
+          orderItems: allOrderItems
+        });
+        return sendHtml(res, 200, html, '/account');
+      }
+
       if (pathname === '/admin') {
+        const adminUser = resolveAdminUser(req);
+        if (!adminUser) {
+          const loginHtml = renderAdminLoginRequiredPage({});
+          return sendHtml(res, 200, loginHtml, '/admin');
+        }
+        const allCategoriesAdmin = db.prepare('SELECT * FROM categories ORDER BY display_order').all();
+        const allProductsAdmin = db.prepare('SELECT * FROM products ORDER BY id').all();
+        const allVariantsAdmin = db.prepare('SELECT * FROM product_variants ORDER BY product_id, weight_grams').all();
         const orders = db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
+        const orderItems = db.prepare('SELECT * FROM order_items ORDER BY id DESC').all();
         const payments = db.prepare('SELECT * FROM payments ORDER BY id DESC').all();
         const staffUsers = db.prepare("SELECT * FROM users WHERE role != 'CUSTOMER' ORDER BY id").all();
-        const auditLogs = db.prepare('SELECT * FROM audit_logs ORDER BY id DESC LIMIT 30').all();
+        const customerUsers = db.prepare("SELECT * FROM users WHERE role = 'CUSTOMER' ORDER BY id").all();
+        const customerAddresses = db.prepare('SELECT * FROM customer_addresses ORDER BY id').all();
+        const auditLogs = db.prepare('SELECT * FROM audit_logs ORDER BY id DESC LIMIT 35').all();
+        const notificationLogs = db.prepare('SELECT * FROM notification_logs ORDER BY id DESC LIMIT 25').all();
         const settings = db.prepare('SELECT * FROM store_settings ORDER BY key').all();
-        const movements = db.prepare('SELECT * FROM inventory_movements ORDER BY id DESC LIMIT 25').all();
+        const movements = db.prepare('SELECT * FROM inventory_movements ORDER BY id DESC LIMIT 30').all();
         const vaultStatus = listVaultStatus();
 
         const html = renderAdminPortalPage({
-          categories,
-          products: allProducts,
-          variants: allVariants,
+          categories: allCategoriesAdmin,
+          products: allProductsAdmin,
+          variants: allVariantsAdmin,
           orders,
+          orderItems,
           payments,
           staffUsers,
+          customerUsers,
+          customerAddresses,
           auditLogs,
+          notificationLogs,
           settings,
           movements,
-          vaultStatus
+          vaultStatus,
+          authenticatedAdmin: adminUser
         });
         return sendHtml(res, 200, html, '/admin');
       }

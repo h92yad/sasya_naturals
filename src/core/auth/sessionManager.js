@@ -140,6 +140,103 @@ function parseCookies(cookieHeader = '') {
   return out;
 }
 
+const CUSTOMER_COOKIE_NAME = 'sn_customer_session';
+
+function loginCustomerWithPassword(email, password, clientIp = '127.0.0.1') {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  const rateKey = `cust:${clientIp}:${cleanEmail}`;
+  checkLoginRateLimit(rateKey);
+
+  const db = getDb();
+  const user = db.prepare("SELECT * FROM users WHERE lower(email) = ? AND is_active = 1").get(cleanEmail);
+  if (!user || !verifyPassword(String(password || ''), user.password_hash)) {
+    recordFailedAttempt(rateKey);
+    const err = new Error('Invalid customer email or password.');
+    err.statusCode = 401;
+    throw err;
+  }
+
+  clearFailedAttempts(rateKey);
+  const exp = Date.now() + SESSION_TTL_MS;
+  const sessionToken = signSessionToken({
+    uid: user.id,
+    email: user.email,
+    role: user.role,
+    exp
+  });
+
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      fullName: user.full_name,
+      phone: user.phone,
+      role: user.role
+    },
+    sessionToken
+  };
+}
+
+function registerCustomerAccount({ fullName, email, phone, password }) {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  const cleanName = String(fullName || '').trim();
+  const cleanPhone = String(phone || '').trim();
+  const rawPass = String(password || '');
+
+  if (!cleanName || !cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('Full Name and a valid Email Address are required.');
+  }
+  if (rawPass.length < 6) {
+    throw new Error('Password must be at least 6 characters.');
+  }
+
+  const { hashPassword } = require('../../db/database');
+  const db = getDb();
+  const existing = db.prepare('SELECT id FROM users WHERE lower(email) = ?').get(cleanEmail);
+  if (existing) {
+    throw new Error('An account with this email address already exists. Please sign in.');
+  }
+
+  const passHash = hashPassword(rawPass);
+  const res = db.prepare(`
+    INSERT INTO users (email, full_name, phone, password_hash, role, permissions_json, is_active)
+    VALUES (?, ?, ?, ?, 'CUSTOMER', '[]', 1)
+  `).run(cleanEmail, cleanName, cleanPhone, passHash);
+
+  const newId = Number(res.lastInsertRowid);
+  const exp = Date.now() + SESSION_TTL_MS;
+  const sessionToken = signSessionToken({
+    uid: newId,
+    email: cleanEmail,
+    role: 'CUSTOMER',
+    exp
+  });
+
+  return {
+    user: {
+      id: newId,
+      email: cleanEmail,
+      fullName: cleanName,
+      phone: cleanPhone,
+      role: 'CUSTOMER'
+    },
+    sessionToken
+  };
+}
+
+function buildCustomerCookieHeader(sessionToken, clear = false) {
+  const maxAge = clear ? 0 : Math.floor(SESSION_TTL_MS / 1000);
+  const parts = [
+    `${CUSTOMER_COOKIE_NAME}=${clear ? '' : sessionToken}`,
+    'Path=/',
+    'HttpOnly',
+    'SameSite=Strict',
+    `Max-Age=${maxAge}`
+  ];
+  if (IS_PROD) parts.push('Secure');
+  return parts.join('; ');
+}
+
 function buildSessionCookieHeader(sessionToken, clear = false) {
   const maxAge = clear ? 0 : Math.floor(SESSION_TTL_MS / 1000);
   const parts = [
@@ -155,11 +252,15 @@ function buildSessionCookieHeader(sessionToken, clear = false) {
 
 module.exports = {
   SESSION_COOKIE_NAME,
+  CUSTOMER_COOKIE_NAME,
   signSessionToken,
   verifySessionToken,
   generateCsrfToken,
   loginAdminWithPassword,
+  loginCustomerWithPassword,
+  registerCustomerAccount,
   parseCookies,
   buildSessionCookieHeader,
+  buildCustomerCookieHeader,
   clearFailedAttempts
 };

@@ -71,13 +71,18 @@ function runVerifyRbacAndAudit() {
   assert.strictEqual(getVaultSecret('SMTP_API_KEY'), 're_live_SasyaSecretKey987654321', 'Internal server decryptor must recover exact secret');
   db.prepare("UPDATE credential_vault SET encrypted_ciphertext = '', iv_hex = '', auth_tag_hex = '', masked_hint = 'NOT_CONFIGURED', is_configured = 0 WHERE key_name = 'SMTP_API_KEY'").run();
 
-  // 8. Verify Hardened Session Cookie Login & 5-Attempt Lockout Rate-Limiter
-  const { loginAdminWithPassword, verifySessionToken, clearFailedAttempts } = require('../src/core/auth/sessionManager');
+  // 8. Verify Hardened Session Cookie Login (Staff & Customer) & 5-Attempt Lockout Rate-Limiter
+  const { loginAdminWithPassword, loginCustomerWithPassword, verifySessionToken, clearFailedAttempts } = require('../src/core/auth/sessionManager');
   clearFailedAttempts('10.0.0.99:superadmin@sasynaturals.com');
   const loginRes = loginAdminWithPassword('superadmin@sasynaturals.com', 'Sasya@2026', '10.0.0.99');
   assert(loginRes.sessionToken && loginRes.csrfToken, 'Valid password login must issue signed sessionToken and csrfToken');
   const decodedSession = verifySessionToken(loginRes.sessionToken);
   assert.strictEqual(decodedSession.role, 'SUPER_ADMIN');
+
+  // Customer Account login check (Section 4)
+  clearFailedAttempts('cust:10.0.0.99:ananya.iyer@example.com');
+  const custLoginRes = loginCustomerWithPassword('ananya.iyer@example.com', 'Sasya@2026', '10.0.0.99');
+  assert(custLoginRes.sessionToken && custLoginRes.user.role === 'CUSTOMER', 'Customer login must issue signed sessionToken');
 
   for (let i = 0; i < 5; i++) {
     assert.throws(() => loginAdminWithPassword('superadmin@sasynaturals.com', 'WrongPass', '10.0.0.88'), /Invalid staff email or password/);
@@ -85,7 +90,7 @@ function runVerifyRbacAndAudit() {
   assert.throws(() => loginAdminWithPassword('superadmin@sasynaturals.com', 'Sasya@2026', '10.0.0.88'), /Too many failed login attempts/);
   clearFailedAttempts('10.0.0.88:superadmin@sasynaturals.com');
 
-  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth + Rate-Limiter & immutable audit_logs');
+  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth + Rate-Limiter & immutable audit_logs');
 }
 
 if (require.main === module) {

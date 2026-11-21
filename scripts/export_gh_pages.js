@@ -163,8 +163,12 @@ function runExport() {
   }));
 
   const { listVaultStatus } = require('../src/core/auth/credentialVault');
-  const { renderGstInvoicePage } = require('../src/views/renderViews');
+  const { renderGstInvoicePage, renderCustomerAccountPage } = require('../src/views/renderViews');
   const settingsMap = Object.fromEntries(settings.map(s => [s.key, s.value]));
+  const allOrderItems = db.prepare('SELECT * FROM order_items ORDER BY id DESC').all();
+  const customerUsers = db.prepare("SELECT * FROM users WHERE role = 'CUSTOMER' ORDER BY id").all();
+  const customerAddresses = db.prepare('SELECT * FROM customer_addresses ORDER BY is_default DESC, id ASC').all();
+  const notificationLogs = db.prepare('SELECT * FROM notification_logs ORDER BY id DESC LIMIT 25').all();
 
   for (const ord of orders) {
     const ordItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(ord.id);
@@ -176,23 +180,44 @@ function runExport() {
     }));
   }
 
+  const demoCust = customerUsers[0] || null;
+  const demoAddresses = demoCust
+    ? customerAddresses.filter(a => Number(a.user_id) === Number(demoCust.id))
+    : customerAddresses;
+
+  writeRouteHtml('/account', renderCustomerAccountPage({
+    customer: demoCust,
+    addresses: demoAddresses,
+    orders,
+    orderItems: allOrderItems,
+    basePath: BASE_PATH,
+    staticShowcaseScript,
+    isNoIndex: true
+  }));
+
   writeRouteHtml('/admin', renderAdminPortalPage({
     categories,
     products,
     variants,
     orders,
+    orderItems: allOrderItems,
     payments,
     staffUsers,
+    customerUsers,
+    customerAddresses,
     auditLogs,
+    notificationLogs,
     settings,
     movements,
     vaultStatus: listVaultStatus(),
+    authenticatedAdmin: staffUsers[0] || null,
     basePath: BASE_PATH,
     staticShowcaseScript
   }));
 
-  // 5. Info & Policy Pages
+  // 5. Info & Policy Pages (excluding /account which is now rendered above)
   for (const [slug, info] of Object.entries(INFO_PAGES)) {
+    if (slug === 'account') continue;
     writeRouteHtml(`/${slug}`, renderStaticInfoPage({
       slug,
       title: info.title,
