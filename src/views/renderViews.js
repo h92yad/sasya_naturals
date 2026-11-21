@@ -9,6 +9,7 @@ const {
 } = require('../config/appConfig');
 const { buildMasterSchemaGraph } = require('../core/content/schemaBuilder');
 const { getShippingPolicyFromDb } = require('../core/checkout/checkoutEngine');
+const { buildComprehensiveReports } = require('../core/reports/reportingEngine');
 
 function escapeHtml(str) {
   return String(str ?? '')
@@ -1389,33 +1390,13 @@ function renderAdminPortalPage({
   const configuredVaultCount = vaultStatus.filter(v => v.is_configured).length;
   const pendingFulfilmentOrders = orders.filter(o => o.fulfilment_status === 'Confirmed' || o.fulfilment_status === 'Pending Payment' || o.fulfilment_status === 'Processing');
 
-  // Product-Wise Sales Report Aggregation (Section 5.1 Reports)
-  const productSalesMap = new Map();
-  for (const p of products) {
-    productSalesMap.set(Number(p.id), {
-      productId: p.id,
-      skuBase: p.sku_base,
-      name: p.name,
-      unitsSold: 0,
-      gramsSold: 0,
-      revenuePaise: 0
-    });
-  }
-  for (const it of orderItems) {
-    const rec = productSalesMap.get(Number(it.product_id)) || {
-      productId: it.product_id,
-      skuBase: it.sku,
-      name: it.product_name,
-      unitsSold: 0,
-      gramsSold: 0,
-      revenuePaise: 0
-    };
-    rec.unitsSold += Number(it.quantity || 0);
-    rec.gramsSold += Number(it.weight_grams || 0) * Number(it.quantity || 0);
-    rec.revenuePaise += Number(it.line_total_paise || 0);
-    productSalesMap.set(Number(it.product_id), rec);
-  }
-  const productSalesRows = Array.from(productSalesMap.values()).sort((a, b) => b.revenuePaise - a.revenuePaise);
+  const reports = buildComprehensiveReports({
+    orders,
+    orderItems,
+    payments,
+    products,
+    categories
+  });
 
   // Customer Directory Aggregation (Section 5.1 Customers)
   const customerDirectoryMap = new Map();
@@ -1997,57 +1978,285 @@ function renderAdminPortalPage({
                 </table>
               </div>
 
-              <!-- Section 5.1 Daily, Weekly, Monthly Sales & Tax Summary Report -->
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.15rem;color:var(--sn-bg-forest);">Sales, Tax &amp; Settlement Summary Report (Daily / Weekly / Monthly)</h3>
-              <div class="sn-table-wrap" style="margin-bottom:26px;">
-                <table class="sn-table">
+              <!-- Section 5.1 Comprehensive Reports Toolbar & CSV Export -->
+              <div class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:20px;padding:14px 18px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+                  <div>
+                    <span class="sn-eyebrow" style="margin:0;">Section 5.1 Reports Engine • Real Timestamp Bucketing &amp; Net-of-Refunds Accounting</span>
+                    <h3 style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.15rem;color:var(--sn-bg-forest);">
+                      Daily, Weekly &amp; Monthly Sales • Product-Wise Sales (All ${products.length}) • Order &amp; Payment Summaries
+                    </h3>
+                  </div>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-export-csv="daily" data-export-table="sn-report-daily-table">⬇ Daily CSV</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="weekly" data-export-table="sn-report-weekly-table">⬇ Weekly CSV</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="monthly" data-export-table="sn-report-monthly-table">⬇ Monthly CSV</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="products" data-export-table="sn-report-products-table">⬇ Products CSV</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="orders" data-export-table="sn-report-orders-table">⬇ Orders CSV</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="payments" data-export-table="sn-report-payments-table">⬇ Payments CSV</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 1. Period Window Rollups: Today vs. Last 7 Days (Weekly) vs. Current Month (Monthly) vs. All-Time -->
+              <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">1. Period Window Rollups (Today vs. Last 7 Days vs. Current Month MTD)</h3>
+              <div class="sn-table-wrap" style="margin-bottom:24px;">
+                <table class="sn-table" id="sn-report-period-rollups-table">
                   <thead>
-                    <tr><th>Reporting Period</th><th>Orders Count</th><th>Settled Prepaid + COD</th><th>COD Pending Collection</th><th>Refunds Issued</th><th>Included GST Collected</th></tr>
+                    <tr>
+                      <th>Time Window</th>
+                      <th>Orders (Valid / Total)</th>
+                      <th>Packs Sold</th>
+                      <th>Gross Subtotal</th>
+                      <th>Discounts</th>
+                      <th>Shipping</th>
+                      <th>Included GST (CGST+SGST / IGST)</th>
+                      <th>Settled Revenue</th>
+                      <th>COD Pending</th>
+                      <th>Refunded</th>
+                      <th>Net Order Value</th>
+                      <th>Avg Order Value (AOV)</th>
+                    </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td><strong>Today (Daily Snapshot)</strong></td>
-                      <td style="font-family:var(--sn-font-mono);">${orders.length}</td>
-                      <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(totalRevenuePaise)}</td>
-                      <td style="font-family:var(--sn-font-mono);">${formatInr(codPendingPaise)}</td>
-                      <td style="font-family:var(--sn-font-mono);">${formatInr(refundedPaise)}</td>
-                      <td style="font-family:var(--sn-font-mono);">${formatInr(totalGstPaise)}</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Last 7 Days (Weekly Rollup)</strong></td>
-                      <td style="font-family:var(--sn-font-mono);">${orders.length}</td>
-                      <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(totalRevenuePaise)}</td>
-                      <td style="font-family:var(--sn-font-mono);">${formatInr(codPendingPaise)}</td>
-                      <td style="font-family:var(--sn-font-mono);">${formatInr(refundedPaise)}</td>
-                      <td style="font-family:var(--sn-font-mono);">${formatInr(totalGstPaise)}</td>
-                    </tr>
-                    <tr>
-                      <td><strong>Current Month (Nov 2026 MTD)</strong></td>
-                      <td style="font-family:var(--sn-font-mono);">${orders.length}</td>
-                      <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(totalRevenuePaise)}</td>
-                      <td style="font-family:var(--sn-font-mono);">${formatInr(codPendingPaise)}</td>
-                      <td style="font-family:var(--sn-font-mono);">${formatInr(refundedPaise)}</td>
-                      <td style="font-family:var(--sn-font-mono);">${formatInr(totalGstPaise)}</td>
-                    </tr>
+                    ${reports.periodWindows.map(pw => `
+                      <tr>
+                        <td><strong>${escapeHtml(pw.label)}</strong></td>
+                        <td style="font-family:var(--sn-font-mono);">${pw.validOrdersCount} / ${pw.ordersCount}</td>
+                        <td style="font-family:var(--sn-font-mono);">${pw.unitsSold}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(pw.grossSubtotalPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-paid);">-${formatInr(pw.discountPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(pw.shippingPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">
+                          <strong>${formatInr(pw.totalGstPaise)}</strong><br/>
+                          <span style="color:var(--sn-text-muted);">C+S: ${formatInr(pw.cgstPaise + pw.sgstPaise)} | I: ${formatInr(pw.igstPaise)}</span>
+                        </td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(pw.settledRevenuePaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-warn);">${formatInr(pw.codPendingPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-danger);">${formatInr(pw.refundedPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(pw.netOrderValuePaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(pw.aovPaise)}</td>
+                      </tr>
+                    `).join('')}
                   </tbody>
                 </table>
               </div>
 
-              <!-- Section 5.1 Product-Wise Sales Report -->
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.15rem;color:var(--sn-bg-forest);">Product-Wise Sales &amp; Volume Report</h3>
-              <div class="sn-table-wrap">
-                <table class="sn-table">
+              <!-- 2. Granular Time-Series Breakdowns (Daily by Date | Weekly by ISO Week | Monthly by Month) -->
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+                <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">2. Granular Time-Series Sales Breakdown (Daily, Weekly &amp; Monthly Ledger)</h3>
+                <div style="display:flex;gap:6px;">
+                  <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-report-period-btn="daily">Daily Breakdown (${reports.dailySales.length} Days)</button>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-report-period-btn="weekly">Weekly Breakdown (${reports.weeklySales.length} Weeks)</button>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-report-period-btn="monthly">Monthly Breakdown (${reports.monthlySales.length} Months)</button>
+                </div>
+              </div>
+
+              <!-- 2A. Daily Time-Series Table -->
+              <div class="sn-table-wrap" data-report-period-panel="daily" style="margin-bottom:26px;">
+                <table class="sn-table" id="sn-report-daily-table">
                   <thead>
-                    <tr><th>SKU Prefix</th><th>Product Name</th><th>Packs Sold</th><th>Total Weight Sold</th><th>Gross Product Revenue</th></tr>
+                    <tr><th>Date (YYYY-MM-DD)</th><th>Orders</th><th>Packs Sold</th><th>Gross Subtotal</th><th>Discounts</th><th>Shipping</th><th>Total GST</th><th>Settled Revenue</th><th>COD Pending</th><th>Net Order Value</th><th>AOV</th></tr>
                   </thead>
                   <tbody>
-                    ${productSalesRows.slice(0, 12).map(r => `
+                    ${reports.dailySales.map(r => `
                       <tr>
-                        <td style="font-family:var(--sn-font-mono);">${escapeHtml(r.skuBase)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(r.label)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${r.ordersCount}</td>
+                        <td style="font-family:var(--sn-font-mono);">${r.unitsSold}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.grossSubtotalPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">-${formatInr(r.discountPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.shippingPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.totalGstPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(r.settledRevenuePaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.codPendingPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(r.netOrderValuePaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.aovPaise)}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- 2B. Weekly Time-Series Table -->
+              <div class="sn-table-wrap" data-report-period-panel="weekly" style="display:none;margin-bottom:26px;">
+                <table class="sn-table" id="sn-report-weekly-table">
+                  <thead>
+                    <tr><th>ISO Week &amp; Date Range</th><th>Orders</th><th>Packs Sold</th><th>Gross Subtotal</th><th>Discounts</th><th>Shipping</th><th>Total GST</th><th>Settled Revenue</th><th>COD Pending</th><th>Net Order Value</th><th>AOV</th></tr>
+                  </thead>
+                  <tbody>
+                    ${reports.weeklySales.map(r => `
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(r.label)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${r.ordersCount}</td>
+                        <td style="font-family:var(--sn-font-mono);">${r.unitsSold}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.grossSubtotalPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">-${formatInr(r.discountPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.shippingPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.totalGstPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(r.settledRevenuePaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.codPendingPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(r.netOrderValuePaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.aovPaise)}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- 2C. Monthly Time-Series Table -->
+              <div class="sn-table-wrap" data-report-period-panel="monthly" style="display:none;margin-bottom:26px;">
+                <table class="sn-table" id="sn-report-monthly-table">
+                  <thead>
+                    <tr><th>Month (YYYY-MM)</th><th>Orders</th><th>Packs Sold</th><th>Gross Subtotal</th><th>Discounts</th><th>Shipping</th><th>Total GST</th><th>Settled Revenue</th><th>COD Pending</th><th>Net Order Value</th><th>AOV</th></tr>
+                  </thead>
+                  <tbody>
+                    ${reports.monthlySales.map(r => `
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(r.label)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${r.ordersCount}</td>
+                        <td style="font-family:var(--sn-font-mono);">${r.unitsSold}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.grossSubtotalPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">-${formatInr(r.discountPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.shippingPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.totalGstPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(r.settledRevenuePaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.codPendingPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(r.netOrderValuePaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.aovPaise)}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- 3. Complete Product-Wise Sales & Volume Report (All 22 Products — Net of Cancellations/Refunds) -->
+              <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">3. Product-Wise Sales &amp; Volume Report (All ${reports.productSales.length} Products • Net of Cancelled/Refunded Orders)</h3>
+              <div class="sn-table-wrap" style="margin-bottom:26px;max-height:480px;overflow-y:auto;">
+                <table class="sn-table" id="sn-report-products-table">
+                  <thead>
+                    <tr>
+                      <th>SKU &amp; HSN</th>
+                      <th>Category</th>
+                      <th>Product Name</th>
+                      <th>Pack Variant Breakdown</th>
+                      <th>Net Packs Sold</th>
+                      <th>Net Weight Sold</th>
+                      <th>Refunded Packs</th>
+                      <th>Included GST</th>
+                      <th>Net Revenue</th>
+                      <th>Revenue Share</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${reports.productSales.map(r => `
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">
+                          <strong>${escapeHtml(r.skuBase)}</strong><br/>
+                          HSN: ${escapeHtml(r.hsnCode)}
+                        </td>
+                        <td style="font-size:0.8rem;">${escapeHtml(r.categoryName)}</td>
                         <td><strong>${escapeHtml(r.name)}</strong></td>
-                        <td style="font-family:var(--sn-font-mono);">${r.unitsSold} packs</td>
-                        <td style="font-family:var(--sn-font-mono);">${r.gramsSold} g</td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(r.revenuePaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">${escapeHtml(r.packBreakdownText)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${r.netPacksSold} packs</td>
+                        <td style="font-family:var(--sn-font-mono);">${r.netWeightGrams} g</td>
+                        <td style="font-family:var(--sn-font-mono);color:${r.refundedPacks > 0 ? 'var(--sn-status-danger)' : 'var(--sn-text-muted)'};">${r.refundedPacks}</td>
+                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.netGstPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;color:${r.netRevenuePaise > 0 ? 'var(--sn-status-paid)' : 'var(--sn-text-muted)'};">${formatInr(r.netRevenuePaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${r.revenueSharePercent}%</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- 4. Order Summaries (by Fulfilment Status + Intra-State CGST/SGST vs. Inter-State IGST) -->
+              <div class="sn-pdp-grid" style="margin-bottom:26px;">
+                <div>
+                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">4A. Order Fulfilment Status Summary</h3>
+                  <div class="sn-table-wrap">
+                    <table class="sn-table" id="sn-report-orders-table">
+                      <thead>
+                        <tr><th>Fulfilment Status</th><th>Orders</th><th>Share</th><th>Subtotal</th><th>Discounts</th><th>Shipping</th><th>Total Value</th></tr>
+                      </thead>
+                      <tbody>
+                        ${reports.orderStatusSummary.map(os => `
+                          <tr>
+                            <td><strong>${escapeHtml(os.fulfilmentStatus)}</strong></td>
+                            <td style="font-family:var(--sn-font-mono);font-weight:700;">${os.ordersCount}</td>
+                            <td style="font-family:var(--sn-font-mono);">${os.sharePercent}%</td>
+                            <td style="font-family:var(--sn-font-mono);">${formatInr(os.subtotalPaise)}</td>
+                            <td style="font-family:var(--sn-font-mono);">-${formatInr(os.discountPaise)}</td>
+                            <td style="font-family:var(--sn-font-mono);">${formatInr(os.shippingPaise)}</td>
+                            <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(os.totalPaise)}</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">4B. GST Place-of-Supply Tax Summary</h3>
+                  <div class="sn-table-wrap" style="margin-bottom:18px;">
+                    <table class="sn-table">
+                      <thead>
+                        <tr><th>Tax Regime</th><th>Valid Orders</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total GST</th><th>Invoice Total</th></tr>
+                      </thead>
+                      <tbody>
+                        ${reports.orderTaxSummary.map(tr => `
+                          <tr>
+                            <td><strong>${escapeHtml(tr.regime)}</strong></td>
+                            <td style="font-family:var(--sn-font-mono);">${tr.ordersCount}</td>
+                            <td style="font-family:var(--sn-font-mono);">${formatInr(tr.cgstPaise)}</td>
+                            <td style="font-family:var(--sn-font-mono);">${formatInr(tr.sgstPaise)}</td>
+                            <td style="font-family:var(--sn-font-mono);">${formatInr(tr.igstPaise)}</td>
+                            <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(tr.totalGstPaise)}</td>
+                            <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(tr.totalOrderPaise)}</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">5B. Payment Settlement Status Summary</h3>
+                  <div class="sn-table-wrap">
+                    <table class="sn-table">
+                      <thead>
+                        <tr><th>Payment Status</th><th>Transactions Count</th><th>Total Amount (INR)</th></tr>
+                      </thead>
+                      <tbody>
+                        ${reports.paymentStatusSummary.map(ps => `
+                          <tr>
+                            <td><span class="sn-status ${ps.status === 'PAID' || ps.status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(ps.status)}</span></td>
+                            <td style="font-family:var(--sn-font-mono);font-weight:700;">${ps.transactionsCount}</td>
+                            <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(ps.totalPaise)}</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 5A. Payment Method Summary (UPI, Cards, NetBanking, COD) -->
+              <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">5A. Payment Method &amp; Gateway Reconciliation Summary</h3>
+              <div class="sn-table-wrap">
+                <table class="sn-table" id="sn-report-payments-table">
+                  <thead>
+                    <tr><th>Payment Mode</th><th>Description</th><th>Transactions</th><th>Gross Volume</th><th>Settled / Verified</th><th>Pending Collection</th><th>Refunded</th><th>Volume Share</th></tr>
+                  </thead>
+                  <tbody>
+                    ${reports.paymentMethodSummary.map(pm => `
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(pm.method)}</td>
+                        <td>${escapeHtml(pm.label)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${pm.transactionsCount}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(pm.grossPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-paid);font-weight:700;">${formatInr(pm.settledPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-warn);">${formatInr(pm.pendingPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-danger);">${formatInr(pm.refundedPaise)}</td>
+                        <td style="font-family:var(--sn-font-mono);">${pm.sharePercent}%</td>
                       </tr>
                     `).join('')}
                   </tbody>

@@ -1198,6 +1198,69 @@
       });
     });
 
+    // 7B. Granular Time-Series Report Switcher (Daily | Weekly | Monthly) & 1-Click CSV Export
+    document.querySelectorAll('[data-report-period-btn]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-report-period-btn');
+        document.querySelectorAll('[data-report-period-btn]').forEach(b => {
+          b.className = b === btn ? 'sn-btn sn-btn-forest sn-btn-sm' : 'sn-btn sn-btn-outline sn-btn-sm';
+        });
+        document.querySelectorAll('[data-report-period-panel]').forEach(panel => {
+          panel.style.display = panel.getAttribute('data-report-period-panel') === target ? 'block' : 'none';
+        });
+      });
+    });
+
+    function triggerCsvDownload(csvText, fileName) {
+      const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    document.querySelectorAll('[data-export-csv]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const type = btn.getAttribute('data-export-csv');
+        const tableId = btn.getAttribute('data-export-table');
+        const email = getActiveAdminEmail();
+
+        if (IS_STATIC_SHOWCASE) {
+          if (email !== 'superadmin@sasynaturals.com' && email !== 'accounts@sasynaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and ACCOUNTS_MANAGER can export financial reports.');
+            return;
+          }
+          const tableEl = document.getElementById(tableId);
+          if (!tableEl) return;
+          const rows = Array.from(tableEl.querySelectorAll('tr')).map(tr =>
+            Array.from(tr.querySelectorAll('th, td')).map(cell => {
+              const txt = cell.textContent.replace(/\s+/g, ' ').trim();
+              return txt.includes(',') ? `"${txt.replace(/"/g, '""')}"` : txt;
+            }).join(',')
+          );
+          triggerCsvDownload(rows.join('\n') + '\n', `sasya-naturals-report-${type}.csv`);
+          showToast(`Exported sasya-naturals-report-${type}.csv`);
+          return;
+        }
+
+        const res = await fetch(`/api/admin/reports/export.csv?type=${encodeURIComponent(type)}`, {
+          headers: { 'x-admin-email': email }
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          showToast(errData.error || '403 RBAC Permission Denied for report export');
+          return;
+        }
+        const csvText = await res.text();
+        triggerCsvDownload(csvText, `sasya-naturals-report-${type}.csv`);
+        showToast(`Downloaded sasya-naturals-report-${type}.csv`);
+      });
+    });
+
     // 8. Staff RBAC Create & Update Forms (Panel 7)
     const createStaffForm = document.getElementById('sn-admin-create-staff-form');
     if (createStaffForm) {

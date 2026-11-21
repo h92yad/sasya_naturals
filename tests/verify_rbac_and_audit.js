@@ -90,7 +90,32 @@ function runVerifyRbacAndAudit() {
   assert.throws(() => loginAdminWithPassword('superadmin@sasynaturals.com', 'Sasya@2026', '10.0.0.88'), /Too many failed login attempts/);
   clearFailedAttempts('10.0.0.88:superadmin@sasynaturals.com');
 
-  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth + Rate-Limiter & immutable audit_logs');
+  // 9. Verify Section 5.1 Comprehensive Reports Engine (Daily vs Weekly vs Monthly, 22-Product Net Sales, Order & Payment Summaries, CSV Export)
+  const { buildComprehensiveReports, exportReportToCsv } = require('../src/core/reports/reportingEngine');
+  const reports = buildComprehensiveReports({
+    orders: db.prepare('SELECT * FROM orders ORDER BY id DESC').all(),
+    orderItems: db.prepare('SELECT * FROM order_items ORDER BY id DESC').all(),
+    payments: db.prepare('SELECT * FROM payments ORDER BY id DESC').all(),
+    products: db.prepare('SELECT * FROM products ORDER BY id').all(),
+    categories: db.prepare('SELECT * FROM categories ORDER BY display_order').all(),
+    referenceDateStr: '2026-11-21'
+  });
+
+  // Daily (2026-11-21) vs Weekly (Last 7 Days) vs Monthly (2026-11 MTD) must be distinct
+  const [dailyWin, weeklyWin, monthlyWin] = reports.periodWindows;
+  assert.strictEqual(dailyWin.ordersCount, 1, 'Daily window (2026-11-21) must contain only 1 order (SN-2026-1002)');
+  assert.strictEqual(weeklyWin.ordersCount, 2, 'Weekly window (Last 7 Days) must contain 2 orders (SN-2026-1001 & SN-2026-1002)');
+  assert.strictEqual(monthlyWin.ordersCount, 3, 'Monthly window (2026-11 MTD) must contain 3 orders (SN-2026-1000, SN-2026-1001, SN-2026-1002)');
+  assert(reports.dailySales.length >= 3, 'Granular daily time-series must list at least 3 distinct dates');
+  assert(reports.weeklySales.length >= 2, 'Granular weekly time-series must list at least 2 distinct ISO weeks');
+  assert.strictEqual(reports.productSales.length, 22, 'Product-wise sales report must cover all 22 products without truncation');
+  assert.strictEqual(reports.orderStatusSummary.length, 9, 'Order status summary must cover all 9 fulfilment statuses');
+  assert.strictEqual(reports.paymentMethodSummary.length, 4, 'Payment method summary must cover UPI, Card, NetBanking, and COD');
+
+  const prodCsv = exportReportToCsv(reports, 'products');
+  assert(prodCsv.includes('Product Name') && prodCsv.includes('Kashmiri Mamra Giri Almonds'), 'Products CSV export must include headers and products');
+
+  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth, Section 5.1 Reports Engine & immutable audit_logs');
 }
 
 if (require.main === module) {

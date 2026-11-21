@@ -1242,6 +1242,54 @@ function ensureCompleteSection3CatalogAndCustomerAddresses(db) {
       }
     }
   }
+
+  // 4. Ensure distinct historical timestamps across Daily (2026-11-21), Weekly (2026-11-19), and Monthly (2026-11-08)
+  db.prepare("UPDATE orders SET created_at = '2026-11-19 14:30:00' WHERE order_number = 'SN-2026-1001'").run();
+  db.prepare("UPDATE orders SET created_at = '2026-11-21 09:45:00' WHERE order_number = 'SN-2026-1002'").run();
+
+  const ord1000 = db.prepare("SELECT id FROM orders WHERE order_number = 'SN-2026-1000'").get();
+  if (!ord1000) {
+    const custId = cust ? cust.id : 6;
+    const insOrd1000 = db.prepare(`
+      INSERT INTO orders (
+        order_number, user_id, customer_name, customer_email, customer_phone,
+        shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_pincode,
+        delivery_instructions, subtotal_paise, discount_paise, gst_paise,
+        tax_supply_type, cgst_paise, sgst_paise, igst_paise,
+        shipping_paise, total_paise, coupon_code, payment_method, payment_status, fulfilment_status,
+        gateway_order_id, gateway_payment_id, gateway_signature,
+        courier_name, tracking_number, tracking_url, dispatch_date, manual_shipping_charge_paise,
+        stock_deducted, created_at, updated_at
+      ) VALUES (
+        'SN-2026-1000', ?, 'Ananya Iyer', 'ananya.iyer@example.com', '+91 98450 22334',
+        'Flat 402, Banyan Courtyard, Indiranagar 12th Main', 'HAL 2nd Stage', 'Bengaluru', 'Karnataka', '560038',
+        'Ring doorbell once', 138000, 10000, 6095,
+        'CGST_SGST', 3047, 3048, 0,
+        0, 128000, 'PANTRY100', 'ONLINE_CARD', 'PAID', 'Delivered',
+        'order_rzp_SN20261000', 'pay_rzp_SN20261000', 'verified_server_hmac_sha256',
+        'Delhivery Express', 'DLV77482910IN', 'https://www.delhivery.com/track/package/DLV77482910IN', '2026-11-09', 5500,
+        1, '2026-11-08 11:15:00', '2026-11-11 16:20:00'
+      )
+    `).run(custId);
+
+    const ord1000Id = Number(insOrd1000.lastInsertRowid);
+    const insItem = db.prepare(`
+      INSERT INTO order_items (
+        order_id, product_id, variant_id, product_name, sku, hsn_code, pack_label,
+        weight_grams, unit_price_paise, mrp_paise, gst_percent, quantity, line_total_paise
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    insItem.run(ord1000Id, 4, 14, 'Kashmiri Snow-White Walnut Halves (Akhrot Giri)', 'SN-DF-WLN-250G', '080290', '250 g', 250, 53000, 61000, 5, 1, 53000);
+    insItem.run(ord1000Id, 14, 54, 'Idukki 8mm+ Bold Green Cardamom (Elaichi)', 'SN-SP-CRD-100G', '090831', '100 g', 100, 42000, 48000, 5, 1, 42000);
+    insItem.run(ord1000Id, 7, 27, 'Unpolished Haveri Finger Millet (Ragi Whole & Flour)', 'SN-ML-RAG-1KG', '100821', '1 kg', 1000, 30000, 38000, 5, 1, 43000);
+
+    db.prepare(`
+      INSERT INTO payments (
+        order_id, order_number, gateway_provider, gateway_order_id, gateway_payment_id,
+        method, amount_paise, status, verified_on_server, created_at, updated_at
+      ) VALUES (?, 'SN-2026-1000', 'razorpay', 'order_rzp_SN20261000', 'pay_rzp_SN20261000', 'ONLINE_CARD', 128000, 'PAID', 1, '2026-11-08 11:16:00', '2026-11-08 11:16:00')
+    `).run(ord1000Id);
+  }
 }
 
 module.exports = {

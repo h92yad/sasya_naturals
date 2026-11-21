@@ -526,6 +526,41 @@ function createServerHandler() {
         return sendJson(res, 200, { settings: updated });
       }
 
+      if (pathname === '/api/admin/reports/summary' && req.method === 'GET') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'reports.view');
+        const { buildComprehensiveReports } = require('./src/core/reports/reportingEngine');
+        const reports = buildComprehensiveReports({
+          orders: db.prepare('SELECT * FROM orders ORDER BY id DESC').all(),
+          orderItems: db.prepare('SELECT * FROM order_items ORDER BY id DESC').all(),
+          payments: db.prepare('SELECT * FROM payments ORDER BY id DESC').all(),
+          products: db.prepare('SELECT * FROM products ORDER BY id').all(),
+          categories: db.prepare('SELECT * FROM categories ORDER BY display_order').all()
+        });
+        return sendJson(res, 200, { reports });
+      }
+
+      if (pathname === '/api/admin/reports/export.csv' && req.method === 'GET') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'reports.view');
+        const { buildComprehensiveReports, exportReportToCsv } = require('./src/core/reports/reportingEngine');
+        const reportType = parsedUrl.searchParams.get('type') || 'daily';
+        const reports = buildComprehensiveReports({
+          orders: db.prepare('SELECT * FROM orders ORDER BY id DESC').all(),
+          orderItems: db.prepare('SELECT * FROM order_items ORDER BY id DESC').all(),
+          payments: db.prepare('SELECT * FROM payments ORDER BY id DESC').all(),
+          products: db.prepare('SELECT * FROM products ORDER BY id').all(),
+          categories: db.prepare('SELECT * FROM categories ORDER BY display_order').all()
+        });
+        const csvContent = exportReportToCsv(reports, reportType);
+        res.writeHead(200, {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="sasya-naturals-report-${reportType}.csv"`,
+          'Cache-Control': 'no-store'
+        });
+        return res.end(csvContent);
+      }
+
       if (pathname === '/api/checkout/cod-otp/request' && req.method === 'POST') {
         const body = await readJsonBody(req);
         const otpRes = requestCodOtp(body.phone);
