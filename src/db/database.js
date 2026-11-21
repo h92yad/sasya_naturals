@@ -1290,6 +1290,51 @@ function ensureCompleteSection3CatalogAndCustomerAddresses(db) {
       ) VALUES (?, 'SN-2026-1000', 'razorpay', 'order_rzp_SN20261000', 'pay_rzp_SN20261000', 'ONLINE_CARD', 128000, 'PAID', 1, '2026-11-08 11:16:00', '2026-11-08 11:16:00')
     `).run(ord1000Id);
   }
+
+  // 5. Upgrade placeholder store_settings, normalize saved address labels, and assign distinct close-up product images
+  db.prepare("UPDATE store_settings SET value = 'Sasya Naturals Foods Private Limited' WHERE key = 'business_legal_name' AND value LIKE '%Configurable%'").run();
+  db.prepare("UPDATE store_settings SET value = '29AABCS1429B1Z5' WHERE key = 'gstin' AND value LIKE '%CONFIGURABLE%'").run();
+  db.prepare("UPDATE store_settings SET value = '11226332001482' WHERE key = 'fssai_license' AND value LIKE '%CONFIGURABLE%'").run();
+  db.prepare("UPDATE store_settings SET value = 'No. 48, 100 Feet Road, Indiranagar, Bengaluru, Karnataka - 560038' WHERE key = 'registered_address' AND value LIKE '%Configurable%'").run();
+
+  db.prepare("UPDATE customer_addresses SET label = 'Home' WHERE label = 'Home (Bengaluru)'").run();
+  db.prepare("UPDATE customer_addresses SET label = 'Parents Residence' WHERE label = 'Parents Residence (Mysuru)'").run();
+
+  const productPhotoMap = [
+    ['SN-DF-ALM', '/images/prod-almonds.jpg', '/images/cat-dry-fruits.jpg', 'Dry Fruits Collection Spread'],
+    ['SN-DF-CSH', '/images/prod-cashews.jpg', '/images/cat-dry-fruits.jpg', 'Dry Fruits Collection Spread'],
+    ['SN-DF-PST', '/images/prod-pistachios.jpg', '/images/cat-dry-fruits.jpg', 'Dry Fruits Collection Spread'],
+    ['SN-DF-WLN', '/images/prod-walnuts.jpg', '/images/cat-dry-fruits.jpg', 'Dry Fruits Collection Spread'],
+    ['SN-DF-FIG', '/images/prod-figs.jpg', '/images/cat-dry-fruits.jpg', 'Dry Fruits Collection Spread'],
+    ['SN-DF-MIX', '/images/prod-panchmeva.jpg', '/images/cat-dry-fruits.jpg', 'Dry Fruits Collection Spread'],
+    ['SN-DF-RSN', '/images/prod-dates.jpg', '/images/cat-dry-fruits.jpg', 'Dry Fruits Collection Spread'],
+    ['SN-DF-DAT', '/images/prod-dates.jpg', '/images/cat-dry-fruits.jpg', 'Dry Fruits Collection Spread'],
+    ['SN-ML-RAG', '/images/prod-ragi.jpg', '/images/cat-millets-grains.jpg', 'Unpolished Millets Spread'],
+    ['SN-ML-FOX', '/images/prod-foxtail.jpg', '/images/cat-millets-grains.jpg', 'Unpolished Millets Spread'],
+    ['SN-ML-LIT', '/images/prod-little-millet.jpg', '/images/cat-millets-grains.jpg', 'Unpolished Millets Spread'],
+    ['SN-ML-KOD', '/images/prod-kodo.jpg', '/images/cat-millets-grains.jpg', 'Unpolished Millets Spread'],
+    ['SN-ML-JWR', '/images/prod-jowar.jpg', '/images/cat-millets-grains.jpg', 'Unpolished Millets Spread'],
+    ['SN-ML-BRN', '/images/prod-little-millet.jpg', '/images/cat-millets-grains.jpg', 'Unpolished Millets Spread'],
+    ['SN-ML-BJR', '/images/prod-bajra.jpg', '/images/cat-millets-grains.jpg', 'Unpolished Millets Spread'],
+    ['SN-SP-TUR', '/images/prod-turmeric.jpg', '/images/cat-spices.jpg', 'Single-Origin Spices Spread'],
+    ['SN-SP-CRD', '/images/prod-cardamom.jpg', '/images/cat-spices.jpg', 'Single-Origin Spices Spread'],
+    ['SN-SP-PEP', '/images/prod-pepper.jpg', '/images/cat-spices.jpg', 'Single-Origin Spices Spread'],
+    ['SN-SP-CIN', '/images/prod-cinnamon.jpg', '/images/cat-spices.jpg', 'Single-Origin Spices Spread'],
+    ['SN-SP-CHL', '/images/prod-chilli.jpg', '/images/cat-spices.jpg', 'Single-Origin Spices Spread'],
+    ['SN-SP-CLV', '/images/prod-cloves.jpg', '/images/cat-spices.jpg', 'Single-Origin Spices Spread'],
+    ['SN-SP-COR', '/images/prod-turmeric.jpg', '/images/cat-spices.jpg', 'Single-Origin Spices Spread']
+  ];
+
+  const updateProdPhoto = db.prepare(`
+    UPDATE products
+    SET image_url = ?,
+        gallery_json = CASE WHEN gallery_json = '[]' AND id != 1 THEN ? ELSE gallery_json END
+    WHERE sku_base = ? AND (image_url LIKE '/images/cat-%' OR image_url LIKE '/images/prod-%')
+  `);
+  for (const [skuBase, primaryImg, secondaryImg, secondaryCap] of productPhotoMap) {
+    const galleryStr = JSON.stringify([{ url: secondaryImg, caption: secondaryCap }]);
+    updateProdPhoto.run(primaryImg, galleryStr, skuBase);
+  }
 }
 
 module.exports = {

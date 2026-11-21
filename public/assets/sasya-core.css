@@ -205,7 +205,8 @@ img {
 }
 
 .sn-btn-sm {
-  padding: 6px 12px;
+  padding: 7px 14px;
+  min-height: 36px;
   font-size: 0.8125rem;
 }
 
@@ -436,21 +437,23 @@ img {
 
 .sn-product-badges {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  inset: 10px;
   display: flex;
+  align-items: flex-start;
   gap: 6px;
   flex-wrap: wrap;
+  pointer-events: none;
 }
 
 .sn-badge {
   font-family: var(--sn-font-mono);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 4px 9px;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
   border-radius: 4px;
+  line-height: 1.3;
 }
 
 .sn-badge-bestseller {
@@ -464,7 +467,14 @@ img {
 }
 
 .sn-badge-origin {
-  background-color: rgba(255, 253, 249, 0.92);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-color: rgba(255, 253, 249, 0.94);
   color: var(--sn-text-primary);
   border: 1px solid var(--sn-border-warm);
 }
@@ -515,6 +525,7 @@ img {
 
 .sn-pack-pill {
   padding: 6px 4px;
+  min-height: 36px;
   font-family: var(--sn-font-mono);
   font-size: 0.74rem;
   font-weight: 600;
@@ -525,6 +536,11 @@ img {
   color: var(--sn-text-secondary);
   cursor: pointer;
   transition: all 0.15s ease;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
 }
 
 .sn-pack-pill:hover {
@@ -588,7 +604,8 @@ img {
 .sn-textarea {
   font-family: var(--sn-font-sans);
   font-size: 0.875rem;
-  padding: 10px 14px;
+  padding: 9px 12px;
+  min-height: 38px;
   border: 1px solid var(--sn-border-strong);
   border-radius: var(--sn-radius-sm);
   background-color: #FFFFFF;
@@ -610,12 +627,18 @@ img {
   align-items: start;
 }
 
+.sn-pdp-grid > * {
+  min-width: 0;
+}
+
 .sn-pdp-gallery {
   background-color: var(--sn-bg-surface);
   border: 1px solid var(--sn-border-warm);
   border-radius: var(--sn-radius-lg);
   overflow: hidden;
   box-shadow: var(--sn-shadow-soft);
+  position: sticky;
+  top: 96px;
 }
 
 .sn-pdp-gallery img {
@@ -676,9 +699,13 @@ img {
 
 .sn-admin-grid {
   display: grid;
-  grid-template-columns: 250px 1fr;
+  grid-template-columns: 250px minmax(0, 1fr);
   gap: 28px;
   align-items: start;
+}
+
+.sn-admin-grid > * {
+  min-width: 0;
 }
 
 .sn-admin-sidebar {
@@ -706,6 +733,7 @@ img {
   border: none;
   color: #D8D0C0;
   padding: 10px 12px;
+  min-height: 38px;
   border-radius: var(--sn-radius-sm);
   font-family: var(--sn-font-sans);
   font-size: 0.875rem;
@@ -726,6 +754,7 @@ img {
   border-radius: var(--sn-radius-md);
   padding: 24px;
   box-shadow: var(--sn-shadow-soft);
+  max-width: 100%;
 }
 
 .sn-kpi-grid {
@@ -758,7 +787,14 @@ img {
 }
 
 .sn-table-wrap {
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+}
+
+.sn-table-scroll-y {
+  max-height: 640px;
+  overflow-y: auto;
 }
 
 .sn-table {
@@ -781,6 +817,9 @@ img {
   font-size: 0.74rem;
   text-transform: uppercase;
   color: var(--sn-bg-forest);
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .sn-drawer-backdrop {
@@ -830,11 +869,13 @@ img {
 .sn-toast {
   position: fixed;
   bottom: 24px;
-  right: 24px;
+  left: 24px;
+  right: auto;
+  max-width: 460px;
   z-index: 220;
   background-color: var(--sn-bg-forest-deep);
   color: #FAF6EE;
-  padding: 14px 20px;
+  padding: 12px 18px;
   border-radius: var(--sn-radius-sm);
   box-shadow: var(--sn-shadow-elevated);
   font-size: 0.875rem;
@@ -843,7 +884,10 @@ img {
 }
 
 .sn-toast.sn-show {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
 }
 
 .sn-footer {
@@ -901,7 +945,31 @@ img {
   .sn-footer-grid {
     grid-template-columns: 1fr;
   }
+  .sn-pdp-gallery {
+    position: static;
+  }
   .sn-nav {
     display: none;
+  }
+}
+
+@media print {
+  body {
+    background: #FFFFFF !important;
+  }
+  .sn-topbar,
+  .sn-header,
+  .sn-footer,
+  .sn-no-print,
+  .sn-toast,
+  .sn-drawer-backdrop {
+    display: none !important;
+  }
+  .sn-section {
+    padding: 0 !important;
+  }
+  .sn-card {
+    box-shadow: none !important;
+    border: 1px solid #CCCCCC !important;
   }
 }

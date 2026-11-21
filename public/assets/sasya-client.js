@@ -43,15 +43,29 @@
     updateCartBadges();
   }
 
-  function showToast(msg) {
+  function showToast(msg, options = {}) {
     const toast = document.getElementById('sn-toast');
     if (!toast) return;
-    toast.textContent = msg;
+    toast.innerHTML = '';
+    const span = document.createElement('span');
+    span.textContent = msg;
+    toast.appendChild(span);
+
+    if (options.showViewBasket) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sn-btn sn-btn-primary sn-btn-sm';
+      btn.setAttribute('data-open-cart', 'true');
+      btn.style.cssText = 'padding:4px 10px;min-height:28px;font-size:0.76rem;white-space:nowrap;';
+      btn.innerHTML = 'View Basket &rarr;';
+      toast.appendChild(btn);
+    }
+
     toast.classList.add('sn-show');
     clearTimeout(window.__snToastTimer);
     window.__snToastTimer = setTimeout(() => {
       toast.classList.remove('sn-show');
-    }, 3400);
+    }, 3800);
   }
 
   function formatInr(paise) {
@@ -70,7 +84,7 @@
   }
 
   // Fallback in-browser Rust WASM calculator when running on static GitHub Pages showcase
-  async function calculateCartClientSide(items, couponCode) {
+  async function calculateCartClientSide(items, couponCode, paymentMethod = 'ONLINE_UPI', shippingState = 'Karnataka', shippingPincode = '560003') {
     await initBrowserWasm();
     const dbSnap = window.__SN_STATIC_DATA__ || { variants: [], coupons: [] };
     let subtotalPaise = 0;
@@ -250,6 +264,40 @@
     try {
       const data = await requestCartPricing(cart, '', 'ONLINE_UPI');
       const p = data.pricing;
+      const threshPaise = p.freeShippingThresholdPaise || 79900;
+      const maxWeightGrams = p.freeShippingMaxWeightGrams || 2000;
+      const grossGrams = p.grossWeightGrams || (p.totalWeightGrams + 150);
+      const remainingForFreePaise = Math.max(0, threshPaise - p.subtotalPaise);
+      const progressPct = Math.min(100, Math.round((p.subtotalPaise / threshPaise) * 100));
+
+      let freeDeliveryBanner = '';
+      if (p.freeShippingMode !== 'DISABLED') {
+        if (grossGrams > maxWeightGrams && p.freeShippingMode === 'THRESHOLD_WITH_WEIGHT_CAP') {
+          freeDeliveryBanner = `
+            <div style="padding:8px 10px;border-radius:6px;background-color:var(--sn-bg-mortar);font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-secondary);margin-bottom:10px;">
+              Parcel gross weight (${grossGrams}g) exceeds ${maxWeightGrams}g free-delivery cap • 4-Zone slab freight applies
+            </div>
+          `;
+        } else if (remainingForFreePaise > 0) {
+          freeDeliveryBanner = `
+            <div style="padding:8px 10px;border-radius:6px;background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-warm);margin-bottom:10px;">
+              <div style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-bg-forest);margin-bottom:4px;">
+                Add <strong>${formatInr(remainingForFreePaise)}</strong> more for <strong>FREE India-Wide Delivery</strong> (up to ${(maxWeightGrams / 1000).toFixed(1)} kg)
+              </div>
+              <div style="height:5px;background-color:var(--sn-border-warm);border-radius:999px;overflow:hidden;">
+                <div style="width:${progressPct}%;height:100%;background-color:var(--sn-bg-forest);"></div>
+              </div>
+            </div>
+          `;
+        } else {
+          freeDeliveryBanner = `
+            <div style="padding:8px 10px;border-radius:6px;background-color:var(--sn-status-paid-bg);font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-status-paid);font-weight:600;margin-bottom:10px;">
+              ✓ Complimentary Delivery Unlocked (${grossGrams}g gross parcel &le; ${maxWeightGrams}g cap)
+            </div>
+          `;
+        }
+      }
+
       bodyEl.innerHTML = p.lineItems.map(item => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--sn-border-warm);gap:12px;">
           <div style="flex:1;">
@@ -266,17 +314,18 @@
       `).join('');
 
       footEl.innerHTML = `
+        ${freeDeliveryBanner}
         <div style="font-size:0.85rem;display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
           <div style="display:flex;justify-content:space-between;"><span>Subtotal (incl. GST ${formatInr(p.gstPaise)})</span><strong style="font-family:var(--sn-font-mono);">${formatInr(p.subtotalPaise)}</strong></div>
-          <div style="display:flex;justify-content:space-between;"><span>India-Wide Delivery</span><strong style="font-family:var(--sn-font-mono);">${p.shippingPaise === 0 ? 'FREE' : formatInr(p.shippingPaise)}</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>Est. Zone A Delivery (${grossGrams}g gross)</span><strong style="font-family:var(--sn-font-mono);">${p.shippingPaise === 0 ? 'FREE' : formatInr(p.shippingPaise)}</strong></div>
           <div style="display:flex;justify-content:space-between;font-size:1.05rem;padding-top:8px;border-top:1px solid var(--sn-border-warm);color:var(--sn-bg-forest);">
             <strong>Order Total</strong>
             <strong style="font-family:var(--sn-font-mono);">${formatInr(p.totalPaise)}</strong>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1.35fr;gap:10px;">
           <button type="button" class="sn-btn sn-btn-outline" id="sn-clear-cart-btn">Clear</button>
-          <a href="${BASE_PATH}/checkout" class="sn-btn sn-btn-primary">Checkout -></a>
+          <a href="${BASE_PATH}/checkout" class="sn-btn sn-btn-primary">Proceed to Checkout &rarr;</a>
         </div>
       `;
     } catch (err) {
@@ -305,6 +354,7 @@
         const skuEl = container.querySelector('[data-sku-display]');
         const stockEl = container.querySelector('[data-stock-display]');
         const addBtn = container.querySelector('[data-add-to-cart]');
+        const buyNowBtn = container.querySelector('[data-buy-now]');
 
         if (priceEl) priceEl.textContent = formatInr(pricePaise);
         if (mrpEl) mrpEl.textContent = 'MRP ' + formatInr(mrpPaise);
@@ -315,6 +365,10 @@
         if (addBtn) {
           addBtn.setAttribute('data-variant-id', variantId);
           addBtn.setAttribute('data-pack-label', packLabel);
+        }
+        if (buyNowBtn) {
+          buyNowBtn.setAttribute('data-variant-id', variantId);
+          buyNowBtn.setAttribute('data-pack-label', packLabel);
         }
         return;
       }
@@ -335,8 +389,52 @@
           cart.push({ variantId, quantity: addQty });
         }
         saveCart(cart);
-        showToast(`Added ${productName} (${packLabel}) to your Pantry Basket`);
+        showToast(`Added ${productName} (${packLabel}) to your Pantry Basket`, { showViewBasket: true });
         await refreshCartDrawer();
+        return;
+      }
+
+      const buyNowBtn = e.target.closest('[data-buy-now]');
+      if (buyNowBtn) {
+        const variantId = Number(buyNowBtn.getAttribute('data-variant-id'));
+        const qtyInput = document.getElementById('sn-pdp-qty');
+        const addQty = qtyInput ? Math.max(1, Number(qtyInput.value || 1)) : 1;
+
+        const cart = getCart();
+        const existing = cart.find(i => Number(i.variantId) === variantId);
+        if (existing) {
+          existing.quantity = Math.min(25, existing.quantity + addQty);
+        } else {
+          cart.push({ variantId, quantity: addQty });
+        }
+        saveCart(cart);
+        window.location.href = `${BASE_PATH}/checkout`;
+        return;
+      }
+
+      if (e.target.id === 'sn-pdp-pin-check-btn') {
+        const pinInput = document.getElementById('sn-pdp-pin-input');
+        const resEl = document.getElementById('sn-pdp-pin-result');
+        const pin = String(pinInput ? pinInput.value : '').trim();
+        if (!resEl) return;
+        if (!/^\d{6}$/.test(pin) || pin === '999999') {
+          resEl.style.color = 'var(--sn-status-danger)';
+          resEl.textContent = '✕ Unserviceable PIN Code • Please enter a valid 6-digit Indian PIN';
+          return;
+        }
+        const p3 = pin.slice(0, 3);
+        const p2 = pin.slice(0, 2);
+        let zoneDesc = 'Zone C (Rest of India • ₹75/500g • 3-5 Days)';
+        if (p3 === '560') {
+          zoneDesc = 'Zone A (Local Bengaluru • ₹40/500g • 1-2 Days)';
+        } else if (['18', '19', '78', '79'].includes(p2) || ['744', '682'].includes(p3)) {
+          zoneDesc = 'Zone D (NE / J&K / Remote • ₹110/500g • 5-7 Days)';
+        } else if (['50', '51', '52', '53', '56', '57', '58', '59', '60', '61', '62', '63', '64', '67', '68', '69'].includes(p2)) {
+          zoneDesc = 'Zone B (South India • ₹55/500g • 2-4 Days)';
+        }
+        const codNote = pin === '800099' ? 'Prepaid Only (COD Disabled)' : 'Prepaid & COD Available';
+        resEl.style.color = 'var(--sn-status-paid)';
+        resEl.textContent = `✓ ${zoneDesc} • ${codNote}`;
         return;
       }
 
@@ -400,7 +498,7 @@
     async function renderSummary() {
       const cart = getCart();
       if (cart.length === 0) {
-        summaryBox.innerHTML = `<p style="color:var(--sn-text-muted);">Your basket is empty. <a href="${BASE_PATH}/shop" style="color:var(--sn-accent-terracotta);font-weight:600;">Add products from the shop -></a></p>`;
+        summaryBox.innerHTML = `<p style="color:var(--sn-text-muted);">Your basket is empty. <a href="${BASE_PATH}/shop" style="color:var(--sn-accent-terracotta);font-weight:600;">Add products from the shop &rarr;</a></p>`;
         return;
       }
       const couponCode = couponInput ? couponInput.value.trim() : '';
@@ -414,15 +512,20 @@
       try {
         const data = await requestCartPricing(cart, couponCode, paymentMethod, shippingState, shippingPincode);
         const p = data.pricing;
+        const taxLabel = p.taxSupplyType === 'IGST' ? 'Inter-State IGST' : 'Intra-State (CGST + SGST)';
         summaryBox.innerHTML = `
           <div style="display:flex;flex-direction:column;gap:10px;">
             ${p.lineItems.map(item => `
-              <div style="display:flex;justify-content:space-between;font-size:0.86rem;border-bottom:1px dashed var(--sn-border-warm);padding-bottom:8px;">
-                <div>
-                  <strong>${item.productName}</strong> (${item.packLabel}) x ${item.quantity}
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.86rem;border-bottom:1px dashed var(--sn-border-warm);padding-bottom:8px;gap:8px;">
+                <div style="flex:1;">
+                  <strong>${item.productName}</strong> (${item.packLabel}) &times; ${item.quantity}
                   <div style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);">SKU: ${item.sku} | GST ${item.gstPercent}%</div>
                 </div>
-                <span style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(item.lineTotalPaise)}</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" style="min-height:26px;padding:2px 7px;" data-cart-qty="${item.variantId}" data-delta="-1">-</button>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" style="min-height:26px;padding:2px 7px;" data-cart-qty="${item.variantId}" data-delta="1">+</button>
+                  <span style="font-family:var(--sn-font-mono);font-weight:600;min-width:54px;text-align:right;">${formatInr(item.lineTotalPaise)}</span>
+                </div>
               </div>
             `).join('')}
             <div style="display:flex;justify-content:space-between;font-size:0.88rem;padding-top:4px;">
@@ -434,7 +537,7 @@
               </div>
             ` : ''}
             <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--sn-text-muted);">
-              <span>Included GST (${p.taxSupplyType || 'CGST_SGST'})</span><span style="font-family:var(--sn-font-mono);">${formatInr(p.gstPaise)}</span>
+              <span>Included GST (${taxLabel})</span><span style="font-family:var(--sn-font-mono);">${formatInr(p.gstPaise)}</span>
             </div>
             <div style="padding:10px;border-radius:6px;background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-warm);font-size:0.79rem;display:flex;flex-direction:column;gap:4px;">
               <div style="display:flex;justify-content:space-between;">
@@ -443,11 +546,11 @@
               </div>
               <div style="display:flex;justify-content:space-between;color:var(--sn-text-secondary);">
                 <span>Gross Weight (${p.totalWeightGrams}g net + ${p.packagingTareGrams || 150}g box):</span>
-                <span style="font-family:var(--sn-font-mono);">${p.grossWeightGrams || (p.totalWeightGrams + 150)}g (${p.billable500gSlabs || 1} x 500g slabs)</span>
+                <span style="font-family:var(--sn-font-mono);">${p.grossWeightGrams || (p.totalWeightGrams + 150)}g (${p.billable500gSlabs || 1} &times; 500g slabs)</span>
               </div>
               <div style="display:flex;justify-content:space-between;color:var(--sn-text-secondary);">
-                <span>Free-Delivery Rule (${p.freeShippingMode || 'THRESHOLD_WITH_WEIGHT_CAP'}):</span>
-                <span style="font-family:var(--sn-font-mono);">${p.freeShippingMode === 'DISABLED' ? 'Always Charge Freight' : `Above ${formatInr(p.freeShippingThresholdPaise)} (<= ${p.freeShippingMaxWeightGrams || 2000}g)`}</span>
+                <span>Free-Delivery Eligibility:</span>
+                <span style="font-family:var(--sn-font-mono);">${p.freeShippingMode === 'DISABLED' ? 'Zone Freight Applies' : `Orders &ge; ${formatInr(p.freeShippingThresholdPaise)} (&le; ${p.freeShippingMaxWeightGrams || 2000}g)`}</span>
               </div>
               <div style="display:flex;justify-content:space-between;">
                 <span>Zone Freight Charge:</span>
@@ -487,7 +590,16 @@
     document.querySelectorAll('[data-checkout-saved-addr]').forEach(btn => {
       btn.addEventListener('click', () => {
         try {
-          const addr = JSON.parse(btn.getAttribute('data-checkout-saved-addr') || '{}');
+          const rawJson = btn.getAttribute('data-checkout-saved-addr');
+          const addr = rawJson && rawJson.startsWith('{') ? JSON.parse(rawJson) : {
+            recipient_name: btn.getAttribute('data-addr-name') || '',
+            phone: btn.getAttribute('data-addr-phone') || '',
+            line1: btn.getAttribute('data-addr-line1') || '',
+            line2: btn.getAttribute('data-addr-line2') || '',
+            city: btn.getAttribute('data-addr-city') || '',
+            state: btn.getAttribute('data-addr-state') || '',
+            pincode: btn.getAttribute('data-addr-pin') || ''
+          };
           const setVal = (id, val) => {
             const el = document.getElementById(id);
             if (el && val !== undefined) el.value = val;
@@ -508,7 +620,7 @@
           btn.classList.add('sn-btn-forest');
 
           renderSummary();
-          showToast(`Auto-filled saved address: ${addr.label || 'Saved Address'} (PIN ${addr.pincode})`);
+          showToast(`Auto-filled saved address: ${addr.label || addr.city} (PIN ${addr.pincode})`);
         } catch {
           // ignore malformed attribute
         }
@@ -1544,8 +1656,18 @@
     const accRoot = document.getElementById('sn-customer-account-page');
     if (!accRoot) return;
 
+    const guestAuthSections = document.getElementById('sn-customer-guest-auth-sections');
     const authSections = document.getElementById('sn-customer-authenticated-sections');
+    const toggleAuthBtn = document.getElementById('sn-customer-toggle-auth-btn');
     const logoutBtn = document.getElementById('sn-customer-logout-btn');
+
+    if (toggleAuthBtn && guestAuthSections) {
+      toggleAuthBtn.addEventListener('click', () => {
+        const isHidden = guestAuthSections.style.display === 'none';
+        guestAuthSections.style.display = isHidden ? 'grid' : 'none';
+        toggleAuthBtn.textContent = isHidden ? 'Hide Sign-In Forms' : 'Switch Account';
+      });
+    }
 
     const loginForm = document.getElementById('sn-customer-login-form');
     if (loginForm) {
@@ -1560,7 +1682,12 @@
             badge.className = 'sn-status sn-status-paid';
             badge.textContent = `Signed In: ${email}`;
           }
+          if (guestAuthSections) guestAuthSections.style.display = 'none';
           if (authSections) authSections.style.display = 'block';
+          if (toggleAuthBtn) {
+            toggleAuthBtn.style.display = 'inline-flex';
+            toggleAuthBtn.textContent = 'Switch Account';
+          }
           if (logoutBtn) logoutBtn.style.display = 'inline-flex';
           showToast(`Signed in to Customer Account (${email})`);
           return;
@@ -1592,7 +1719,12 @@
             badge.className = 'sn-status sn-status-paid';
             badge.textContent = `Signed In: ${payload.email}`;
           }
+          if (guestAuthSections) guestAuthSections.style.display = 'none';
           if (authSections) authSections.style.display = 'block';
+          if (toggleAuthBtn) {
+            toggleAuthBtn.style.display = 'inline-flex';
+            toggleAuthBtn.textContent = 'Switch Account';
+          }
           if (logoutBtn) logoutBtn.style.display = 'inline-flex';
           const nameInput = document.getElementById('cust-prof-name');
           const emailInput = document.getElementById('cust-prof-email');
@@ -1627,7 +1759,9 @@
             badge.className = 'sn-status sn-status-warn';
             badge.textContent = 'Logged Out • Please Sign In or Register';
           }
+          if (guestAuthSections) guestAuthSections.style.display = 'grid';
           if (authSections) authSections.style.display = 'none';
+          if (toggleAuthBtn) toggleAuthBtn.style.display = 'none';
           logoutBtn.style.display = 'none';
           showToast('Signed out of customer account');
           return;
@@ -1684,7 +1818,9 @@
             badge.className = 'sn-status sn-status-paid';
             badge.textContent = `Signed In: ${payload.email}`;
           }
+          if (guestAuthSections) guestAuthSections.style.display = 'none';
           if (authSections) authSections.style.display = 'block';
+          if (toggleAuthBtn) toggleAuthBtn.style.display = 'inline-flex';
           if (logoutBtn) logoutBtn.style.display = 'inline-flex';
           resetConfirmForm.reset();
           showToast(`Password reset & signed in as ${payload.email}!`);
@@ -1833,7 +1969,19 @@
   function initCatalogClientFilters() {
     const filterForm = document.getElementById('catalog-filter-form');
     const grid = document.getElementById('sn-catalog-product-grid');
-    if (!filterForm || !grid || !IS_STATIC_SHOWCASE) return;
+    if (!filterForm || !grid) return;
+
+    filterForm.querySelectorAll('select').forEach(sel => {
+      sel.addEventListener('change', () => {
+        if (typeof filterForm.requestSubmit === 'function') {
+          filterForm.requestSubmit();
+        } else {
+          filterForm.submit();
+        }
+      });
+    });
+
+    if (!IS_STATIC_SHOWCASE) return;
 
     filterForm.addEventListener('submit', (e) => {
       e.preventDefault();

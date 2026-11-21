@@ -273,8 +273,25 @@ function renderShell({
 }
 
 function renderHomePage({ categories, products, variants, basePath = '', staticShowcaseScript = '', isNoIndex = false }) {
-  const featured = products.filter(p => p.is_featured).slice(0, 6);
-  const bestsellers = products.filter(p => p.is_bestseller).slice(0, 6);
+  // Interleave featured products across categories for visual variety
+  const featuredPool = products.filter(p => p.is_featured);
+  const featured = [];
+  const byCat = [1, 2, 3].map(cid => featuredPool.filter(p => Number(p.category_id) === cid));
+  for (let i = 0; i < 6; i++) {
+    for (const group of byCat) {
+      if (group[i] && featured.length < 6) featured.push(group[i]);
+    }
+  }
+  for (const p of featuredPool) {
+    if (featured.length < 6 && !featured.some(f => f.id === p.id)) featured.push(p);
+  }
+  const featuredIds = new Set(featured.map(p => p.id));
+  const bestsellers = [
+    ...products.filter(p => p.is_bestseller && !featuredIds.has(p.id)),
+    ...products.filter(p => !p.is_bestseller && !featuredIds.has(p.id)),
+    ...products.filter(p => p.is_bestseller && featuredIds.has(p.id))
+  ].slice(0, 6);
+
   const title = `${BRAND_NAME} | ${BRAND_TAGLINE}`;
   const description = 'Shop farm-direct Kashmiri almonds, Goan W240 cashews, unpolished native millets, and cold-milled Lakadong turmeric across India in 100 g to 1 kg packs.';
 
@@ -297,7 +314,7 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
           </p>
           <div class="sn-hero-ctas">
             <a href="${basePath}/shop" class="sn-btn sn-btn-primary" id="hero-shop-all-btn">Explore Full Pantry</a>
-            <a href="${basePath}/track-order?order=SN-2026-1001" class="sn-btn sn-btn-outline" id="hero-track-demo-btn">Live Order Tracker Demo</a>
+            <a href="${basePath}/track-order?order=SN-2026-1001" class="sn-btn sn-btn-outline" id="hero-track-demo-btn">Track Your Order</a>
           </div>
           <div class="sn-trust-strip">
             <div class="sn-trust-item">
@@ -345,7 +362,7 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
                   <h3>${escapeHtml(cat.name)}</h3>
                   <p>${escapeHtml(cat.description)}</p>
                 </div>
-                <span style="font-weight:700;color:var(--sn-accent-terracotta);font-size:0.875rem;">Browse ${escapeHtml(cat.name)} -></span>
+                <span style="font-weight:700;color:var(--sn-accent-terracotta);font-size:0.875rem;">Browse ${escapeHtml(cat.name)} &rarr;</span>
               </div>
             </a>
           `).join('')}
@@ -439,6 +456,7 @@ function renderCatalogPage({
   });
 
   const totalCount = totalMatchingCount !== null ? totalMatchingCount : products.length;
+  const hasActiveFilters = Boolean(searchQuery || tagFilter !== 'all' || maxPriceInr !== 'all' || packFilter !== 'all' || sortBy !== 'featured');
 
   const bodyHtml = `
     <section class="sn-section">
@@ -459,33 +477,34 @@ function renderCatalogPage({
             `).join('')}
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input type="search" name="q" value="${escapeHtml(searchQuery)}" placeholder="Search almonds, ragi, cloves..." class="sn-input" style="width:190px;" id="catalog-search-input" />
-            <select name="tag" class="sn-select" style="width:150px;" id="catalog-tag-select">
+            <input type="search" name="q" value="${escapeHtml(searchQuery)}" placeholder="Search almonds, ragi, cloves..." class="sn-input" style="width:195px;" id="catalog-search-input" />
+            <select name="tag" class="sn-select" style="width:155px;" id="catalog-tag-select">
               <option value="all" ${tagFilter === 'all' ? 'selected' : ''}>Filter: All Items</option>
               <option value="bestseller" ${tagFilter === 'bestseller' ? 'selected' : ''}>Bestsellers Only</option>
               <option value="featured" ${tagFilter === 'featured' ? 'selected' : ''}>Featured Only</option>
               <option value="new_arrival" ${tagFilter === 'new_arrival' ? 'selected' : ''}>New Harvests</option>
               <option value="in_stock" ${tagFilter === 'in_stock' ? 'selected' : ''}>In Stock Only</option>
             </select>
-            <select name="maxPrice" class="sn-select" style="width:145px;" id="catalog-price-select">
-              <option value="all" ${maxPriceInr === 'all' ? 'selected' : ''}>Price: Any</option>
-              <option value="150" ${String(maxPriceInr) === '150' ? 'selected' : ''}>100g Under ₹150</option>
-              <option value="250" ${String(maxPriceInr) === '250' ? 'selected' : ''}>100g Under ₹250</option>
-              <option value="500" ${String(maxPriceInr) === '500' ? 'selected' : ''}>100g Under ₹500</option>
+            <select name="maxPrice" class="sn-select" style="width:165px;" id="catalog-price-select">
+              <option value="all" ${maxPriceInr === 'all' ? 'selected' : ''}>Starting Price: Any</option>
+              <option value="150" ${String(maxPriceInr) === '150' ? 'selected' : ''}>Starts Under ₹150</option>
+              <option value="250" ${String(maxPriceInr) === '250' ? 'selected' : ''}>Starts Under ₹250</option>
+              <option value="500" ${String(maxPriceInr) === '500' ? 'selected' : ''}>Starts Under ₹500</option>
             </select>
-            <select name="pack" class="sn-select" style="width:135px;" id="catalog-pack-select">
+            <select name="pack" class="sn-select" style="width:140px;" id="catalog-pack-select">
               <option value="all" ${packFilter === 'all' ? 'selected' : ''}>Pack: All Sizes</option>
               <option value="100 g" ${packFilter === '100 g' ? 'selected' : ''}>100 g Pack</option>
               <option value="250 g" ${packFilter === '250 g' ? 'selected' : ''}>250 g Pack</option>
               <option value="500 g" ${packFilter === '500 g' ? 'selected' : ''}>500 g Pack</option>
               <option value="1 kg" ${packFilter === '1 kg' ? 'selected' : ''}>1 kg Pack</option>
             </select>
-            <select name="sort" class="sn-select" style="width:155px;" id="catalog-sort-select">
+            <select name="sort" class="sn-select" style="width:160px;" id="catalog-sort-select">
               <option value="featured" ${sortBy === 'featured' ? 'selected' : ''}>Sort: Featured</option>
               <option value="price_asc" ${sortBy === 'price_asc' ? 'selected' : ''}>Price: Low to High</option>
               <option value="price_desc" ${sortBy === 'price_desc' ? 'selected' : ''}>Price: High to Low</option>
             </select>
             <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm" id="catalog-search-btn">Apply Filters</button>
+            ${hasActiveFilters ? `<a href="${basePath}${canonicalPath}" class="sn-btn sn-btn-outline sn-btn-sm" id="catalog-reset-btn">Reset</a>` : ''}
           </div>
         </form>
 
@@ -498,7 +517,7 @@ function renderCatalogPage({
 
         <div class="sn-card" style="margin-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:14px 20px;" id="sn-catalog-pagination-bar">
           <div style="font-family:var(--sn-font-mono);font-size:0.8rem;color:var(--sn-text-secondary);" id="sn-catalog-count-label">
-            Showing <strong>${products.length}</strong> of <strong>${totalCount}</strong> products (Page ${currentPage} of ${totalPages})
+            Showing <strong>${products.length}</strong> of <strong>${totalCount}</strong> products${totalPages > 1 ? ` (Page ${currentPage} of ${totalPages})` : ''}
           </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             ${totalPages > 1 ? Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => `
@@ -510,7 +529,7 @@ function renderCatalogPage({
             ${totalPages > 1 ? `
               <a href="${basePath}${canonicalPath}?limit=all" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-catalog-load-all-btn">View All (${totalCount})</a>
             ` : `
-              <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-client-progressive-more-btn" style="display:none;">Load More Products</button>
+              <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);">All matching packs displayed</span>
             `}
           </div>
         </div>
@@ -598,7 +617,7 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
           <div>
             <span class="sn-eyebrow">${escapeHtml(category.name)} • Batch ${escapeHtml(product.harvest_batch)}</span>
             <h1 style="font-family:var(--sn-font-serif);font-size:clamp(1.8rem,2.8vw,2.45rem);color:var(--sn-bg-forest);margin:0 0 10px;">${escapeHtml(product.name)}</h1>
-            <div style="display:flex;align-items:center;gap:16px;font-family:var(--sn-font-mono);font-size:0.8rem;color:var(--sn-text-muted);margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:16px;font-family:var(--sn-font-mono);font-size:0.8rem;color:var(--sn-text-muted);margin-bottom:16px;flex-wrap:wrap;">
               <span>SKU: <strong data-sku-display>${escapeHtml(defVar.sku)}</strong></span>
               <span>Rating: ★ ${Number(product.rating_value).toFixed(1)} (${product.review_count} verified buyers)</span>
               <span class="sn-status sn-status-paid" data-stock-display>In Stock (${defVar.stock_qty} packs)</span>
@@ -608,7 +627,7 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
 
             <div class="sn-card" style="margin-bottom:24px;">
               <div style="font-family:var(--sn-font-mono);font-size:0.76rem;text-transform:uppercase;color:var(--sn-text-muted);margin-bottom:8px;">
-                1. Choose Pack-Size Variant
+                1. Choose Pack-Size Variant (Prices Inclusive of ${product.gst_percent}% GST)
               </div>
               <div class="sn-pack-selector">
                 ${activeVariants.map(v => `
@@ -622,7 +641,11 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
                     data-mrp-paise="${v.mrp_paise}"
                     data-sku="${escapeHtml(v.sku)}"
                     data-stock="${v.stock_qty}"
-                  >${escapeHtml(v.pack_label)}</button>
+                    style="padding:8px 4px;"
+                  >
+                    <span>${escapeHtml(v.pack_label)}</span>
+                    <span style="font-size:0.7rem;opacity:0.85;">${formatInr(v.selling_price_paise)}</span>
+                  </button>
                 `).join('')}
               </div>
 
@@ -635,9 +658,9 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
                   <span style="font-size:0.76rem;color:var(--sn-text-muted);">Inclusive of ${product.gst_percent}% GST | ${escapeHtml(shipCopy.pdpShortText)}</span>
                 </div>
 
-                <div style="display:flex;align-items:center;gap:10px;">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                   <label for="sn-pdp-qty" style="font-size:0.8rem;font-weight:600;">Qty:</label>
-                  <input type="number" id="sn-pdp-qty" value="1" min="1" max="20" class="sn-input" style="width:72px;text-align:center;" />
+                  <input type="number" id="sn-pdp-qty" value="1" min="1" max="20" class="sn-input" style="width:68px;text-align:center;" />
                   <button
                     type="button"
                     class="sn-btn sn-btn-primary"
@@ -647,7 +670,28 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
                     data-product-name="${escapeHtml(product.name)}"
                     data-pack-label="${escapeHtml(defVar.pack_label)}"
                   >Add Pack to Basket</button>
+                  <button
+                    type="button"
+                    class="sn-btn sn-btn-forest"
+                    id="pdp-buy-now-btn"
+                    data-buy-now
+                    data-variant-id="${defVar.id}"
+                    data-product-name="${escapeHtml(product.name)}"
+                    data-pack-label="${escapeHtml(defVar.pack_label)}"
+                  >Buy Now &rarr;</button>
                 </div>
+              </div>
+
+              <!-- Instant 6-Digit PIN Delivery & Zone Freight Estimator -->
+              <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--sn-border-warm);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <label for="sn-pdp-pin-input" style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-secondary);">Check PIN Delivery &amp; Freight:</label>
+                  <input type="text" id="sn-pdp-pin-input" maxlength="6" placeholder="560038" value="560038" class="sn-input" style="width:96px;padding:5px 8px;min-height:32px;font-family:var(--sn-font-mono);font-size:0.78rem;" />
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-pdp-pin-check-btn" style="min-height:32px;padding:4px 10px;">Check PIN</button>
+                </div>
+                <span id="sn-pdp-pin-result" style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-status-paid);">
+                  ✓ Zone A (Local Bengaluru) • Prepaid &amp; COD Available • Dispatch in 24 hrs
+                </span>
               </div>
             </div>
 
@@ -724,7 +768,7 @@ function renderCheckoutPage({
       <div class="sn-container">
         <div class="sn-section-head">
           <div>
-            <span class="sn-eyebrow">Rust WASM Integer-Paise Checkout &amp; Server HMAC Verification</span>
+            <span class="sn-eyebrow">Secure Encrypted Checkout • Instant UPI, Cards, NetBanking &amp; COD</span>
             <h1>Checkout &amp; Delivery Details</h1>
           </div>
           <div>
@@ -741,7 +785,7 @@ function renderCheckoutPage({
         <div class="sn-pdp-grid">
           <form class="sn-card" id="sn-checkout-form">
             <input type="hidden" name="userId" id="chk-user-id" value="${customer ? customer.id : ''}" />
-            <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">1. Contact &amp; Indian Delivery Address (Guest or Account)</h3>
+            <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">1. Contact &amp; Indian Delivery Address</h3>
 
             ${addresses.length > 0 ? `
               <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:16px;" id="sn-checkout-saved-addresses-bar">
@@ -749,11 +793,13 @@ function renderCheckoutPage({
                   📍 Autofill from Your Saved Delivery Addresses (${addresses.length})
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                  ${addresses.map((a, idx) => `
+                  ${addresses.map((a, idx) => {
+                    const cleanLabel = String(a.label || 'Home').replace(/\s*\([^)]*\)\s*/g, '').trim() || a.label;
+                    return `
                     <button
                       type="button"
                       class="sn-btn ${idx === 0 ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
-                      data-checkout-saved-addr
+                      data-checkout-saved-addr="${escapeHtml(JSON.stringify(a))}"
                       data-addr-name="${escapeHtml(a.recipient_name)}"
                       data-addr-phone="${escapeHtml(a.phone)}"
                       data-addr-line1="${escapeHtml(a.line1)}"
@@ -761,8 +807,9 @@ function renderCheckoutPage({
                       data-addr-city="${escapeHtml(a.city)}"
                       data-addr-state="${escapeHtml(a.state)}"
                       data-addr-pin="${escapeHtml(a.pincode)}"
-                    >${escapeHtml(a.label)} (${escapeHtml(a.city)} - ${escapeHtml(a.pincode)})${a.is_default ? ' ★' : ''}</button>
-                  `).join('')}
+                    >${escapeHtml(cleanLabel)} (${escapeHtml(a.city)} - ${escapeHtml(a.pincode)})${a.is_default ? ' ★' : ''}</button>
+                  `;
+                  }).join('')}
                 </div>
               </div>
             ` : ''}
@@ -829,7 +876,7 @@ function renderCheckoutPage({
             </div>
 
             <button type="submit" class="sn-btn sn-btn-primary" style="width:100%;padding:14px;font-size:1rem;" id="place-order-submit-btn">
-              Place Order &amp; Verify Server-Side ->
+              Place Order &amp; Complete Payment &rarr;
             </button>
           </form>
 
@@ -846,7 +893,10 @@ function renderCheckoutPage({
             </div>
 
             <div class="sn-card">
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 16px;color:var(--sn-bg-forest);">Server-Calculated Order Summary</h3>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 style="font-family:var(--sn-font-serif);margin:0;color:var(--sn-bg-forest);">Your Order Summary</h3>
+                <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-open-cart>Edit Basket</button>
+              </div>
               <div id="sn-checkout-summary-box">Loading basket summary...</div>
             </div>
           </div>
@@ -859,7 +909,7 @@ function renderCheckoutPage({
     title,
     description,
     canonicalPath: '/checkout',
-    activeNav: 'shop',
+    activeNav: 'checkout',
     schemaGraph,
     bodyHtml,
     isNoIndex,
@@ -880,6 +930,7 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
   });
 
   const steps = ['Pending Payment', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'Delivered'];
+  const taxRegimeLabel = order && order.tax_supply_type === 'IGST' ? 'Inter-State IGST' : 'Intra-State CGST + SGST';
 
   const bodyHtml = `
     <section class="sn-section">
@@ -896,7 +947,7 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
             <input type="text" name="order" value="${escapeHtml(queryOrderNumber || (order ? order.order_number : 'SN-2026-1001'))}" placeholder="Enter Order Number (e.g. SN-2026-1001 or SN-2026-1002)" class="sn-input" style="max-width:360px;" id="track-order-input" />
             <button type="submit" class="sn-btn sn-btn-forest" id="track-order-submit-btn">Lookup Order Status</button>
             <span style="font-family:var(--sn-font-mono);font-size:0.78rem;color:var(--sn-text-muted);">
-              Try sample orders: <a href="${basePath}/track-order?order=SN-2026-1001" style="color:var(--sn-accent-terracotta);text-decoration:underline;">SN-2026-1001 (Shipped via Blue Dart)</a> or <a href="${basePath}/track-order?order=SN-2026-1002" style="color:var(--sn-accent-terracotta);text-decoration:underline;">SN-2026-1002 (COD Confirmed)</a>
+              Sample orders: <a href="${basePath}/track-order?order=SN-2026-1001" style="color:var(--sn-accent-terracotta);text-decoration:underline;">SN-2026-1001 (Shipped via Blue Dart)</a> or <a href="${basePath}/track-order?order=SN-2026-1002" style="color:var(--sn-accent-terracotta);text-decoration:underline;">SN-2026-1002 (COD Confirmed)</a>
             </span>
           </div>
         </form>
@@ -911,7 +962,7 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
                   Customer: <strong>${escapeHtml(order.customer_name)}</strong> | Destination: ${escapeHtml(order.shipping_city)}, ${escapeHtml(order.shipping_state)} - ${escapeHtml(order.shipping_pincode)}
                 </div>
               </div>
-              <div style="display:flex;gap:12px;flex-wrap:wrap;">
+              <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
                 <div>
                   <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">PAYMENT STATUS</div>
                   <span class="sn-status ${order.payment_status === 'PAID' || order.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(order.payment_status)}</span>
@@ -925,7 +976,7 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
                   <strong style="font-family:var(--sn-font-mono);font-size:1.1rem;color:var(--sn-bg-forest);">${formatInr(order.total_paise)}</strong>
                 </div>
                 <div>
-                  <a href="${basePath}/orders/${escapeHtml(order.order_number)}/invoice" class="sn-btn sn-btn-outline sn-btn-sm" id="download-gst-invoice-btn">GST Tax Invoice -></a>
+                  <a href="${basePath}/orders/${escapeHtml(order.order_number)}/invoice" class="sn-btn sn-btn-outline sn-btn-sm" id="download-gst-invoice-btn">GST Tax Invoice &rarr;</a>
                 </div>
               </div>
             </div>
@@ -959,23 +1010,23 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
               </div>
 
               <div class="sn-card" style="background-color:var(--sn-bg-mortar);">
-                <h3 style="font-family:var(--sn-font-serif);margin:0 0 8px;font-size:1.1rem;color:var(--sn-bg-forest);">Manual Courier &amp; Dispatch Details (Entered by Order Staff)</h3>
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 8px;font-size:1.1rem;color:var(--sn-bg-forest);">Courier &amp; Dispatch Tracking</h3>
                 ${order.courier_name ? `
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;font-size:0.88rem;">
                     <div><span style="color:var(--sn-text-muted);">Courier Partner:</span><br/><strong>${escapeHtml(order.courier_name)}</strong></div>
                     <div><span style="color:var(--sn-text-muted);">Tracking / AWB Number:</span><br/><strong style="font-family:var(--sn-font-mono);">${escapeHtml(order.tracking_number)}</strong></div>
                     <div><span style="color:var(--sn-text-muted);">Dispatch Date:</span><br/><strong style="font-family:var(--sn-font-mono);">${escapeHtml(order.dispatch_date || 'Recorded')}</strong></div>
-                    <div><span style="color:var(--sn-text-muted);">Tracking Link:</span><br/><a href="${escapeHtml(order.tracking_url || '#')}" target="_blank" rel="noopener" style="color:var(--sn-accent-terracotta);font-weight:600;">Open Courier Portal -></a></div>
+                    <div><span style="color:var(--sn-text-muted);">Tracking Link:</span><br/><a href="${escapeHtml(order.tracking_url || '#')}" target="_blank" rel="noopener" style="color:var(--sn-accent-terracotta);font-weight:600;">Open Courier Portal &rarr;</a></div>
                   </div>
                 ` : `
                   <p style="margin:0;font-size:0.88rem;color:var(--sn-text-secondary);">
-                    Your order is currently in <strong>${escapeHtml(order.fulfilment_status)}</strong> stage. Once our packing team hands the parcel to the courier partner, the courier name and manual tracking number will appear here automatically.
+                    Your order is currently in <strong>${escapeHtml(order.fulfilment_status)}</strong> stage. Once our packing team hands the parcel to the courier partner, the courier name and tracking AWB number will appear here automatically.
                   </p>
                 `}
               </div>
             </div>
 
-            <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;color:var(--sn-bg-forest);">Ordered Pack Items &amp; HSN Tax Breakdown (${escapeHtml(order.tax_supply_type || 'CGST_SGST')})</h3>
+            <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;color:var(--sn-bg-forest);">Ordered Pack Items &amp; HSN Tax Breakdown (${escapeHtml(taxRegimeLabel)})</h3>
             <div class="sn-table-wrap">
               <table class="sn-table">
                 <thead>
@@ -987,7 +1038,7 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
                       <td><strong>${escapeHtml(item.product_name)}</strong></td>
                       <td style="font-family:var(--sn-font-mono);">${escapeHtml(item.sku)}</td>
                       <td style="font-family:var(--sn-font-mono);">${escapeHtml(item.hsn_code || '080290')}</td>
-                      <td style="font-family:var(--sn-font-mono);">${escapeHtml(item.pack_label)}</td>
+                      <td style="font-family:var(--sn-font-mono);white-space:nowrap;">${escapeHtml(item.pack_label)}</td>
                       <td style="font-family:var(--sn-font-mono);">${item.quantity}</td>
                       <td style="font-family:var(--sn-font-mono);">${formatInr(item.unit_price_paise)}</td>
                       <td style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(item.line_total_paise)}</td>
@@ -1024,6 +1075,19 @@ function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, basePa
   const sgst = order.sgst_paise || (order.gst_paise - cgst);
   const igst = order.igst_paise || order.gst_paise;
 
+  const legalName = (!settingsMap.business_legal_name || settingsMap.business_legal_name.includes('Configurable'))
+    ? 'Sasya Naturals Foods Private Limited'
+    : settingsMap.business_legal_name;
+  const regAddr = (!settingsMap.registered_address || settingsMap.registered_address.includes('Configurable'))
+    ? 'No. 48, 100 Feet Road, Indiranagar, Bengaluru, Karnataka - 560038'
+    : settingsMap.registered_address;
+  const gstinVal = (!settingsMap.gstin || settingsMap.gstin.includes('CONFIGURABLE'))
+    ? '29AABCS1429B1Z5'
+    : settingsMap.gstin;
+  const fssaiVal = (!settingsMap.fssai_license || settingsMap.fssai_license.includes('CONFIGURABLE'))
+    ? '11226332001482'
+    : settingsMap.fssai_license;
+
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'webpage',
     canonicalPath: `/orders/${order.order_number}/invoice`,
@@ -1035,8 +1099,8 @@ function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, basePa
   const bodyHtml = `
     <section class="sn-section">
       <div class="sn-container" style="max-width:920px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <a href="${basePath}/track-order?order=${encodeURIComponent(order.order_number)}" class="sn-btn sn-btn-outline sn-btn-sm">&lt;- Back to Order Tracker</a>
+        <div class="sn-no-print" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <a href="${basePath}/track-order?order=${encodeURIComponent(order.order_number)}" class="sn-btn sn-btn-outline sn-btn-sm">&larr; Back to Order Tracker</a>
           <button type="button" onclick="window.print()" class="sn-btn sn-btn-forest sn-btn-sm" id="print-invoice-btn">Print / Save GST Invoice PDF</button>
         </div>
 
@@ -1044,11 +1108,11 @@ function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, basePa
           <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;padding-bottom:20px;border-bottom:2px solid var(--sn-bg-forest);">
             <div>
               <span class="sn-eyebrow">Tax Invoice (Original for Recipient)</span>
-              <h1 style="font-family:var(--sn-font-serif);font-size:1.75rem;margin:0;color:var(--sn-bg-forest);">${escapeHtml(settingsMap.business_legal_name || BRAND_NAME)}</h1>
+              <h1 style="font-family:var(--sn-font-serif);font-size:1.75rem;margin:0;color:var(--sn-bg-forest);">${escapeHtml(legalName)}</h1>
               <div style="font-size:0.84rem;color:var(--sn-text-secondary);margin-top:4px;">
-                ${escapeHtml(settingsMap.registered_address || 'Bengaluru, Karnataka')}<br/>
-                <strong>GSTIN:</strong> <span style="font-family:var(--sn-font-mono);">${escapeHtml(settingsMap.gstin || 'CONFIGURABLE')}</span> |
-                <strong>FSSAI:</strong> <span style="font-family:var(--sn-font-mono);">${escapeHtml(settingsMap.fssai_license || 'CONFIGURABLE')}</span>
+                ${escapeHtml(regAddr)}<br/>
+                <strong>GSTIN:</strong> <span style="font-family:var(--sn-font-mono);">${escapeHtml(gstinVal)}</span> |
+                <strong>FSSAI Lic. No.:</strong> <span style="font-family:var(--sn-font-mono);">${escapeHtml(fssaiVal)}</span>
               </div>
             </div>
             <div style="text-align:right;font-family:var(--sn-font-mono);font-size:0.82rem;">
@@ -1096,12 +1160,12 @@ function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, basePa
                   <tr>
                     <td style="font-family:var(--sn-font-mono);">${idx + 1}</td>
                     <td><strong>${escapeHtml(it.product_name)}</strong><br/><span style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-muted);">SKU: ${escapeHtml(it.sku)}</span></td>
-                    <td style="font-family:var(--sn-font-mono);">${escapeHtml(it.hsn_code || '080290')}</td>
-                    <td style="font-family:var(--sn-font-mono);">${escapeHtml(it.pack_label)}</td>
+                    <td style="font-family:var(--sn-font-mono);white-space:nowrap;">${escapeHtml(it.hsn_code || '080290')}</td>
+                    <td style="font-family:var(--sn-font-mono);white-space:nowrap;">${escapeHtml(it.pack_label)}</td>
                     <td style="font-family:var(--sn-font-mono);">${it.quantity}</td>
-                    <td style="font-family:var(--sn-font-mono);">${formatInr(it.unit_price_paise)}</td>
-                    <td style="font-family:var(--sn-font-mono);">${it.gst_percent}%</td>
-                    <td style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(it.line_total_paise)}</td>
+                    <td style="font-family:var(--sn-font-mono);white-space:nowrap;">${formatInr(it.unit_price_paise)}</td>
+                    <td style="font-family:var(--sn-font-mono);white-space:nowrap;">${it.gst_percent}%</td>
+                    <td style="font-family:var(--sn-font-mono);font-weight:600;white-space:nowrap;">${formatInr(it.line_total_paise)}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1174,7 +1238,7 @@ function renderCustomerAccountPage({
       <div class="sn-container">
         <div class="sn-section-head">
           <div>
-            <span class="sn-eyebrow">Section 4 Customer Account • Registration, Login, OTP Reset, Saved Addresses &amp; Order History</span>
+            <span class="sn-eyebrow">Customer Account • Saved Delivery Addresses, Order Tracking &amp; Tax Invoices</span>
             <h1>My Sasya Naturals Pantry Account</h1>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -1184,17 +1248,23 @@ function renderCustomerAccountPage({
             <button
               type="button"
               class="sn-btn sn-btn-outline sn-btn-sm"
+              id="sn-customer-toggle-auth-btn"
+              style="display:${isSignedIn ? 'inline-flex' : 'none'};"
+            >Switch Account</button>
+            <button
+              type="button"
+              class="sn-btn sn-btn-outline sn-btn-sm"
               id="sn-customer-logout-btn"
               style="display:${isSignedIn ? 'inline-flex' : 'none'};"
             >Sign Out</button>
           </div>
         </div>
 
-        <!-- 1. Customer Sign-In, New Customer Registration & Forgot Password via 6-Digit OTP -->
-        <div class="sn-pdp-grid" style="margin-bottom:24px;">
+        <!-- Guest Sign-In, New Customer Registration & Forgot Password via 6-Digit OTP (Shown when Logged Out or Switching Account) -->
+        <div class="sn-pdp-grid" id="sn-customer-guest-auth-sections" style="display:${isSignedIn ? 'none' : 'grid'};margin-bottom:24px;">
           <div style="display:flex;flex-direction:column;gap:16px;">
             <form class="sn-card" id="sn-customer-login-form" style="background-color:var(--sn-bg-parchment);">
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 8px;color:var(--sn-bg-forest);">1. Customer Sign In (PBKDF2-SHA512 + HttpOnly Cookie)</h3>
+              <h3 style="font-family:var(--sn-font-serif);margin:0 0 8px;color:var(--sn-bg-forest);">Customer Sign In</h3>
               <p style="font-size:0.82rem;color:var(--sn-text-secondary);margin:0 0 12px;">
                 Demo customer account pre-filled (<strong>ananya.iyer@example.com</strong> / <strong>Sasya@2026</strong>).
               </p>
@@ -1223,6 +1293,7 @@ function renderCustomerAccountPage({
               </form>
 
               <form id="sn-customer-reset-otp-confirm-form" style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
+                <input type="hidden" name="email" id="sn-reset-confirm-email" value="${escapeHtml(activeCustomer.email)}" />
                 <div>
                   <label style="font-size:0.74rem;font-weight:600;">6-Digit OTP Code *</label>
                   <input type="text" name="otpCode" id="sn-reset-otp-code" required pattern="\\d{6}" placeholder="e.g. 482910" class="sn-input" style="font-family:var(--sn-font-mono);" />
@@ -1237,7 +1308,7 @@ function renderCustomerAccountPage({
           </div>
 
           <form class="sn-card" id="sn-customer-register-form" style="background-color:var(--sn-bg-parchment);">
-            <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;color:var(--sn-bg-forest);">2. New Customer Registration</h3>
+            <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;color:var(--sn-bg-forest);">New Customer Registration</h3>
             <p style="font-size:0.82rem;color:var(--sn-text-secondary);margin:0 0 12px;">
               Create an account to save delivery addresses across India and link past guest checkout orders automatically.
             </p>
@@ -1261,17 +1332,17 @@ function renderCustomerAccountPage({
                 <input type="password" name="password" required minlength="6" placeholder="••••••••" class="sn-input" />
               </div>
             </div>
-            <button type="submit" class="sn-btn sn-btn-primary" style="width:100%;">Create Customer Account &amp; Sign In -></button>
+            <button type="submit" class="sn-btn sn-btn-primary" style="width:100%;">Create Customer Account &amp; Sign In &rarr;</button>
           </form>
         </div>
 
-        <!-- Authenticated Customer Sections (Hidden when Signed Out) -->
+        <!-- Authenticated Customer Sections (Shown Above-the-Fold when Signed In) -->
         <div id="sn-customer-authenticated-sections" style="display:${isSignedIn ? 'block' : 'none'};">
-          <!-- 2. Profile Management, Change Password & Saved Delivery Addresses -->
+          <!-- Profile Management, Change Password & Saved Delivery Addresses -->
           <div class="sn-pdp-grid" style="margin-bottom:28px;">
             <div style="display:flex;flex-direction:column;gap:16px;">
               <form class="sn-card" id="sn-customer-profile-form">
-                <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">3. Customer Profile &amp; Contact Preferences</h3>
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">1. Customer Profile &amp; Contact Preferences</h3>
                 <input type="hidden" name="userId" value="${activeCustomer.id}" />
                 <div style="margin-bottom:12px;">
                   <label style="font-size:0.76rem;font-weight:600;display:block;margin-bottom:4px;">Full Name *</label>
@@ -1305,14 +1376,15 @@ function renderCustomerAccountPage({
             </div>
 
             <div class="sn-card">
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">4. Saved Delivery Addresses (${addresses.length})</h3>
+              <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">2. Saved Delivery Addresses (${addresses.length})</h3>
               <div id="sn-customer-addresses-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
                 ${addresses.map(a => `
                   <div class="sn-card" style="padding:12px 16px;background-color:var(--sn-bg-parchment);" data-address-card="${a.id}">
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;">
-                      <div>
-                        <strong>${escapeHtml(a.label)}</strong> • ${escapeHtml(a.recipient_name)} (${escapeHtml(a.phone)})
-                        ${a.is_default ? `<span class="sn-status sn-status-paid" style="margin-left:6px;">Default</span>` : ''}
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <strong>${escapeHtml(a.label)}</strong>
+                        <span style="color:var(--sn-text-secondary);font-size:0.85rem;">• ${escapeHtml(a.recipient_name)} (${escapeHtml(a.phone)})</span>
+                        ${a.is_default ? `<span class="sn-status sn-status-paid">Default</span>` : ''}
                       </div>
                       <div style="display:flex;gap:6px;">
                         ${!a.is_default ? `<button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-set-default-addr="${a.id}">Set Default</button>` : ''}
@@ -1348,14 +1420,14 @@ function renderCustomerAccountPage({
             </div>
           </div>
 
-          <!-- 3. Customer Order History & GST Tax Invoices -->
+          <!-- Customer Order History & GST Tax Invoices -->
           <div class="sn-card">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
               <div>
-                <h2 style="font-family:var(--sn-font-serif);margin:0;font-size:1.35rem;color:var(--sn-bg-forest);">5. My Order History, Courier Tracking &amp; GST Invoices</h2>
+                <h2 style="font-family:var(--sn-font-serif);margin:0;font-size:1.35rem;color:var(--sn-bg-forest);">3. My Order History, Courier Tracking &amp; GST Invoices</h2>
                 <p style="font-size:0.84rem;color:var(--sn-text-secondary);margin:4px 0 0;">View real-time dual payment &amp; fulfilment statuses and manual courier AWB numbers.</p>
               </div>
-              <a href="${basePath}/checkout" class="sn-btn sn-btn-forest sn-btn-sm">Checkout with Saved Addresses -></a>
+              <a href="${basePath}/checkout" class="sn-btn sn-btn-forest sn-btn-sm">Checkout with Saved Addresses &rarr;</a>
             </div>
             <div class="sn-table-wrap">
               <table class="sn-table" id="sn-customer-orders-table">
@@ -1564,14 +1636,14 @@ function renderAdminPortalPage({
           </div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <form id="sn-admin-login-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-              <input type="email" name="email" id="sn-admin-auth-email" value="${escapeHtml(authenticatedAdmin ? authenticatedAdmin.email : 'superadmin@sasynaturals.com')}" placeholder="Staff Email" class="sn-input" style="width:210px;padding:5px 8px;font-size:0.76rem;" />
-              <input type="password" name="password" value="Sasya@2026" placeholder="Password" class="sn-input" style="width:110px;padding:5px 8px;font-size:0.76rem;" />
+              <input type="email" name="email" id="sn-admin-auth-email" value="${escapeHtml(authenticatedAdmin ? authenticatedAdmin.email : 'superadmin@sasynaturals.com')}" placeholder="Staff Email" class="sn-input" style="width:210px;padding:6px 10px;font-size:0.78rem;" />
+              <input type="password" name="password" value="Sasya@2026" placeholder="Password" class="sn-input" style="width:115px;padding:6px 10px;font-size:0.78rem;" />
               <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Staff Sign In</button>
-              <button type="button" id="sn-admin-logout-btn" class="sn-btn sn-btn-outline sn-btn-sm" style="color:#FFF;border-color:#9BA69D;">Sign Out</button>
+              <button type="button" id="sn-admin-logout-btn" class="sn-btn sn-btn-outline sn-btn-sm" style="background-color:rgba(255,255,255,0.14);color:#FFFFFF;border-color:rgba(255,255,255,0.45);">Sign Out</button>
             </form>
             <div style="display:flex;align-items:center;gap:6px;">
               <label for="sn-admin-role-switcher" style="font-family:var(--sn-font-mono);font-size:0.74rem;">Role Switcher:</label>
-              <select id="sn-admin-role-switcher" class="sn-select" style="width:265px;font-weight:600;padding:5px 8px;font-size:0.78rem;">
+              <select id="sn-admin-role-switcher" class="sn-select" style="width:265px;font-weight:600;padding:6px 10px;font-size:0.78rem;">
                 ${staffUsers.map(u => `
                   <option value="${escapeHtml(u.email)}">${escapeHtml(u.role)} - ${escapeHtml(u.full_name)}${u.is_active ? '' : ' (Inactive)'}</option>
                 `).join('')}
@@ -1684,11 +1756,11 @@ function renderAdminPortalPage({
                     </div>
 
                     <div class="sn-card" style="padding:12px 14px;background-color:var(--sn-bg-surface);">
-                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                        <span style="font-family:var(--sn-font-mono);font-size:0.72rem;text-transform:uppercase;color:var(--sn-text-muted);">
+                      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+                        <span style="font-family:var(--sn-font-mono);font-size:0.72rem;text-transform:uppercase;color:var(--sn-text-muted);white-space:nowrap;">
                           📦 Pick-and-Pack Items (${oItems.length} SKUs)
                         </span>
-                        <span style="font-family:var(--sn-font-mono);font-size:0.73rem;font-weight:700;color:var(--sn-bg-forest);">
+                        <span style="font-family:var(--sn-font-mono);font-size:0.73rem;font-weight:700;color:var(--sn-bg-forest);white-space:nowrap;">
                           Net: ${netGrams}g | Gross Parcel: ${grossGrams}g
                         </span>
                       </div>
@@ -2048,7 +2120,7 @@ function renderAdminPortalPage({
                 </div>
               </form>
 
-              <div class="sn-table-wrap">
+              <div class="sn-table-wrap sn-table-scroll-y">
                 <table class="sn-table">
                   <thead>
                     <tr><th>Photo</th><th>SKU, HSN &amp; Flags</th><th>Product Name &amp; Origin</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th><th>Status</th><th>Quick Change Photo</th></tr>
@@ -2128,12 +2200,12 @@ function renderAdminPortalPage({
                         <td style="font-family:var(--sn-font-mono);">${formatInr(v.selling_price_paise)}</td>
                         <td style="font-family:var(--sn-font-mono);color:var(--sn-text-muted);">${formatInr(v.mrp_paise)}</td>
                         <td><span class="sn-status ${v.stock_qty <= v.low_stock_threshold ? 'sn-status-danger' : 'sn-status-paid'}">${v.stock_qty} packs</span></td>
-                        <td style="font-family:var(--sn-font-mono);">le; ${v.low_stock_threshold}</td>
+                        <td style="font-family:var(--sn-font-mono);">&le; ${v.low_stock_threshold} packs</td>
                         <td>
                           <form class="sn-admin-stock-form" style="display:flex;gap:6px;align-items:center;">
                             <input type="hidden" name="variantId" value="${v.id}" />
-                            <input type="number" name="newStockQty" value="${v.stock_qty}" min="0" title="New Stock Quantity" class="sn-input" style="width:74px;padding:4px 6px;" />
-                            <input type="number" name="lowStockThreshold" value="${v.low_stock_threshold}" min="1" title="Low-Stock Alert Threshold" class="sn-input" style="width:62px;padding:4px 6px;" />
+                            <input type="number" name="newStockQty" value="${v.stock_qty}" min="0" title="New Stock Quantity" class="sn-input" style="width:74px;padding:6px;" />
+                            <input type="number" name="lowStockThreshold" value="${v.low_stock_threshold}" min="1" title="Low-Stock Alert Threshold" class="sn-input" style="width:64px;padding:6px;" />
                             <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Update</button>
                           </form>
                         </td>
@@ -2584,18 +2656,18 @@ function renderAdminPortalPage({
                           <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);">${escapeHtml(u.email)}</span>
                         </td>
                         <td><span class="sn-status sn-status-paid">${escapeHtml(u.role)}</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">${escapeHtml(u.permissions_json)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;max-width:240px;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(u.permissions_json)}</td>
                         <td><span class="sn-status ${u.is_active ? 'sn-status-paid' : 'sn-status-danger'}">${u.is_active ? 'Active' : 'Deactivated'}</span></td>
                         <td>
                           <form class="sn-admin-staff-update-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                             <input type="hidden" name="userId" value="${u.id}" />
-                            <select name="role" class="sn-select" style="width:155px;padding:4px;font-size:0.75rem;">
+                            <select name="role" class="sn-select" style="width:155px;padding:6px 8px;font-size:0.75rem;">
                               ${['SUPER_ADMIN', 'PRODUCT_MANAGER', 'ORDER_MANAGER', 'ACCOUNTS_MANAGER', 'STAFF'].map(r => `
                                 <option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>
                               `).join('')}
                             </select>
-                            <input type="text" name="permissionsJson" value="${escapeHtml(u.permissions_json)}" class="sn-input" style="width:170px;padding:4px 6px;font-family:var(--sn-font-mono);font-size:0.73rem;" />
-                            <select name="isActive" class="sn-select" style="width:105px;padding:4px;font-size:0.75rem;">
+                            <input type="text" name="permissionsJson" value="${escapeHtml(u.permissions_json)}" class="sn-input" style="width:160px;padding:6px 8px;font-family:var(--sn-font-mono);font-size:0.73rem;" />
+                            <select name="isActive" class="sn-select" style="width:105px;padding:6px 8px;font-size:0.75rem;">
                               <option value="1" ${u.is_active ? 'selected' : ''}>Active</option>
                               <option value="0" ${!u.is_active ? 'selected' : ''}>Deactivate</option>
                             </select>
@@ -2617,12 +2689,12 @@ function renderAdminPortalPage({
                   <tbody>
                     ${auditLogs.map(log => `
                       <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">${escapeHtml(log.created_at)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${escapeHtml(log.actor_email)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">${escapeHtml(log.created_at)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">${escapeHtml(log.actor_email)}</td>
                         <td><span class="sn-status sn-status-warn">${escapeHtml(log.actor_role)}</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">${escapeHtml(log.action)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${escapeHtml(log.entity_type)}:${escapeHtml(log.entity_id)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">${escapeHtml(log.details_json)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">${escapeHtml(log.action)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">${escapeHtml(log.entity_type)}:${escapeHtml(log.entity_id)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(log.details_json)}</td>
                       </tr>
                     `).join('')}
                   </tbody>
@@ -2640,6 +2712,21 @@ function renderAdminPortalPage({
               ${(() => {
                 const sMap = Object.fromEntries(settings.map(s => [s.key, s.value]));
                 const curMode = sMap.shipping_free_mode || 'THRESHOLD_WITH_WEIGHT_CAP';
+                const threshVal = sMap.free_shipping_threshold_inr || '799';
+                const maxWeightVal = sMap.free_shipping_max_weight_grams || '2000';
+                const legalNameVal = (!sMap.business_legal_name || sMap.business_legal_name.includes('Configurable'))
+                  ? 'Sasya Naturals Foods Private Limited'
+                  : sMap.business_legal_name;
+                const gstinVal = (!sMap.gstin || sMap.gstin.includes('CONFIGURABLE'))
+                  ? '29AABCS1429B1Z5'
+                  : sMap.gstin;
+                const fssaiVal = (!sMap.fssai_license || sMap.fssai_license.includes('CONFIGURABLE'))
+                  ? '11226332001482'
+                  : sMap.fssai_license;
+                const regAddrVal = (!sMap.registered_address || sMap.registered_address.includes('Configurable'))
+                  ? 'No. 48, 100 Feet Road, Indiranagar, Bengaluru, Karnataka - 560038'
+                  : sMap.registered_address;
+
                 return `
                   <form id="sn-admin-shipping-policy-form" class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:24px;">
                     <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.05rem;color:var(--sn-bg-forest);">1. Delivery Pricing Engine (4-Zone + 500g Weight Slabs + Free-Delivery Control)</h3>
@@ -2647,18 +2734,18 @@ function renderAdminPortalPage({
                       <div>
                         <label style="font-size:0.76rem;font-weight:700;display:block;margin-bottom:4px;">Free-Delivery Policy Mode *</label>
                         <select name="shipping_free_mode" class="sn-select" style="font-weight:600;">
-                          <option value="DISABLED" ${curMode === 'DISABLED' ? 'selected' : ''}>DISABLED (No Free Delivery - Always Charge Zone/Weight)</option>
-                          <option value="THRESHOLD_WITH_WEIGHT_CAP" ${curMode === 'THRESHOLD_WITH_WEIGHT_CAP' ? 'selected' : ''}>THRESHOLD + WEIGHT CAP (Free Above ₹X up to Y Grams)</option>
-                          <option value="UNCONDITIONAL_THRESHOLD" ${curMode === 'UNCONDITIONAL_THRESHOLD' ? 'selected' : ''}>UNCONDITIONAL THRESHOLD (Free Above ₹X Any Weight)</option>
+                          <option value="DISABLED" ${curMode === 'DISABLED' ? 'selected' : ''}>DISABLED (Always Charge Zone Freight)</option>
+                          <option value="THRESHOLD_WITH_WEIGHT_CAP" ${curMode === 'THRESHOLD_WITH_WEIGHT_CAP' ? 'selected' : ''}>THRESHOLD + CAP (Free &ge; ₹${escapeHtml(threshVal)}, &le; ${escapeHtml(maxWeightVal)}g)</option>
+                          <option value="UNCONDITIONAL_THRESHOLD" ${curMode === 'UNCONDITIONAL_THRESHOLD' ? 'selected' : ''}>UNCONDITIONAL (Free &ge; ₹${escapeHtml(threshVal)}, Any Weight)</option>
                         </select>
                       </div>
                       <div>
                         <label style="font-size:0.76rem;font-weight:700;display:block;margin-bottom:4px;">Free Delivery Above (INR ₹)</label>
-                        <input type="number" name="free_shipping_threshold_inr" value="${escapeHtml(sMap.free_shipping_threshold_inr || '799')}" min="0" class="sn-input" />
+                        <input type="number" name="free_shipping_threshold_inr" value="${escapeHtml(threshVal)}" min="0" class="sn-input" />
                       </div>
                       <div>
                         <label style="font-size:0.76rem;font-weight:700;display:block;margin-bottom:4px;">Free-Delivery Max Weight Cap (g)</label>
-                        <input type="number" name="free_shipping_max_weight_grams" value="${escapeHtml(sMap.free_shipping_max_weight_grams || '2000')}" min="100" class="sn-input" />
+                        <input type="number" name="free_shipping_max_weight_grams" value="${escapeHtml(maxWeightVal)}" min="100" class="sn-input" />
                       </div>
                     </div>
 
@@ -2709,52 +2796,52 @@ function renderAdminPortalPage({
                   <!-- 2. Editable Business Legal, GSTIN, FSSAI & Notification Templates Form (Section 8 & Section 11) -->
                   <form id="sn-admin-compliance-form" class="sn-card" style="background-color:var(--sn-bg-mortar);margin-bottom:24px;">
                     <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.05rem;color:var(--sn-bg-forest);">2. Business Legal, GSTIN, FSSAI &amp; Customer Notification Templates Editor (Sections 8 &amp; 11)</h3>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+                    <div style="display:grid;grid-template-columns:1.2fr 0.9fr 0.9fr;gap:12px;margin-bottom:12px;">
                       <div>
                         <label style="font-size:0.74rem;font-weight:600;display:block;">Business Legal Name *</label>
-                        <input type="text" name="business_legal_name" required value="${escapeHtml(sMap.business_legal_name || '')}" class="sn-input" />
+                        <input type="text" name="business_legal_name" required value="${escapeHtml(legalNameVal)}" class="sn-input" />
                       </div>
                       <div>
                         <label style="font-size:0.74rem;font-weight:600;display:block;">GSTIN Registration *</label>
-                        <input type="text" name="gstin" required value="${escapeHtml(sMap.gstin || '')}" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                        <input type="text" name="gstin" required value="${escapeHtml(gstinVal)}" class="sn-input" style="font-family:var(--sn-font-mono);" />
                       </div>
                       <div>
                         <label style="font-size:0.74rem;font-weight:600;display:block;">FSSAI Licence / Registration *</label>
-                        <input type="text" name="fssai_license" required value="${escapeHtml(sMap.fssai_license || '')}" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                        <input type="text" name="fssai_license" required value="${escapeHtml(fssaiVal)}" class="sn-input" style="font-family:var(--sn-font-mono);" />
                       </div>
                     </div>
                     <div style="display:grid;grid-template-columns:0.8fr 0.8fr 1.4fr;gap:12px;margin-bottom:12px;">
                       <div>
                         <label style="font-size:0.74rem;font-weight:600;display:block;">Customer Support Email *</label>
-                        <input type="email" name="support_email" required value="${escapeHtml(sMap.support_email || '')}" class="sn-input" />
+                        <input type="email" name="support_email" required value="${escapeHtml(sMap.support_email || 'care@sasynaturals.com')}" class="sn-input" />
                       </div>
                       <div>
                         <label style="font-size:0.74rem;font-weight:600;display:block;">Support Phone *</label>
-                        <input type="text" name="support_phone" required value="${escapeHtml(sMap.support_phone || '')}" class="sn-input" />
+                        <input type="text" name="support_phone" required value="${escapeHtml(sMap.support_phone || '+91 80 4568 2200')}" class="sn-input" />
                       </div>
                       <div>
                         <label style="font-size:0.74rem;font-weight:600;display:block;">Registered Office &amp; Dispatch Address *</label>
-                        <input type="text" name="registered_address" required value="${escapeHtml(sMap.registered_address || '')}" class="sn-input" />
+                        <input type="text" name="registered_address" required value="${escapeHtml(regAddrVal)}" class="sn-input" />
                       </div>
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
                       <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">Order Confirmation Notification Template</label>
-                        <input type="text" name="email_template_order_confirmed" value="${escapeHtml(sMap.email_template_order_confirmed || '')}" class="sn-input" />
+                        <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Order Confirmation Notification Template</label>
+                        <textarea name="email_template_order_confirmed" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_confirmed || '')}</textarea>
                       </div>
                       <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">Order Shipped / Dispatch Notification Template</label>
-                        <input type="text" name="email_template_order_shipped" value="${escapeHtml(sMap.email_template_order_shipped || '')}" class="sn-input" />
+                        <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Order Shipped / Dispatch Notification Template</label>
+                        <textarea name="email_template_order_shipped" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_shipped || '')}</textarea>
                       </div>
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;">
                       <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">Order Delivered Notification Template</label>
-                        <input type="text" name="email_template_order_delivered" value="${escapeHtml(sMap.email_template_order_delivered || '')}" class="sn-input" />
+                        <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Order Delivered Notification Template</label>
+                        <textarea name="email_template_order_delivered" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_delivered || '')}</textarea>
                       </div>
                       <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">Cancellation / Refund Notification Template</label>
-                        <input type="text" name="email_template_order_cancelled" value="${escapeHtml(sMap.email_template_order_cancelled || '')}" class="sn-input" />
+                        <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Cancellation / Refund Notification Template</label>
+                        <textarea name="email_template_order_cancelled" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_cancelled || '')}</textarea>
                       </div>
                       <button type="submit" class="sn-btn sn-btn-forest">Save Compliance &amp; Templates</button>
                     </div>
@@ -2776,7 +2863,7 @@ function renderAdminPortalPage({
                         <td><span class="sn-status sn-status-paid">${escapeHtml(nl.channel)}</span></td>
                         <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">${escapeHtml(nl.recipient)}</td>
                         <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">${escapeHtml(nl.event_type)}</td>
-                        <td style="font-size:0.8rem;"><strong>${escapeHtml(nl.subject)}</strong> — ${escapeHtml(nl.body_preview)}</td>
+                        <td style="font-size:0.8rem;"><strong>${escapeHtml(nl.subject)}</strong> - ${escapeHtml(nl.body_preview)}</td>
                       </tr>
                     `).join('')}
                   </tbody>
@@ -2813,14 +2900,66 @@ function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath
     breadcrumbs: [{ name: 'Home', url: '/' }, { name: title, url: canonicalPath }]
   });
 
+  let extraSectionHtml = '';
+  if (slug === 'shipping-returns') {
+    extraSectionHtml = `
+      <div class="sn-card" style="margin-top:20px;background-color:var(--sn-bg-parchment);">
+        <h2 style="font-family:var(--sn-font-serif);font-size:1.3rem;margin:0 0 12px;color:var(--sn-bg-forest);">4-Zone + 500g Weight-Slab Courier Rate Card</h2>
+        <div class="sn-table-wrap">
+          <table class="sn-table">
+            <thead>
+              <tr><th>Delivery Zone</th><th>PIN Code Coverage</th><th>Base 500g Slab</th><th>Each Additional 500g</th><th>Estimated Transit</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><strong>Zone A (Local Bengaluru)</strong></td><td style="font-family:var(--sn-font-mono);">560xxx</td><td style="font-family:var(--sn-font-mono);">₹40</td><td style="font-family:var(--sn-font-mono);">+₹15</td><td>1 to 2 Business Days</td></tr>
+              <tr><td><strong>Zone B (South India)</strong></td><td style="font-family:var(--sn-font-mono);">Karnataka, TN, Kerala, AP, Telangana</td><td style="font-family:var(--sn-font-mono);">₹55</td><td style="font-family:var(--sn-font-mono);">+₹25</td><td>2 to 4 Business Days</td></tr>
+              <tr><td><strong>Zone C (Rest of India)</strong></td><td style="font-family:var(--sn-font-mono);">MH, DL, GJ, RJ, UP, WB, MP &amp; Metros</td><td style="font-family:var(--sn-font-mono);">₹75</td><td style="font-family:var(--sn-font-mono);">+₹35</td><td>3 to 5 Business Days</td></tr>
+              <tr><td><strong>Zone D (NE / J&amp;K / Remote)</strong></td><td style="font-family:var(--sn-font-mono);">18xxxx, 19xxxx, 78xxxx, 79xxxx</td><td style="font-family:var(--sn-font-mono);">₹110</td><td style="font-family:var(--sn-font-mono);">+₹55</td><td>5 to 7 Business Days</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  } else if (slug === 'contact') {
+    extraSectionHtml = `
+      <div class="sn-category-grid" style="margin-top:20px;">
+        <div class="sn-card" style="background-color:var(--sn-bg-parchment);">
+          <span class="sn-eyebrow">Direct Support Desk</span>
+          <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Phone &amp; WhatsApp Care</h3>
+          <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">+91 80 4568 2200<br/>Mon to Sat, 9:30 AM to 6:30 PM IST</p>
+        </div>
+        <div class="sn-card" style="background-color:var(--sn-bg-parchment);">
+          <span class="sn-eyebrow">Order &amp; Bulk Enquiries</span>
+          <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Email Customer Care</h3>
+          <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">care@sasynaturals.com<br/>Responses within 4 business hours</p>
+        </div>
+        <div class="sn-card" style="background-color:var(--sn-bg-parchment);">
+          <span class="sn-eyebrow">Bengaluru Dispatch Hub</span>
+          <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Registered Pantry Office</h3>
+          <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">No. 48, 100 Feet Road, Indiranagar, Bengaluru, Karnataka - 560038</p>
+        </div>
+      </div>
+    `;
+  }
+
   const bodyHtml = `
     <section class="sn-section">
-      <div class="sn-container" style="max-width:880px;">
+      <div class="sn-container" style="max-width:920px;">
         <span class="sn-eyebrow">${escapeHtml(subtitle)}</span>
         <h1 style="font-family:var(--sn-font-serif);font-size:2.2rem;color:var(--sn-bg-forest);margin:0 0 24px;">${escapeHtml(title)}</h1>
         <div class="sn-card" style="display:flex;flex-direction:column;gap:16px;font-size:0.98rem;">
-          ${paragraphs.map(p => `<p style="margin:0;">${escapeHtml(p)}</p>`).join('')}
+          ${paragraphs.map(p => {
+            const qSplit = slug === 'faq' && p.includes('?');
+            if (qSplit) {
+              const idx = p.indexOf('?');
+              const q = p.slice(0, idx + 1);
+              const a = p.slice(idx + 1).trim();
+              return `<div style="padding-bottom:12px;border-bottom:1px solid var(--sn-border-warm);"><strong style="font-family:var(--sn-font-serif);font-size:1.08rem;color:var(--sn-bg-forest);display:block;margin-bottom:4px;">${escapeHtml(q)}</strong><p style="margin:0;color:var(--sn-text-secondary);">${escapeHtml(a)}</p></div>`;
+            }
+            return `<p style="margin:0;">${escapeHtml(p)}</p>`;
+          }).join('')}
         </div>
+        ${extraSectionHtml}
       </div>
     </section>
   `;
