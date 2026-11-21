@@ -358,6 +358,15 @@ function createServerHandler() {
         return sendJson(res, 200, sealed);
       }
 
+      if (pathname === '/api/admin/settings/shipping' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'settings.manage');
+        const body = await readJsonBody(req);
+        const { updateShippingPolicySettings } = require('./src/core/checkout/checkoutEngine');
+        const policy = updateShippingPolicySettings(body, adminUser.email, adminUser.role);
+        return sendJson(res, 200, { policy });
+      }
+
       if (pathname === '/api/checkout/cod-otp/request' && req.method === 'POST') {
         const body = await readJsonBody(req);
         const otpRes = requestCodOtp(body.phone);

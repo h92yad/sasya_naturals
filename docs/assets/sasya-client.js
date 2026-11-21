@@ -133,12 +133,64 @@
 
     const discountedSubtotalPaise = Math.max(0, subtotalPaise - discountPaise);
     const gstPaise = subtotalPaise > 0 ? Math.round(rawGstPaise * (discountedSubtotalPaise / subtotalPaise)) : 0;
-    const shippingPaise = discountedSubtotalPaise >= 79900 ? 0 : 6000;
+
+    // Client-side 4-zone + 500g slab + free-delivery mode calculation for static GitHub Pages showcase
+    const savedPolicy = JSON.parse(localStorage.getItem('sn_shipping_policy_v1') || '{}');
+    const freeMode = savedPolicy.shipping_free_mode || 'THRESHOLD_WITH_WEIGHT_CAP';
+    const freeModeCode = freeMode === 'DISABLED' ? 0 : (freeMode === 'UNCONDITIONAL_THRESHOLD' ? 2 : 1);
+    const freeThresholdPaise = Math.round(Number(savedPolicy.free_shipping_threshold_inr ?? 799) * 100);
+    const freeMaxWeightGrams = Math.round(Number(savedPolicy.free_shipping_max_weight_grams ?? 2000));
+    const tareGrams = Math.round(Number(savedPolicy.shipping_packaging_tare_grams ?? 150));
+    const codFeePaise = Math.round(Number(savedPolicy.shipping_cod_fee_inr ?? 40) * 100);
+
+    const pin = String(shippingPincode || '560003').trim();
+    const p3 = pin.slice(0, 3);
+    const p2 = pin.slice(0, 2);
+    let zoneLabel = 'Zone C (Rest of India National)';
+    let basePaise = Math.round(Number(savedPolicy.zone_c_base_inr ?? 75) * 100);
+    let extraPaise = Math.round(Number(savedPolicy.zone_c_extra_inr ?? 35) * 100);
+    if (p3 === '560') {
+      zoneLabel = 'Zone A (Local Bengaluru)';
+      basePaise = Math.round(Number(savedPolicy.zone_a_base_inr ?? 40) * 100);
+      extraPaise = Math.round(Number(savedPolicy.zone_a_extra_inr ?? 15) * 100);
+    } else if (['18', '19', '78', '79'].includes(p2) || ['744', '682'].includes(p3)) {
+      zoneLabel = 'Zone D (Special / North-East / J&K)';
+      basePaise = Math.round(Number(savedPolicy.zone_d_base_inr ?? 110) * 100);
+      extraPaise = Math.round(Number(savedPolicy.zone_d_extra_inr ?? 55) * 100);
+    } else if (['50', '51', '52', '53', '56', '57', '58', '59', '60', '61', '62', '63', '64', '67', '68', '69'].includes(p2)) {
+      zoneLabel = 'Zone B (South India Regional)';
+      basePaise = Math.round(Number(savedPolicy.zone_b_base_inr ?? 55) * 100);
+      extraPaise = Math.round(Number(savedPolicy.zone_b_extra_inr ?? 25) * 100);
+    }
+
+    const grossWeightGrams = totalWeightGrams + tareGrams;
+    const billable500gSlabs = wasmExports && wasmExports.compute_billable_500g_slabs
+      ? Number(wasmExports.compute_billable_500g_slabs(BigInt(totalWeightGrams), BigInt(tareGrams)))
+      : Math.max(1, Math.ceil(grossWeightGrams / 500));
+    const isCod = paymentMethod === 'COD' ? 1 : 0;
+
+    const shippingPaise = wasmExports && wasmExports.compute_zone_weight_shipping_paise
+      ? Number(wasmExports.compute_zone_weight_shipping_paise(
+          BigInt(discountedSubtotalPaise),
+          BigInt(totalWeightGrams),
+          BigInt(tareGrams),
+          BigInt(basePaise),
+          BigInt(extraPaise),
+          freeModeCode,
+          BigInt(freeThresholdPaise),
+          BigInt(freeMaxWeightGrams),
+          isCod,
+          BigInt(codFeePaise)
+        ))
+      : basePaise + Math.max(0, billable500gSlabs - 1) * extraPaise + (isCod ? codFeePaise : 0);
+
+    const codFeeAppliedPaise = isCod ? codFeePaise : 0;
+    const freightPaise = Math.max(0, shippingPaise - codFeeAppliedPaise);
     const totalPaise = discountedSubtotalPaise + shippingPaise;
 
     return {
       pricing: {
-        engine: 'rust-wasm-browser',
+        engine: 'rust-wasm-v1.2-zone-slab',
         lineItems,
         mrpTotalPaise,
         subtotalPaise,
@@ -146,22 +198,31 @@
         discountedSubtotalPaise,
         gstPaise,
         shippingPaise,
-        totalPaise,
+        freightPaise,
+        codFeePaise: codFeeAppliedPaise,
+        shippingZoneLabel: zoneLabel,
         totalWeightGrams,
+        packagingTareGrams: tareGrams,
+        grossWeightGrams,
+        billable500gSlabs,
+        freeShippingMode: freeMode,
+        freeShippingThresholdPaise: freeThresholdPaise,
+        freeShippingMaxWeightGrams: freeMaxWeightGrams,
+        totalPaise,
         appliedCoupon,
         couponMessage
       }
     };
   }
 
-  async function requestCartPricing(items, couponCode, paymentMethod) {
+  async function requestCartPricing(items, couponCode, paymentMethod, shippingState = 'Karnataka', shippingPincode = '560003') {
     if (IS_STATIC_SHOWCASE) {
-      return calculateCartClientSide(items, couponCode);
+      return calculateCartClientSide(items, couponCode, paymentMethod, shippingState, shippingPincode);
     }
     const res = await fetch('/api/cart/calculate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, couponCode, paymentMethod })
+      body: JSON.stringify({ items, couponCode, paymentMethod, shippingState, shippingPincode })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Unable to calculate cart');
@@ -345,9 +406,13 @@
       const couponCode = couponInput ? couponInput.value.trim() : '';
       const methodEl = checkoutForm.querySelector('input[name="paymentMethod"]:checked');
       const paymentMethod = methodEl ? methodEl.value : 'ONLINE_UPI';
+      const pinEl = document.getElementById('chk-pin');
+      const stateEl = document.getElementById('chk-state');
+      const shippingPincode = pinEl ? pinEl.value.trim() : '560003';
+      const shippingState = stateEl ? stateEl.value.trim() : 'Karnataka';
 
       try {
-        const data = await requestCartPricing(cart, couponCode, paymentMethod);
+        const data = await requestCartPricing(cart, couponCode, paymentMethod, shippingState, shippingPincode);
         const p = data.pricing;
         summaryBox.innerHTML = `
           <div style="display:flex;flex-direction:column;gap:10px;">
@@ -369,10 +434,31 @@
               </div>
             ` : ''}
             <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--sn-text-muted);">
-              <span>Included GST Component (Rust WASM)</span><span style="font-family:var(--sn-font-mono);">${formatInr(p.gstPaise)}</span>
+              <span>Included GST (${p.taxSupplyType || 'CGST_SGST'})</span><span style="font-family:var(--sn-font-mono);">${formatInr(p.gstPaise)}</span>
             </div>
-            <div style="display:flex;justify-content:space-between;font-size:0.88rem;">
-              <span>Shipping (Free above ₹799)</span><strong style="font-family:var(--sn-font-mono);">${p.shippingPaise === 0 ? 'FREE' : formatInr(p.shippingPaise)}</strong>
+            <div style="padding:10px;border-radius:6px;background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-warm);font-size:0.79rem;display:flex;flex-direction:column;gap:4px;">
+              <div style="display:flex;justify-content:space-between;">
+                <span>Delivery Zone (${shippingPincode}):</span>
+                <strong style="font-family:var(--sn-font-mono);">${p.shippingZoneLabel || 'Zone A (Local Bengaluru)'}</strong>
+              </div>
+              <div style="display:flex;justify-content:space-between;color:var(--sn-text-secondary);">
+                <span>Gross Weight (${p.totalWeightGrams}g net + ${p.packagingTareGrams || 150}g box):</span>
+                <span style="font-family:var(--sn-font-mono);">${p.grossWeightGrams || (p.totalWeightGrams + 150)}g (${p.billable500gSlabs || 1} x 500g slabs)</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;color:var(--sn-text-secondary);">
+                <span>Free-Delivery Rule (${p.freeShippingMode || 'THRESHOLD_WITH_WEIGHT_CAP'}):</span>
+                <span style="font-family:var(--sn-font-mono);">${p.freeShippingMode === 'DISABLED' ? 'Always Charge Freight' : `Above ${formatInr(p.freeShippingThresholdPaise)} (<= ${p.freeShippingMaxWeightGrams || 2000}g)`}</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;">
+                <span>Zone Freight Charge:</span>
+                <strong style="font-family:var(--sn-font-mono);">${(p.freightPaise ?? p.shippingPaise) === 0 ? 'FREE' : formatInr(p.freightPaise ?? p.shippingPaise)}</strong>
+              </div>
+              ${p.codFeePaise > 0 ? `
+                <div style="display:flex;justify-content:space-between;color:var(--sn-status-warn);">
+                  <span>COD Collection Fee:</span>
+                  <strong style="font-family:var(--sn-font-mono);">+${formatInr(p.codFeePaise)}</strong>
+                </div>
+              ` : ''}
             </div>
             <div style="display:flex;justify-content:space-between;font-size:1.15rem;padding-top:10px;border-top:2px solid var(--sn-border-strong);color:var(--sn-bg-forest);">
               <strong>Total Payable</strong><strong style="font-family:var(--sn-font-mono);">${formatInr(p.totalPaise)}</strong>
@@ -391,6 +477,11 @@
     if (applyCouponBtn) {
       applyCouponBtn.addEventListener('click', renderSummary);
     }
+    const pinInputEl = document.getElementById('chk-pin');
+    if (pinInputEl) pinInputEl.addEventListener('input', renderSummary);
+    checkoutForm.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
+      radio.addEventListener('change', renderSummary);
+    });
 
     const codOtpBtn = document.getElementById('sn-request-cod-otp-btn');
     const codOtpInput = document.getElementById('sn-cod-otp-input');
@@ -768,6 +859,41 @@
         }
         showToast(`Created product "${data.product.name}" with 4 pack variants!`);
         setTimeout(() => window.location.reload(), 800);
+      });
+    }
+
+    const shipPolicyForm = document.getElementById('sn-admin-shipping-policy-form');
+    if (shipPolicyForm) {
+      shipPolicyForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(shipPolicyForm);
+        const payload = Object.fromEntries(fd.entries());
+        if (IS_STATIC_SHOWCASE) {
+          const email = getActiveAdminEmail();
+          if (email !== 'superadmin@sasynaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can modify Delivery Policy.');
+            return;
+          }
+          localStorage.setItem('sn_shipping_policy_v1', JSON.stringify(payload));
+          showToast(`[Showcase Verified] Saved Delivery Policy (${payload.shipping_free_mode})`);
+          return;
+        }
+
+        const res = await fetch('/api/admin/settings/shipping', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': getActiveAdminEmail()
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to update shipping policy');
+          return;
+        }
+        showToast(`Saved Delivery Policy (${data.policy.freeMode})`);
+        setTimeout(() => window.location.reload(), 700);
       });
     }
   }

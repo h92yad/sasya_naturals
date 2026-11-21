@@ -343,6 +343,27 @@ function seedVaultAndHsnDefaults(db) {
         igst_paise = gst_paise
     WHERE shipping_state != 'Karnataka' AND cgst_paise = 0 AND igst_paise = 0
   `).run();
+
+  // Seed configurable 4-Zone + 500g Weight-Slab + Free-Delivery Policy settings
+  const defaultShippingSettings = [
+    ['shipping_free_mode', 'THRESHOLD_WITH_WEIGHT_CAP'], // DISABLED | THRESHOLD_WITH_WEIGHT_CAP | UNCONDITIONAL_THRESHOLD
+    ['free_shipping_threshold_inr', '799'],
+    ['free_shipping_max_weight_grams', '2000'],
+    ['shipping_packaging_tare_grams', '150'],
+    ['shipping_cod_fee_inr', '40'],
+    ['zone_a_base_inr', '40'],
+    ['zone_a_extra_inr', '15'],
+    ['zone_b_base_inr', '55'],
+    ['zone_b_extra_inr', '25'],
+    ['zone_c_base_inr', '75'],
+    ['zone_c_extra_inr', '35'],
+    ['zone_d_base_inr', '110'],
+    ['zone_d_extra_inr', '55']
+  ];
+  const insertShipSetting = db.prepare('INSERT OR IGNORE INTO store_settings (key, value) VALUES (?, ?)');
+  for (const [k, v] of defaultShippingSettings) {
+    insertShipSetting.run(k, v);
+  }
 }
 
 function seedDatabaseIfEmpty(db) {

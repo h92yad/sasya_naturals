@@ -1,5 +1,5 @@
 //! Sasya Naturals — Deterministic Integer-Paise E-Commerce Math Engine (Rust -> WASM)
-//! Eliminates IEEE-754 floating-point drift across line totals, GST slabs, coupons, and shipping.
+//! Eliminates IEEE-754 floating-point drift across line totals, GST slabs, coupons, and 4-Zone weight-slab shipping.
 
 #[no_mangle]
 pub extern "C" fn compute_line_total_paise(unit_price_paise: i64, quantity: i64) -> i64 {
@@ -54,6 +54,64 @@ pub extern "C" fn compute_coupon_discount_paise(
 }
 
 #[no_mangle]
+pub extern "C" fn compute_billable_500g_slabs(
+    total_product_grams: i64,
+    packaging_tare_grams: i64,
+) -> i64 {
+    if total_product_grams <= 0 {
+        return 0;
+    }
+    let gross = total_product_grams.saturating_add(packaging_tare_grams.max(0));
+    let slabs = gross.saturating_add(499) / 500;
+    slabs.max(1)
+}
+
+/// Computes deterministic delivery charge in paise based on:
+/// - total_product_grams + packaging_tare_grams -> 500g slabs
+/// - base_500g_paise + (slabs - 1) * extra_500g_paise
+/// - free_mode:
+///     0 = DISABLED (never free)
+///     1 = THRESHOLD_WITH_WEIGHT_CAP (free only if discounted_subtotal >= free_threshold AND total_product_grams <= free_max_weight_grams)
+///     2 = UNCONDITIONAL_THRESHOLD (free if discounted_subtotal >= free_threshold regardless of weight)
+/// - cod_fee_paise (added when is_cod == 1)
+#[no_mangle]
+pub extern "C" fn compute_zone_weight_shipping_paise(
+    discounted_subtotal_paise: i64,
+    total_product_grams: i64,
+    packaging_tare_grams: i64,
+    base_500g_paise: i64,
+    extra_500g_paise: i64,
+    free_mode: i32,
+    free_threshold_paise: i64,
+    free_max_weight_grams: i64,
+    is_cod: i32,
+    cod_fee_paise: i64,
+) -> i64 {
+    if discounted_subtotal_paise <= 0 || total_product_grams <= 0 {
+        return 0;
+    }
+    let slabs = compute_billable_500g_slabs(total_product_grams, packaging_tare_grams);
+    let extra_slabs = (slabs - 1).max(0);
+    let raw_freight = base_500g_paise
+        .max(0)
+        .saturating_add(extra_slabs.saturating_mul(extra_500g_paise.max(0)));
+
+    let qualifies_free = match free_mode {
+        1 => {
+            free_threshold_paise > 0
+                && discounted_subtotal_paise >= free_threshold_paise
+                && total_product_grams <= free_max_weight_grams.max(0)
+        }
+        2 => free_threshold_paise > 0 && discounted_subtotal_paise >= free_threshold_paise,
+        _ => false, // 0 = DISABLED
+    };
+
+    let freight = if qualifies_free { 0 } else { raw_freight };
+    let cod_surcharge = if is_cod == 1 { cod_fee_paise.max(0) } else { 0 };
+    freight.saturating_add(cod_surcharge)
+}
+
+#[no_mangle]
 pub extern "C" fn compute_shipping_paise(
     discounted_subtotal_paise: i64,
     free_threshold_paise: i64,
@@ -62,7 +120,7 @@ pub extern "C" fn compute_shipping_paise(
     if discounted_subtotal_paise <= 0 {
         return 0;
     }
-    if discounted_subtotal_paise >= free_threshold_paise {
+    if free_threshold_paise > 0 && discounted_subtotal_paise >= free_threshold_paise {
         0
     } else {
         standard_shipping_paise.max(0)

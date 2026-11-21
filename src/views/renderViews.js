@@ -1357,12 +1357,84 @@ function renderAdminPortalPage({
               </div>
             </div>
 
-            <!-- Panel 7: GST & FSSAI Business Compliance Settings -->
+            <!-- Panel 7: Delivery Pricing, GST & FSSAI Business Compliance Settings -->
             <div class="sn-card" data-admin-panel="compliance" style="display:none;">
-              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Configurable Business, Tax (GST) &amp; FSSAI Settings (Section 11)</h2>
+              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Delivery Pricing Engine (4-Zone + 500g Weight Slabs + Free-Delivery Control)</h2>
               <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 18px;">
-                Per Guardrail Section 6, licences and tax numbers are stored as configurable fields for the business owner and tax adviser to verify before production launch.
+                Restricted to <strong>SUPER_ADMIN</strong>. Configure whether free delivery is completely disabled or active above a price/weight threshold, along with 500g zone rates and COD fees.
               </p>
+
+              ${(() => {
+                const sMap = Object.fromEntries(settings.map(s => [s.key, s.value]));
+                const curMode = sMap.shipping_free_mode || 'THRESHOLD_WITH_WEIGHT_CAP';
+                return `
+                  <form id="sn-admin-shipping-policy-form" class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:24px;">
+                    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:12px;margin-bottom:14px;">
+                      <div>
+                        <label style="font-size:0.76rem;font-weight:700;display:block;margin-bottom:4px;">Free-Delivery Policy Mode *</label>
+                        <select name="shipping_free_mode" class="sn-select" style="font-weight:600;">
+                          <option value="DISABLED" ${curMode === 'DISABLED' ? 'selected' : ''}>DISABLED (No Free Delivery - Always Charge Zone/Weight)</option>
+                          <option value="THRESHOLD_WITH_WEIGHT_CAP" ${curMode === 'THRESHOLD_WITH_WEIGHT_CAP' ? 'selected' : ''}>THRESHOLD + WEIGHT CAP (Free Above ₹X up to Y Grams)</option>
+                          <option value="UNCONDITIONAL_THRESHOLD" ${curMode === 'UNCONDITIONAL_THRESHOLD' ? 'selected' : ''}>UNCONDITIONAL THRESHOLD (Free Above ₹X Any Weight)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style="font-size:0.76rem;font-weight:700;display:block;margin-bottom:4px;">Free Delivery Above (INR ₹)</label>
+                        <input type="number" name="free_shipping_threshold_inr" value="${escapeHtml(sMap.free_shipping_threshold_inr || '799')}" min="0" class="sn-input" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.76rem;font-weight:700;display:block;margin-bottom:4px;">Free-Delivery Max Weight Cap (g)</label>
+                        <input type="number" name="free_shipping_max_weight_grams" value="${escapeHtml(sMap.free_shipping_max_weight_grams || '2000')}" min="100" class="sn-input" />
+                      </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;">
+                      <div>
+                        <label style="font-size:0.74rem;font-weight:600;display:block;">Box Tare Weight (g)</label>
+                        <input type="number" name="shipping_packaging_tare_grams" value="${escapeHtml(sMap.shipping_packaging_tare_grams || '150')}" min="0" class="sn-input" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.74rem;font-weight:600;display:block;">COD Collection Fee (₹)</label>
+                        <input type="number" name="shipping_cod_fee_inr" value="${escapeHtml(sMap.shipping_cod_fee_inr || '40')}" min="0" class="sn-input" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.74rem;font-weight:600;display:block;">Zone A (Local BLR) 500g / +500g (₹)</label>
+                        <div style="display:flex;gap:6px;">
+                          <input type="number" name="zone_a_base_inr" value="${escapeHtml(sMap.zone_a_base_inr || '40')}" class="sn-input" />
+                          <input type="number" name="zone_a_extra_inr" value="${escapeHtml(sMap.zone_a_extra_inr || '15')}" class="sn-input" />
+                        </div>
+                      </div>
+                      <div>
+                        <label style="font-size:0.74rem;font-weight:600;display:block;">Zone B (South) 500g / +500g (₹)</label>
+                        <div style="display:flex;gap:6px;">
+                          <input type="number" name="zone_b_base_inr" value="${escapeHtml(sMap.zone_b_base_inr || '55')}" class="sn-input" />
+                          <input type="number" name="zone_b_extra_inr" value="${escapeHtml(sMap.zone_b_extra_inr || '25')}" class="sn-input" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;">
+                      <div>
+                        <label style="font-size:0.74rem;font-weight:600;display:block;">Zone C (Rest of India) Base 500g / +500g (₹)</label>
+                        <div style="display:flex;gap:6px;">
+                          <input type="number" name="zone_c_base_inr" value="${escapeHtml(sMap.zone_c_base_inr || '75')}" class="sn-input" />
+                          <input type="number" name="zone_c_extra_inr" value="${escapeHtml(sMap.zone_c_extra_inr || '35')}" class="sn-input" />
+                        </div>
+                      </div>
+                      <div>
+                        <label style="font-size:0.74rem;font-weight:600;display:block;">Zone D (NE / J&amp;K / Remote) Base 500g / +500g (₹)</label>
+                        <div style="display:flex;gap:6px;">
+                          <input type="number" name="zone_d_base_inr" value="${escapeHtml(sMap.zone_d_base_inr || '110')}" class="sn-input" />
+                          <input type="number" name="zone_d_extra_inr" value="${escapeHtml(sMap.zone_d_extra_inr || '55')}" class="sn-input" />
+                        </div>
+                      </div>
+                      <button type="submit" class="sn-btn sn-btn-primary">Save Delivery Policy</button>
+                    </div>
+                  </form>
+                `;
+              })()}
+
+              <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">All Configurable Business, Tax (GST) &amp; FSSAI Settings (Section 11)</h3>
               <table class="sn-spec-table">
                 <tbody>
                   ${settings.map(s => `

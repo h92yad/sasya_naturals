@@ -55,6 +55,43 @@ function wasmShippingPaise(discountedSubtotalPaise, freeThresholdPaise, standard
   );
 }
 
+function wasmBillable500gSlabs(totalProductGrams, packagingTareGrams) {
+  return Number(
+    rustWasm.compute_billable_500g_slabs(
+      BigInt(totalProductGrams),
+      BigInt(packagingTareGrams)
+    )
+  );
+}
+
+function wasmZoneWeightShippingPaise({
+  discountedSubtotalPaise,
+  totalProductGrams,
+  packagingTareGrams,
+  base500gPaise,
+  extra500gPaise,
+  freeModeCode,
+  freeThresholdPaise,
+  freeMaxWeightGrams,
+  isCod,
+  codFeePaise
+}) {
+  return Number(
+    rustWasm.compute_zone_weight_shipping_paise(
+      BigInt(discountedSubtotalPaise),
+      BigInt(totalProductGrams),
+      BigInt(packagingTareGrams),
+      BigInt(base500gPaise),
+      BigInt(extra500gPaise),
+      Number(freeModeCode),
+      BigInt(freeThresholdPaise),
+      BigInt(freeMaxWeightGrams),
+      isCod ? 1 : 0,
+      BigInt(codFeePaise)
+    )
+  );
+}
+
 function wasmOrderTotalPaise(subtotalPaise, discountPaise, shippingPaise) {
   return Number(
     rustWasm.compute_order_total_paise(
@@ -63,6 +100,108 @@ function wasmOrderTotalPaise(subtotalPaise, discountPaise, shippingPaise) {
       BigInt(shippingPaise)
     )
   );
+}
+
+function getShippingPolicyFromDb() {
+  const db = getDb();
+  const rows = db.prepare('SELECT key, value FROM store_settings').all();
+  const map = Object.fromEntries(rows.map(r => [r.key, r.value]));
+
+  const freeMode = map.shipping_free_mode || 'THRESHOLD_WITH_WEIGHT_CAP';
+  const freeModeCode =
+    freeMode === 'DISABLED' ? 0 : (freeMode === 'UNCONDITIONAL_THRESHOLD' ? 2 : 1);
+
+  return {
+    freeMode,
+    freeModeCode,
+    freeThresholdPaise: Math.round(Number(map.free_shipping_threshold_inr ?? 799) * 100),
+    freeMaxWeightGrams: Math.round(Number(map.free_shipping_max_weight_grams ?? 2000)),
+    packagingTareGrams: Math.round(Number(map.shipping_packaging_tare_grams ?? 150)),
+    codFeePaise: Math.round(Number(map.shipping_cod_fee_inr ?? 40) * 100),
+    zones: {
+      ZONE_A: {
+        code: 'ZONE_A',
+        label: 'Zone A (Local Bengaluru)',
+        base500gPaise: Math.round(Number(map.zone_a_base_inr ?? 40) * 100),
+        extra500gPaise: Math.round(Number(map.zone_a_extra_inr ?? 15) * 100)
+      },
+      ZONE_B: {
+        code: 'ZONE_B',
+        label: 'Zone B (South India Regional)',
+        base500gPaise: Math.round(Number(map.zone_b_base_inr ?? 55) * 100),
+        extra500gPaise: Math.round(Number(map.zone_b_extra_inr ?? 25) * 100)
+      },
+      ZONE_C: {
+        code: 'ZONE_C',
+        label: 'Zone C (Rest of India National)',
+        base500gPaise: Math.round(Number(map.zone_c_base_inr ?? 75) * 100),
+        extra500gPaise: Math.round(Number(map.zone_c_extra_inr ?? 35) * 100)
+      },
+      ZONE_D: {
+        code: 'ZONE_D',
+        label: 'Zone D (Special / North-East / J&K / Islands)',
+        base500gPaise: Math.round(Number(map.zone_d_base_inr ?? 110) * 100),
+        extra500gPaise: Math.round(Number(map.zone_d_extra_inr ?? 55) * 100)
+      }
+    }
+  };
+}
+
+function resolveShippingZone(pincode = '560001', policy = getShippingPolicyFromDb()) {
+  const cleanPin = String(pincode || '560001').trim();
+  const prefix3 = cleanPin.slice(0, 3);
+  const prefix2 = cleanPin.slice(0, 2);
+
+  if (prefix3 === '560') {
+    return policy.zones.ZONE_A;
+  }
+  if (['18', '19', '78', '79'].includes(prefix2) || ['744', '682'].includes(prefix3)) {
+    return policy.zones.ZONE_D;
+  }
+  if (['50', '51', '52', '53', '56', '57', '58', '59', '60', '61', '62', '63', '64', '67', '68', '69'].includes(prefix2)) {
+    return policy.zones.ZONE_B;
+  }
+  return policy.zones.ZONE_C;
+}
+
+function updateShippingPolicySettings(updates = {}, actorEmail = 'superadmin@sasynaturals.com', actorRole = 'SUPER_ADMIN') {
+  const db = getDb();
+  const allowedKeys = [
+    'shipping_free_mode',
+    'free_shipping_threshold_inr',
+    'free_shipping_max_weight_grams',
+    'shipping_packaging_tare_grams',
+    'shipping_cod_fee_inr',
+    'zone_a_base_inr',
+    'zone_a_extra_inr',
+    'zone_b_base_inr',
+    'zone_b_extra_inr',
+    'zone_c_base_inr',
+    'zone_c_extra_inr',
+    'zone_d_base_inr',
+    'zone_d_extra_inr'
+  ];
+
+  if (updates.shipping_free_mode && !['DISABLED', 'THRESHOLD_WITH_WEIGHT_CAP', 'UNCONDITIONAL_THRESHOLD'].includes(updates.shipping_free_mode)) {
+    throw new Error(`Invalid shipping_free_mode: ${updates.shipping_free_mode}`);
+  }
+
+  const stmt = db.prepare("INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))");
+  const applied = {};
+  for (const key of allowedKeys) {
+    if (updates[key] !== undefined && updates[key] !== null && String(updates[key]).trim() !== '') {
+      const val = String(updates[key]).trim();
+      stmt.run(key, val);
+      applied[key] = val;
+    }
+  }
+
+  db.prepare(`
+    INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, details_json)
+    VALUES (?, ?, 'SHIPPING_POLICY_UPDATED', 'STORE_SETTINGS', 'SHIPPING_ENGINE', ?)
+  `).run(actorEmail, actorRole, JSON.stringify(applied));
+
+  return getShippingPolicyFromDb();
 }
 
 function getActiveRazorpayKeyId() {
@@ -239,11 +378,42 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
 
   const gstSplit = computeStateGstSplit(gstPaise, shippingState, shippingPincode);
 
-  const shippingPaise = wasmShippingPaise(
+  // 4-Zone + 500g Weight-Slab + Free-Delivery Toggle/Threshold/Weight-Cap calculation via Rust WASM
+  const shipPolicy = getShippingPolicyFromDb();
+  const zoneInfo = resolveShippingZone(shippingPincode, shipPolicy);
+  const isCod = paymentMethod === 'COD';
+  const grossWeightGrams = totalWeightGrams + shipPolicy.packagingTareGrams;
+  const billable500gSlabs = wasmBillable500gSlabs(totalWeightGrams, shipPolicy.packagingTareGrams);
+
+  const rawZoneFreightPaise = wasmZoneWeightShippingPaise({
     discountedSubtotalPaise,
-    PAYMENT_CONFIG.freeShippingThresholdPaise,
-    PAYMENT_CONFIG.standardShippingPaise
-  );
+    totalProductGrams: totalWeightGrams,
+    packagingTareGrams: shipPolicy.packagingTareGrams,
+    base500gPaise: zoneInfo.base500gPaise,
+    extra500gPaise: zoneInfo.extra500gPaise,
+    freeModeCode: 0, // raw freight before free-delivery rule
+    freeThresholdPaise: shipPolicy.freeThresholdPaise,
+    freeMaxWeightGrams: shipPolicy.freeMaxWeightGrams,
+    isCod: false,
+    codFeePaise: 0
+  });
+
+  const shippingPaise = wasmZoneWeightShippingPaise({
+    discountedSubtotalPaise,
+    totalProductGrams: totalWeightGrams,
+    packagingTareGrams: shipPolicy.packagingTareGrams,
+    base500gPaise: zoneInfo.base500gPaise,
+    extra500gPaise: zoneInfo.extra500gPaise,
+    freeModeCode: shipPolicy.freeModeCode,
+    freeThresholdPaise: shipPolicy.freeThresholdPaise,
+    freeMaxWeightGrams: shipPolicy.freeMaxWeightGrams,
+    isCod,
+    codFeePaise: shipPolicy.codFeePaise
+  });
+
+  const codFeeAppliedPaise = isCod ? shipPolicy.codFeePaise : 0;
+  const freightPaise = Math.max(0, shippingPaise - codFeeAppliedPaise);
+  const freeShippingApplied = freightPaise === 0 && rawZoneFreightPaise > 0;
 
   const totalPaise = wasmOrderTotalPaise(subtotalPaise, discountPaise, shippingPaise);
   const codAllowed = totalPaise <= PAYMENT_CONFIG.maxCodOrderPaise;
@@ -253,7 +423,7 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
   }
 
   return {
-    engine: 'rust-wasm-v1',
+    engine: 'rust-wasm-v1.2-zone-slab',
     lineItems,
     mrpTotalPaise,
     subtotalPaise,
@@ -265,13 +435,26 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
     sgstPaise: gstSplit.sgstPaise,
     igstPaise: gstSplit.igstPaise,
     shippingPaise,
-    totalPaise,
+    freightPaise,
+    rawZoneFreightPaise,
+    codFeePaise: codFeeAppliedPaise,
+    shippingZone: zoneInfo.code,
+    shippingZoneLabel: zoneInfo.label,
     totalWeightGrams,
+    packagingTareGrams: shipPolicy.packagingTareGrams,
+    grossWeightGrams,
+    billable500gSlabs,
+    freeShippingMode: shipPolicy.freeMode,
+    freeShippingThresholdPaise: shipPolicy.freeThresholdPaise,
+    freeShippingMaxWeightGrams: shipPolicy.freeMaxWeightGrams,
+    freeShippingApplied,
+    totalPaise,
     appliedCoupon,
     couponMessage,
     codAllowed,
-    freeShippingThresholdPaise: PAYMENT_CONFIG.freeShippingThresholdPaise,
-    amountForFreeShippingPaise: Math.max(0, PAYMENT_CONFIG.freeShippingThresholdPaise - discountedSubtotalPaise)
+    amountForFreeShippingPaise: shipPolicy.freeMode === 'DISABLED'
+      ? 0
+      : Math.max(0, shipPolicy.freeThresholdPaise - discountedSubtotalPaise)
   };
 }
 
@@ -741,7 +924,12 @@ module.exports = {
   wasmInclusiveGstPaise,
   wasmCouponDiscountPaise,
   wasmShippingPaise,
+  wasmBillable500gSlabs,
+  wasmZoneWeightShippingPaise,
   wasmOrderTotalPaise,
+  getShippingPolicyFromDb,
+  resolveShippingZone,
+  updateShippingPolicySettings,
   ORDER_PAYMENT_STATUSES,
   ORDER_FULFILMENT_STATUSES,
   getActiveRazorpayKeyId,

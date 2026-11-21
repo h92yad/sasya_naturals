@@ -22,7 +22,7 @@ function runVerifyCheckoutMath() {
 
   // 2. Cart Pricing with SASYA10 coupon & free shipping threshold
   const cartCalc = calculateCartPricing([{ variantId: 2, quantity: 2 }], 'SASYA10', 'ONLINE_UPI');
-  assert.strictEqual(cartCalc.engine, 'rust-wasm-v1');
+  assert.strictEqual(cartCalc.engine, 'rust-wasm-v1.2-zone-slab');
   assert.strictEqual(cartCalc.subtotalPaise, 150000); // 2 x Rs 750 = Rs 1500
   assert.strictEqual(cartCalc.discountPaise, 15000);  // 10% off = Rs 150
   assert.strictEqual(cartCalc.shippingPaise, 0);      // >= Rs 799 -> FREE
@@ -153,11 +153,35 @@ function runVerifyCheckoutMath() {
   const uploaded = uploadProductImage({ productId: 1, imageBase64: validPngBase64, caption: 'Back FSSAI Label' });
   assert(uploaded.publicUrl.startsWith('/uploads/') && uploaded.mime === 'image/png', 'Valid PNG magic-byte upload must succeed');
 
+  // 7. Verify 4-Zone + 500g Weight-Slab + Free-Delivery Mode Switch (DISABLED vs THRESHOLD_WITH_WEIGHT_CAP) + COD Fee
+  const { updateShippingPolicySettings } = require('../src/core/checkout/checkoutEngine');
+
+  // 7a. Heavy order (> 2,000g weight cap, e.g. 3 x 1kg Almonds variant #4 = 3,000g + 150g tare = 3,150g = 7 slabs of 500g)
+  // Even though subtotal > Rs 799, THRESHOLD_WITH_WEIGHT_CAP must charge full Zone C freight (Rs 75 + 6 * Rs 35 = Rs 285 = 28500 paise)
+  const heavyZoneC = calculateCartPricing([{ variantId: 4, quantity: 1 }, { variantId: 8, quantity: 2 }], '', 'ONLINE_UPI', 'Delhi', '110001');
+  assert.strictEqual(heavyZoneC.shippingZone, 'ZONE_C');
+  assert.strictEqual(heavyZoneC.totalWeightGrams, 3000);
+  assert.strictEqual(heavyZoneC.billable500gSlabs, 7); // ceil(3150 / 500) = 7
+  assert.strictEqual(heavyZoneC.freeShippingApplied, false, 'Orders exceeding 2000g cap must not get free shipping');
+  assert.strictEqual(heavyZoneC.shippingPaise, 28500);
+
+  // 7b. Switch Free-Delivery Mode to DISABLED (Never Free) and verify light order above Rs 799 pays Zone A + COD Fee
+  updateShippingPolicySettings({ shipping_free_mode: 'DISABLED' });
+  const noFreeDeliveryCalc = calculateCartPricing([{ variantId: 2, quantity: 2 }], '', 'COD', 'Karnataka', '560038');
+  // 2 x 250g = 500g + 150g tare = 650g -> 2 slabs in Zone A (Rs 40 base + Rs 15 extra = Rs 55 freight) + Rs 40 COD fee = Rs 95 (9500 paise)
+  assert.strictEqual(noFreeDeliveryCalc.freeShippingMode, 'DISABLED');
+  assert.strictEqual(noFreeDeliveryCalc.freightPaise, 5500);
+  assert.strictEqual(noFreeDeliveryCalc.codFeePaise, 4000);
+  assert.strictEqual(noFreeDeliveryCalc.shippingPaise, 9500);
+
+  // Restore default policy
+  updateShippingPolicySettings({ shipping_free_mode: 'THRESHOLD_WITH_WEIGHT_CAP' });
+
   // Clean up test order so showcase export stays canonical
   db.prepare('DELETE FROM orders WHERE order_number = ?').run(created.orderNumber);
   db.prepare("DELETE FROM orders WHERE customer_email = 'buyer@example.com'").run();
 
-  console.log('✓ [Suite 3/7: verify_checkout_math] Verified Rust WASM paise math, CGST/SGST vs IGST, COD OTP & PIN gate, Magic-Byte Image Upload, Razorpay HMAC & atomic stock');
+  console.log('✓ [Suite 3/7: verify_checkout_math] Verified Rust WASM 4-Zone + 500g Weight-Slab Shipping, Free-Delivery Modes, CGST/SGST vs IGST, COD OTP & Razorpay HMAC');
 }
 
 if (require.main === module) {
