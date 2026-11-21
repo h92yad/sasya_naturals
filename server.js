@@ -19,7 +19,8 @@ const {
   createOrder,
   verifyAndCaptureOnlinePayment,
   updateOrderFulfilmentAndShipping,
-  recordPaymentAdminAction
+  recordPaymentAdminAction,
+  updateOrderDeliveryAddress
 } = require('./src/core/checkout/checkoutEngine');
 const {
   requestCodOtp,
@@ -613,6 +614,18 @@ function createServerHandler() {
         const updated = updateOrderFulfilmentAndShipping({
           ...body,
           manualShippingChargePaise,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role
+        });
+        return sendJson(res, 200, { order: updated });
+      }
+
+      if (pathname === '/api/admin/orders/update-address' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'shipping.update');
+        const body = await readJsonBody(req);
+        const updated = updateOrderDeliveryAddress({
+          ...body,
           actorEmail: adminUser.email,
           actorRole: adminUser.role
         });

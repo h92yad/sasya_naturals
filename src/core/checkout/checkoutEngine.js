@@ -1002,6 +1002,91 @@ function recordPaymentAdminAction({
   throw new Error(`Unsupported payment actionType: ${actionType}`);
 }
 
+function updateOrderDeliveryAddress({
+  orderNumber,
+  customerName,
+  customerPhone,
+  shippingLine1,
+  shippingLine2 = '',
+  shippingCity,
+  shippingState,
+  shippingPincode,
+  deliveryInstructions = '',
+  actorEmail = 'orders@sasynaturals.com',
+  actorRole = 'ORDER_MANAGER'
+}) {
+  const db = getDb();
+  const order = db.prepare('SELECT * FROM orders WHERE order_number = ?').get(String(orderNumber || '').trim());
+  if (!order) {
+    throw new Error(`Order ${orderNumber} not found.`);
+  }
+
+  const nextName = String(customerName || order.customer_name).trim();
+  const nextPhone = String(customerPhone || order.customer_phone).trim();
+  const nextLine1 = String(shippingLine1 || order.shipping_line1).trim();
+  const nextLine2 = shippingLine2 !== undefined ? String(shippingLine2).trim() : order.shipping_line2;
+  const nextCity = String(shippingCity || order.shipping_city).trim();
+  const nextState = String(shippingState || order.shipping_state).trim();
+  const nextPin = String(shippingPincode || order.shipping_pincode).trim();
+  const nextNotes = deliveryInstructions !== undefined ? String(deliveryInstructions).trim() : order.delivery_instructions;
+
+  if (!nextLine1 || !nextCity || !nextState || !/^\d{6}$/.test(nextPin)) {
+    throw new Error('Street address, city, state, and a valid 6-digit Indian PIN code are required.');
+  }
+
+  const gstSplit = computeStateGstSplit(order.gst_paise || 0, nextState, nextPin);
+
+  db.prepare(`
+    UPDATE orders
+    SET customer_name = ?,
+        customer_phone = ?,
+        shipping_line1 = ?,
+        shipping_line2 = ?,
+        shipping_city = ?,
+        shipping_state = ?,
+        shipping_pincode = ?,
+        delivery_instructions = ?,
+        tax_supply_type = ?,
+        cgst_paise = ?,
+        sgst_paise = ?,
+        igst_paise = ?,
+        updated_at = datetime('now')
+    WHERE id = ?
+  `).run(
+    nextName,
+    nextPhone,
+    nextLine1,
+    nextLine2,
+    nextCity,
+    nextState,
+    nextPin,
+    nextNotes,
+    gstSplit.taxSupplyType,
+    gstSplit.cgstPaise,
+    gstSplit.sgstPaise,
+    gstSplit.igstPaise,
+    order.id
+  );
+
+  db.prepare(`
+    INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, details_json)
+    VALUES (?, ?, 'ORDER_DELIVERY_ADDRESS_UPDATED', 'ORDER', ?, ?)
+  `).run(
+    actorEmail,
+    actorRole,
+    order.order_number,
+    JSON.stringify({
+      shippingLine1: nextLine1,
+      shippingCity: nextCity,
+      shippingState: nextState,
+      shippingPincode: nextPin,
+      taxSupplyType: gstSplit.taxSupplyType
+    })
+  );
+
+  return db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
+}
+
 module.exports = {
   rustWasm,
   wasmLineTotalPaise,
@@ -1025,5 +1110,6 @@ module.exports = {
   createOrder,
   verifyAndCaptureOnlinePayment,
   updateOrderFulfilmentAndShipping,
-  recordPaymentAdminAction
+  recordPaymentAdminAction,
+  updateOrderDeliveryAddress
 };

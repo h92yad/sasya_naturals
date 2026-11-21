@@ -99,6 +99,23 @@ function runVerifyCheckoutMath() {
     });
   }, /require Courier Name and Tracking Number/);
 
+  // Pre-dispatch Delivery Address & Instructions update
+  const { updateOrderDeliveryAddress } = require('../src/core/checkout/checkoutEngine');
+  const addrUpdated = updateOrderDeliveryAddress({
+    orderNumber: created.orderNumber,
+    customerName: 'Test Buyer Updated',
+    customerPhone: '+91 98111 22333',
+    shippingLine1: '88 Residency Road, 3rd Floor',
+    shippingLine2: 'Near Richmond Circle',
+    shippingCity: 'Bengaluru',
+    shippingState: 'Karnataka',
+    shippingPincode: '560025',
+    deliveryInstructions: 'Call on arrival at gate'
+  });
+  assert.strictEqual(addrUpdated.shipping_line1, '88 Residency Road, 3rd Floor');
+  assert.strictEqual(addrUpdated.shipping_pincode, '560025');
+  assert.strictEqual(addrUpdated.delivery_instructions, 'Call on arrival at gate');
+
   const shipped = updateOrderFulfilmentAndShipping({
     orderNumber: created.orderNumber,
     fulfilmentStatus: 'Shipped',

@@ -893,20 +893,36 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
               }).join('')}
             </div>
 
-            <div class="sn-card" style="background-color:var(--sn-bg-mortar);margin-bottom:20px;">
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 8px;font-size:1.1rem;color:var(--sn-bg-forest);">Manual Courier &amp; Dispatch Details (Entered by Order Staff)</h3>
-              ${order.courier_name ? `
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;font-size:0.88rem;">
-                  <div><span style="color:var(--sn-text-muted);">Courier Partner:</span><br/><strong>${escapeHtml(order.courier_name)}</strong></div>
-                  <div><span style="color:var(--sn-text-muted);">Tracking / AWB Number:</span><br/><strong style="font-family:var(--sn-font-mono);">${escapeHtml(order.tracking_number)}</strong></div>
-                  <div><span style="color:var(--sn-text-muted);">Dispatch Date:</span><br/><strong style="font-family:var(--sn-font-mono);">${escapeHtml(order.dispatch_date || 'Recorded')}</strong></div>
-                  <div><span style="color:var(--sn-text-muted);">Tracking Link:</span><br/><a href="${escapeHtml(order.tracking_url || '#')}" target="_blank" rel="noopener" style="color:var(--sn-accent-terracotta);font-weight:600;">Open Courier Portal -></a></div>
+            <div class="sn-pdp-grid" style="margin-bottom:20px;">
+              <div class="sn-card" style="background-color:var(--sn-bg-parchment);">
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 8px;font-size:1.1rem;color:var(--sn-bg-forest);">Delivery Address &amp; Recipient Details</h3>
+                <div style="font-size:0.88rem;line-height:1.5;color:var(--sn-text-primary);">
+                  <strong>${escapeHtml(order.customer_name)}</strong> (${escapeHtml(order.customer_phone)} | ${escapeHtml(order.customer_email)})<br/>
+                  ${escapeHtml(order.shipping_line1)}${order.shipping_line2 ? ', ' + escapeHtml(order.shipping_line2) : ''}<br/>
+                  ${escapeHtml(order.shipping_city)}, ${escapeHtml(order.shipping_state)} - <strong style="font-family:var(--sn-font-mono);">${escapeHtml(order.shipping_pincode)}</strong>
+                  ${order.delivery_instructions ? `
+                    <div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--sn-border-strong);font-size:0.82rem;color:var(--sn-text-secondary);">
+                      <strong>Delivery Instructions:</strong> ${escapeHtml(order.delivery_instructions)}
+                    </div>
+                  ` : ''}
                 </div>
-              ` : `
-                <p style="margin:0;font-size:0.88rem;color:var(--sn-text-secondary);">
-                  Your order is currently in <strong>${escapeHtml(order.fulfilment_status)}</strong> stage. Once our packing team hands the parcel to the courier partner, the courier name and manual tracking number will appear here automatically.
-                </p>
-              `}
+              </div>
+
+              <div class="sn-card" style="background-color:var(--sn-bg-mortar);">
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 8px;font-size:1.1rem;color:var(--sn-bg-forest);">Manual Courier &amp; Dispatch Details (Entered by Order Staff)</h3>
+                ${order.courier_name ? `
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;font-size:0.88rem;">
+                    <div><span style="color:var(--sn-text-muted);">Courier Partner:</span><br/><strong>${escapeHtml(order.courier_name)}</strong></div>
+                    <div><span style="color:var(--sn-text-muted);">Tracking / AWB Number:</span><br/><strong style="font-family:var(--sn-font-mono);">${escapeHtml(order.tracking_number)}</strong></div>
+                    <div><span style="color:var(--sn-text-muted);">Dispatch Date:</span><br/><strong style="font-family:var(--sn-font-mono);">${escapeHtml(order.dispatch_date || 'Recorded')}</strong></div>
+                    <div><span style="color:var(--sn-text-muted);">Tracking Link:</span><br/><a href="${escapeHtml(order.tracking_url || '#')}" target="_blank" rel="noopener" style="color:var(--sn-accent-terracotta);font-weight:600;">Open Courier Portal -></a></div>
+                  </div>
+                ` : `
+                  <p style="margin:0;font-size:0.88rem;color:var(--sn-text-secondary);">
+                    Your order is currently in <strong>${escapeHtml(order.fulfilment_status)}</strong> stage. Once our packing team hands the parcel to the courier partner, the courier name and manual tracking number will appear here automatically.
+                  </p>
+                `}
+              </div>
             </div>
 
             <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;color:var(--sn-bg-forest);">Ordered Pack Items &amp; HSN Tax Breakdown (${escapeHtml(order.tax_supply_type || 'CGST_SGST')})</h3>
@@ -1507,26 +1523,129 @@ function renderAdminPortalPage({
           </aside>
 
           <div>
-            <!-- Panel 1: Orders & Manual Shipping (Includes Manual Shipping Charge Input per Section 5.1 & 7) -->
+            <!-- Panel 1: Orders & Manual Shipping (Full Delivery Address, Pick & Pack List, Copy Label & Manual Courier Dispatch) -->
             <div class="sn-card" data-admin-panel="orders">
-              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Orders &amp; Manual Courier Dispatch Workflow</h2>
+              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Orders, Delivery Addresses, Pick-and-Pack &amp; Manual Courier Dispatch</h2>
               <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 20px;">
-                Authorized for <strong>SUPER_ADMIN</strong>, <strong>ORDER_MANAGER</strong>, and permitted <strong>STAFF</strong>. Enter courier company, tracking number, tracking URL, dispatch date, and manual shipping charge.
+                Authorized for <strong>SUPER_ADMIN</strong>, <strong>ORDER_MANAGER</strong>, and permitted <strong>STAFF</strong>. View the complete ship-to delivery address, delivery instructions, and pack weights, copy the formatted courier label, or enter manual AWB tracking.
               </p>
-              ${orders.map(o => `
-                <div class="sn-card" style="margin-bottom:16px;background-color:var(--sn-bg-parchment);">
-                  <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+              ${orders.map(o => {
+                const oItems = orderItems.filter(it => Number(it.order_id) === Number(o.id));
+                const netGrams = oItems.reduce((acc, it) => acc + Number(it.weight_grams || 0) * Number(it.quantity || 0), 0);
+                const grossGrams = netGrams > 0 ? netGrams + 150 : 650;
+                const fullAddressSingleLine = `${o.customer_name} (${o.customer_phone}) | ${o.shipping_line1}${o.shipping_line2 ? ', ' + o.shipping_line2 : ''}, ${o.shipping_city}, ${o.shipping_state} - ${o.shipping_pincode} | Order: ${o.order_number} (${o.payment_method}: ${formatInr(o.total_paise)})`;
+
+                return `
+                <div class="sn-card" style="margin-bottom:18px;background-color:var(--sn-bg-parchment);" data-order-card="${escapeHtml(o.order_number)}">
+                  <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--sn-border-warm);">
                     <div>
-                      <strong style="font-family:var(--sn-font-mono);font-size:1rem;color:var(--sn-bg-forest);">${escapeHtml(o.order_number)}</strong>
-                      <span style="font-size:0.85rem;color:var(--sn-text-secondary);"> • ${escapeHtml(o.customer_name)} (${escapeHtml(o.customer_phone)}) • ${escapeHtml(o.shipping_city)}, ${escapeHtml(o.shipping_state)} (${escapeHtml(o.shipping_pincode)})</span>
+                      <strong style="font-family:var(--sn-font-mono);font-size:1.05rem;color:var(--sn-bg-forest);">${escapeHtml(o.order_number)}</strong>
+                      <span style="font-family:var(--sn-font-mono);font-size:0.76rem;color:var(--sn-text-muted);margin-left:8px;">Placed: ${escapeHtml((o.created_at || '').slice(0, 16))} • Mode: ${escapeHtml(o.payment_method)}</span>
                     </div>
                     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                       <span class="sn-status ${o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">Payment: ${escapeHtml(o.payment_status)}</span>
                       <span class="sn-status sn-status-paid">Fulfilment: ${escapeHtml(o.fulfilment_status)}</span>
-                      <strong style="font-family:var(--sn-font-mono);">${formatInr(o.total_paise)}</strong>
+                      <strong style="font-family:var(--sn-font-mono);font-size:1rem;">${formatInr(o.total_paise)}</strong>
+                      <button
+                        type="button"
+                        class="sn-btn sn-btn-outline sn-btn-sm"
+                        data-copy-shipping-label="${escapeHtml(fullAddressSingleLine)}"
+                      >📋 Copy Courier Label</button>
+                      <button
+                        type="button"
+                        class="sn-btn sn-btn-outline sn-btn-sm"
+                        data-toggle-edit-addr="${escapeHtml(o.order_number)}"
+                      >✏️ Edit Address</button>
                       <a href="${basePath}/orders/${escapeHtml(o.order_number)}/invoice" class="sn-btn sn-btn-outline sn-btn-sm">GST Invoice</a>
                     </div>
                   </div>
+
+                  <!-- Ship-To Delivery Address & Pick-and-Pack Items Grid -->
+                  <div style="display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:14px;">
+                    <div class="sn-card" style="padding:12px 14px;background-color:var(--sn-bg-surface);">
+                      <div style="font-family:var(--sn-font-mono);font-size:0.72rem;text-transform:uppercase;color:var(--sn-text-muted);margin-bottom:4px;">
+                        📍 Ship-To Delivery Address &amp; Recipient Contact
+                      </div>
+                      <div style="font-size:0.86rem;line-height:1.45;color:var(--sn-text-primary);" data-order-address-display="${escapeHtml(o.order_number)}">
+                        <strong>${escapeHtml(o.customer_name)}</strong> • <span style="font-family:var(--sn-font-mono);">${escapeHtml(o.customer_phone)}</span> (${escapeHtml(o.customer_email)})<br/>
+                        ${escapeHtml(o.shipping_line1)}${o.shipping_line2 ? ', ' + escapeHtml(o.shipping_line2) : ''}<br/>
+                        <strong>${escapeHtml(o.shipping_city)}, ${escapeHtml(o.shipping_state)} - <span style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${escapeHtml(o.shipping_pincode)}</span></strong>
+                      </div>
+                      <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--sn-border-warm);font-size:0.78rem;color:var(--sn-text-secondary);">
+                        <strong>Delivery Instructions:</strong> ${escapeHtml(o.delivery_instructions || 'Standard doorstep delivery (no special instructions)')}
+                      </div>
+                    </div>
+
+                    <div class="sn-card" style="padding:12px 14px;background-color:var(--sn-bg-surface);">
+                      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                        <span style="font-family:var(--sn-font-mono);font-size:0.72rem;text-transform:uppercase;color:var(--sn-text-muted);">
+                          📦 Pick-and-Pack Items (${oItems.length} SKUs)
+                        </span>
+                        <span style="font-family:var(--sn-font-mono);font-size:0.73rem;font-weight:700;color:var(--sn-bg-forest);">
+                          Net: ${netGrams}g | Gross Parcel: ${grossGrams}g
+                        </span>
+                      </div>
+                      <div style="font-size:0.81rem;line-height:1.45;">
+                        ${oItems.length > 0 ? oItems.map(it => `
+                          <div style="display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:1px dotted var(--sn-border-warm);">
+                            <span><strong style="font-family:var(--sn-font-mono);font-size:0.74rem;">${escapeHtml(it.sku)}</strong> • ${escapeHtml(it.product_name)} (<strong>${escapeHtml(it.pack_label)} × ${it.quantity}</strong>)</span>
+                            <span style="font-family:var(--sn-font-mono);white-space:nowrap;">${formatInr(it.line_total_paise)}</span>
+                          </div>
+                        `).join('') : '<span style="color:var(--sn-text-muted);">Order items recorded in ledger</span>'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Collapsible Inline Pre-Dispatch Delivery Address Editor -->
+                  <form
+                    class="sn-admin-edit-address-form sn-card"
+                    data-edit-addr-form="${escapeHtml(o.order_number)}"
+                    style="display:none;background-color:var(--sn-bg-mortar);padding:12px 14px;margin-bottom:12px;"
+                  >
+                    <div style="font-family:var(--sn-font-mono);font-size:0.74rem;font-weight:700;color:var(--sn-bg-forest);margin-bottom:8px;">
+                      Update Delivery Address &amp; Instructions for ${escapeHtml(o.order_number)}
+                    </div>
+                    <input type="hidden" name="orderNumber" value="${escapeHtml(o.order_number)}" />
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr 1fr;gap:8px;margin-bottom:8px;">
+                      <div>
+                        <label style="font-size:0.72rem;font-weight:600;">Recipient Name *</label>
+                        <input type="text" name="customerName" required value="${escapeHtml(o.customer_name)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.72rem;font-weight:600;">Mobile Phone *</label>
+                        <input type="text" name="customerPhone" required value="${escapeHtml(o.customer_phone)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.72rem;font-weight:600;">Street Address (Line 1) *</label>
+                        <input type="text" name="shippingLine1" required value="${escapeHtml(o.shipping_line1)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.72rem;font-weight:600;">Landmark / Area (Line 2)</label>
+                        <input type="text" name="shippingLine2" value="${escapeHtml(o.shipping_line2)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                      </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:0.9fr 0.9fr 0.7fr 1.5fr auto;gap:8px;align-items:end;">
+                      <div>
+                        <label style="font-size:0.72rem;font-weight:600;">City *</label>
+                        <input type="text" name="shippingCity" required value="${escapeHtml(o.shipping_city)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.72rem;font-weight:600;">State *</label>
+                        <input type="text" name="shippingState" required value="${escapeHtml(o.shipping_state)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.72rem;font-weight:600;">6-Digit PIN *</label>
+                        <input type="text" name="shippingPincode" required pattern="\\d{6}" value="${escapeHtml(o.shipping_pincode)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;font-family:var(--sn-font-mono);" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.72rem;font-weight:600;">Delivery Instructions</label>
+                        <input type="text" name="deliveryInstructions" value="${escapeHtml(o.delivery_instructions)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                      </div>
+                      <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Save Address</button>
+                    </div>
+                  </form>
+
+                  <!-- Manual Courier Dispatch Form -->
                   <form class="sn-admin-ship-form" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:10px;align-items:end;">
                     <input type="hidden" name="orderNumber" value="${escapeHtml(o.order_number)}" />
                     <div>
@@ -1560,7 +1679,8 @@ function renderAdminPortalPage({
                     <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Save &amp; Notify</button>
                   </form>
                 </div>
-              `).join('')}
+                `;
+              }).join('')}
             </div>
 
             <!-- Panel 2: Write-Only API & Razorpay Credential Vault -->

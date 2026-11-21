@@ -953,6 +953,74 @@
       });
     });
 
+    // 4B. 1-Click Copy Courier Address Label & Pre-Dispatch Delivery Address Editor
+    document.querySelectorAll('[data-copy-shipping-label]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const labelText = btn.getAttribute('data-copy-shipping-label') || '';
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(labelText);
+          }
+          showToast(`Copied Courier Label: ${labelText}`);
+        } catch {
+          showToast(`Courier Label: ${labelText}`);
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-toggle-edit-addr]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ordNum = btn.getAttribute('data-toggle-edit-addr');
+        const form = document.querySelector(`[data-edit-addr-form="${ordNum}"]`);
+        if (form) {
+          form.style.display = form.style.display === 'none' ? 'block' : 'none';
+        }
+      });
+    });
+
+    document.querySelectorAll('.sn-admin-edit-address-form').forEach(form => {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(form);
+        const payload = Object.fromEntries(fd.entries());
+        const email = getActiveAdminEmail();
+
+        if (IS_STATIC_SHOWCASE) {
+          if (email === 'catalog@sasynaturals.com' || email === 'accounts@sasynaturals.com') {
+            showToast(`403 RBAC Permission Denied: ${email} cannot edit order delivery addresses.`);
+            return;
+          }
+          const displayEl = document.querySelector(`[data-order-address-display="${payload.orderNumber}"]`);
+          if (displayEl) {
+            displayEl.innerHTML = `
+              <strong>${payload.customerName}</strong> • <span style="font-family:var(--sn-font-mono);">${payload.customerPhone}</span><br/>
+              ${payload.shippingLine1}${payload.shippingLine2 ? ', ' + payload.shippingLine2 : ''}<br/>
+              <strong>${payload.shippingCity}, ${payload.shippingState} - <span style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${payload.shippingPincode}</span></strong>
+            `;
+          }
+          form.style.display = 'none';
+          showToast(`Updated delivery address for ${payload.orderNumber}!`);
+          return;
+        }
+
+        const res = await fetch('/api/admin/orders/update-address', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': email
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to update delivery address');
+          return;
+        }
+        showToast(`Updated delivery address for ${payload.orderNumber}!`);
+        setTimeout(() => window.location.reload(), 600);
+      });
+    });
+
     document.querySelectorAll('.sn-admin-stock-form').forEach(form => {
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
