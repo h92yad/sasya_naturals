@@ -450,15 +450,81 @@ function createServerHandler() {
         return sendJson(res, 200, { variantId, newStockQty });
       }
 
+      if (pathname === '/api/admin/categories/create' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'products.write');
+        const body = await readJsonBody(req);
+
+        const name = String(body.name || '').trim();
+        const subtitle = String(body.subtitle || '').trim();
+        const description = String(body.description || '').trim();
+        if (!name || !subtitle || !description) {
+          return sendJson(res, 400, { error: 'Category name, subtitle, and description are required.' });
+        }
+
+        const lintCheck = lintContentText(`${name} ${subtitle} ${description}`, 'new_category');
+        if (!lintCheck.valid) {
+          return sendJson(res, 400, { error: lintCheck.issues.join(' ') });
+        }
+
+        const slug = name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '');
+
+        let imageUrl = '/images/cat-spices.jpg';
+        if (body.imageBase64) {
+          const savedImg = saveVerifiedImageToUploads(body.imageBase64, `cat-${slug}`);
+          imageUrl = savedImg.publicUrl;
+        }
+
+        const countRow = db.prepare('SELECT COUNT(*) AS cnt FROM categories').get();
+        const displayOrder = Number(countRow ? countRow.cnt : 3) + 1;
+
+        const catRes = db.prepare(`
+          INSERT INTO categories (slug, name, subtitle, description, image_url, display_order, is_active)
+          VALUES (?, ?, ?, ?, ?, ?, 1)
+        `).run(slug, name, subtitle, description, imageUrl, displayOrder);
+
+        const newCatId = Number(catRes.lastInsertRowid);
+        recordAuditLog({
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role,
+          action: 'CATEGORY_CREATED',
+          entityType: 'CATEGORY',
+          entityId: slug,
+          details: { id: newCatId, name, imageUrl }
+        });
+
+        return sendJson(res, 201, {
+          category: { id: newCatId, slug, name, subtitle, description, imageUrl }
+        });
+      }
+
+      if (pathname === '/api/admin/categories/upload-image' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'products.write');
+        const body = await readJsonBody(req);
+        const uploadRes = uploadCategoryImage({
+          categoryId: body.categoryId,
+          imageBase64: body.imageBase64,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role
+        });
+        return sendJson(res, 200, uploadRes);
+      }
+
       if (pathname === '/api/admin/products/upload-image' && req.method === 'POST') {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'products.write');
         const body = await readJsonBody(req);
+        const setAsPrimary = body.setAsPrimary !== false && body.setAsPrimary !== 'false';
         const uploadRes = uploadProductImage({
           productId: body.productId,
           imageBase64: body.imageBase64,
           caption: body.caption,
-          setAsPrimary: Boolean(body.setAsPrimary),
+          setAsPrimary,
           actorEmail: adminUser.email,
           actorRole: adminUser.role
         });
@@ -484,13 +550,19 @@ function createServerHandler() {
         const base100gPaise = Math.max(1000, Math.round(Number(body.base100gInr || 150) * 100));
         const gstPercent = Number(body.gstPercent || 5);
 
+        let imageUrl = '/images/cat-spices.jpg';
+        if (body.imageBase64) {
+          const savedImg = saveVerifiedImageToUploads(body.imageBase64, slug);
+          imageUrl = savedImg.publicUrl;
+        }
+
         const prodRes = db.prepare(`
           INSERT INTO products (
             sku_base, slug, name, category_id, short_description, description,
             origin_region, harvest_batch, shelf_life_months, fssai_notes,
             ingredients, allergen_info, gst_percent, hsn_code, image_url, image_caption,
             is_featured, is_new_arrival, is_bestseller, is_active
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'SN-BATCH-2611', 12, 'Store in a cool, dry container.', ?, 'Packed in a facility handling tree nuts.', ?, '091030', '/images/cat-spices.jpg', ?, 0, 1, 0, 1)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'SN-BATCH-2611', 12, 'Store in a cool, dry container.', ?, 'Packed in a facility handling tree nuts.', ?, '091030', ?, ?, 0, 1, 0, 1)
         `).run(
           skuBase,
           slug,
@@ -501,6 +573,7 @@ function createServerHandler() {
           body.originRegion || 'India',
           `100% Pure ${body.name}`,
           gstPercent,
+          imageUrl,
           body.name
         );
 
@@ -527,10 +600,10 @@ function createServerHandler() {
           action: 'PRODUCT_CREATED',
           entityType: 'PRODUCT',
           entityId: skuBase,
-          details: { name: body.name, slug }
+          details: { name: body.name, slug, imageUrl }
         });
 
-        return sendJson(res, 201, { product: { id: newProdId, name: body.name, slug } });
+        return sendJson(res, 201, { product: { id: newProdId, name: body.name, slug, imageUrl } });
       }
 
       // 5. Storefront, GST Tax Invoice & Admin SSR HTML Routes

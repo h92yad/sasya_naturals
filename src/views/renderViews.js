@@ -39,7 +39,7 @@ function renderProductCard(p, variants = [], basePath = '') {
   return `
     <article class="sn-product-card" data-product-container="${p.id}" id="prod-card-${escapeHtml(p.slug)}">
       <a href="${basePath}/product/${escapeHtml(p.slug)}" class="sn-product-media">
-        <img src="${basePath}${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" loading="lazy" />
+        <img src="${basePath}${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" data-product-img-id="${p.id}" loading="lazy" />
         <div class="sn-product-badges">
           ${p.is_bestseller ? `<span class="sn-badge sn-badge-bestseller">Bestseller</span>` : ''}
           ${p.is_new_arrival ? `<span class="sn-badge sn-badge-new">New Harvest</span>` : ''}
@@ -293,11 +293,11 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
           </div>
           <a href="${basePath}/shop" class="sn-btn sn-btn-outline sn-btn-sm">View All ${products.length} Products</a>
         </div>
-        <div class="sn-category-grid">
+        <div class="sn-category-grid" id="home-categories-grid">
           ${categories.map(cat => `
             <a href="${basePath}/category/${escapeHtml(cat.slug)}" class="sn-category-card" id="cat-tile-${escapeHtml(cat.slug)}">
               <div class="sn-category-img-wrap">
-                <img src="${basePath}${escapeHtml(cat.image_url)}" alt="${escapeHtml(cat.name)}" loading="lazy" />
+                <img src="${basePath}${escapeHtml(cat.image_url)}" alt="${escapeHtml(cat.name)}" data-category-img-id="${cat.id}" loading="lazy" />
               </div>
               <div class="sn-category-body">
                 <div>
@@ -451,6 +451,18 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
   const activeVariants = variants.filter(v => v.is_active);
   const defVar = activeVariants.find(v => v.pack_label === '250 g') || activeVariants[0];
 
+  let extraGallery = [];
+  try {
+    extraGallery = JSON.parse(product.gallery_json || '[]');
+    if (!Array.isArray(extraGallery)) extraGallery = [];
+  } catch {
+    extraGallery = [];
+  }
+  const allGalleryPhotos = [
+    { url: product.image_url, caption: product.image_caption || `${product.name} (Primary Pack View)` },
+    ...extraGallery.filter(g => g.url && g.url !== product.image_url)
+  ];
+
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'product',
     canonicalPath,
@@ -474,10 +486,25 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
 
         <div class="sn-pdp-grid" data-product-container="${product.id}">
           <div class="sn-pdp-gallery">
-            <img src="${basePath}${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}" />
-            <div style="padding:12px 18px;background-color:var(--sn-bg-mortar);font-family:var(--sn-font-mono);font-size:0.76rem;color:var(--sn-text-secondary);">
+            <img src="${basePath}${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}" id="sn-pdp-main-img" data-product-img-id="${product.id}" />
+            <div id="sn-pdp-main-caption" style="padding:12px 18px;background-color:var(--sn-bg-mortar);font-family:var(--sn-font-mono);font-size:0.76rem;color:var(--sn-text-secondary);">
               ${escapeHtml(product.image_caption || product.name)} | Origin: ${escapeHtml(product.origin_region)}
             </div>
+            ${allGalleryPhotos.length > 1 ? `
+              <div style="display:flex;gap:10px;padding:12px 18px;background-color:var(--sn-bg-surface);border-top:1px solid var(--sn-border-warm);overflow-x:auto;">
+                ${allGalleryPhotos.map((g, idx) => `
+                  <button
+                    type="button"
+                    class="sn-btn sn-btn-outline sn-btn-sm"
+                    data-pdp-thumb-url="${basePath}${escapeHtml(g.url)}"
+                    data-pdp-thumb-caption="${escapeHtml(g.caption || product.name)}"
+                    style="padding:3px;border-radius:6px;"
+                  >
+                    <img src="${basePath}${escapeHtml(g.url)}" alt="${escapeHtml(g.caption || `View ${idx + 1}`)}" style="width:58px;height:58px;object-fit:cover;border-radius:4px;" />
+                  </button>
+                `).join('')}
+              </div>
+            ` : ''}
           </div>
 
           <div>
@@ -1040,7 +1067,7 @@ function renderAdminPortalPage({
             <ul class="sn-admin-menu">
               <li><button type="button" class="sn-active" data-admin-tab-btn="orders" id="tab-btn-orders">1. Orders &amp; Manual Shipping</button></li>
               <li><button type="button" data-admin-tab-btn="vault" id="tab-btn-vault">2. API &amp; Razorpay Key Vault</button></li>
-              <li><button type="button" data-admin-tab-btn="products" id="tab-btn-products">3. Products &amp; Image Upload</button></li>
+              <li><button type="button" data-admin-tab-btn="products" id="tab-btn-products">3. Categories, Products &amp; Media</button></li>
               <li><button type="button" data-admin-tab-btn="inventory" id="tab-btn-inventory">4. Inventory &amp; Stock Ledger</button></li>
               <li><button type="button" data-admin-tab-btn="payments" id="tab-btn-payments">5. Payments, COD &amp; Reports</button></li>
               <li><button type="button" data-admin-tab-btn="rbac" id="tab-btn-rbac">6. Staff RBAC &amp; Audit Logs</button></li>
@@ -1136,20 +1163,86 @@ function renderAdminPortalPage({
               </div>
             </div>
 
-            <!-- Panel 3: Products, Pack Variants & Magic-Byte Image Upload -->
+            <!-- Panel 3: Categories, Products, Pack Variants & Magic-Byte Image Manager -->
             <div class="sn-card" data-admin-panel="products" style="display:none;">
-              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Product Catalogue, Pack Variants &amp; Magic-Byte Image Uploader</h2>
+              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Categories, Products, Pack Variants &amp; Media Manager</h2>
               <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 18px;">
-                Authorized for <strong>SUPER_ADMIN</strong> and <strong>PRODUCT_MANAGER</strong>. Accounts Managers and Order Managers are blocked by server RBAC.
+                Authorized for <strong>SUPER_ADMIN</strong> and <strong>PRODUCT_MANAGER</strong>. Create new categories, replace category or product photos (JPEG/PNG/WebP magic-byte validated &le; 5 MB), and configure pack variants.
               </p>
 
+              <!-- 3A. Create New Category + Category Image Manager -->
+              <div class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:24px;">
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;color:var(--sn-bg-forest);">1. Add New Product Category (with Category Banner Photo)</h3>
+                <form id="sn-admin-create-category-form" style="margin-bottom:18px;">
+                  <div style="display:grid;grid-template-columns:1fr 1.2fr 1.4fr;gap:12px;margin-bottom:12px;">
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Category Name *</label>
+                      <input type="text" name="name" required placeholder="e.g. Cold-Pressed Oils &amp; Ghee" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Subtitle / Eyebrow *</label>
+                      <input type="text" name="subtitle" required placeholder="e.g. Wood-Pressed Wooden Ghani Oils &amp; A2 Ghee" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Category Banner Image (JPEG/PNG/WebP)</label>
+                      <input type="file" name="categoryImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input" style="padding:6px;" />
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;">
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Category Description (Humanizer-Checked) *</label>
+                      <input type="text" name="description" required placeholder="e.g. Traditional wood-pressed groundnut, sesame, and coconut oils extracted at room temperature." class="sn-input" />
+                    </div>
+                    <button type="submit" class="sn-btn sn-btn-primary">Create Category</button>
+                  </div>
+                </form>
+
+                <h4 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1rem;color:var(--sn-bg-forest);">Existing Categories &amp; Category Image Updater</h4>
+                <div class="sn-table-wrap">
+                  <table class="sn-table" id="sn-admin-categories-table">
+                    <thead>
+                      <tr><th>Photo</th><th>Category Name &amp; Slug</th><th>Subtitle</th><th>Change Category Image</th></tr>
+                    </thead>
+                    <tbody>
+                      ${categories.map(c => `
+                        <tr>
+                          <td>
+                            <img src="${basePath}${escapeHtml(c.image_url)}" alt="${escapeHtml(c.name)}" data-category-img-id="${c.id}" style="width:68px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
+                          <td>
+                            <strong><a href="${basePath}/category/${escapeHtml(c.slug)}">${escapeHtml(c.name)}</a></strong><br/>
+                            <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">/category/${escapeHtml(c.slug)}</span>
+                          </td>
+                          <td style="font-size:0.82rem;">${escapeHtml(c.subtitle)}</td>
+                          <td>
+                            <form class="sn-admin-cat-img-form" style="display:flex;gap:8px;align-items:center;">
+                              <input type="hidden" name="categoryId" value="${c.id}" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:4px;font-size:0.75rem;max-width:210px;" />
+                              <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Update Photo</button>
+                            </form>
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- 3B. Dedicated Product Image Uploader (Primary Photo or Secondary Gallery) -->
               <form id="sn-admin-image-upload-form" class="sn-card" style="background-color:var(--sn-bg-mortar);margin-bottom:20px;">
-                <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.05rem;">Upload Verified Product / FSSAI Label Photo (JPEG/PNG/WebP &le; 5 MB)</h3>
-                <div style="display:grid;grid-template-columns:1.2fr 1.2fr 1fr auto;gap:10px;align-items:end;">
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.05rem;">2. Change Product Photo or Add FSSAI Nutrition Label to Gallery (JPEG/PNG/WebP &le; 5 MB)</h3>
+                <div style="display:grid;grid-template-columns:1.2fr 1.1fr 1.1fr 1fr auto;gap:10px;align-items:end;">
                   <div>
                     <label style="font-size:0.75rem;font-weight:600;">Select Product *</label>
-                    <select name="productId" class="sn-select">
+                    <select name="productId" class="sn-select" id="sn-upload-prod-select">
                       ${products.map(p => `<option value="${p.id}">${escapeHtml(p.sku_base)} - ${escapeHtml(p.name)}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:0.75rem;font-weight:600;">Photo Target Role *</label>
+                    <select name="setAsPrimary" class="sn-select">
+                      <option value="true" selected>Replace Primary Storefront Photo</option>
+                      <option value="false">Add to Secondary Gallery (Back Label)</option>
                     </select>
                   </div>
                   <div>
@@ -1158,14 +1251,15 @@ function renderAdminPortalPage({
                   </div>
                   <div>
                     <label style="font-size:0.75rem;font-weight:600;">Image Caption</label>
-                    <input type="text" name="caption" value="Back of Pouch - FSSAI &amp; Nutrition Table" class="sn-input" />
+                    <input type="text" name="caption" value="Front Pack / FSSAI Nutrition Label" class="sn-input" />
                   </div>
-                  <button type="submit" class="sn-btn sn-btn-forest">Upload Photo</button>
+                  <button type="submit" class="sn-btn sn-btn-forest">Save Product Photo</button>
                 </div>
               </form>
 
+              <!-- 3C. Add New Product (with Initial Product Photo) -->
               <form id="sn-admin-create-product-form" class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:24px;">
-                <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;">Add New Product (Auto-Generates 100 g, 250 g, 500 g &amp; 1 kg Variants)</h3>
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;">3. Add New Product (with Photo &amp; Auto-Generated 100 g, 250 g, 500 g, 1 kg Variants)</h3>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
                   <div>
                     <label style="font-size:0.75rem;font-weight:600;">Product Name *</label>
@@ -1177,12 +1271,12 @@ function renderAdminPortalPage({
                   </div>
                   <div>
                     <label style="font-size:0.75rem;font-weight:600;">Category *</label>
-                    <select name="categoryId" class="sn-select">
+                    <select name="categoryId" class="sn-select" id="sn-create-prod-cat-select">
                       ${categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
                     </select>
                   </div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr;gap:12px;margin-bottom:12px;">
                   <div>
                     <label style="font-size:0.75rem;font-weight:600;">100g Base Selling Price (INR) *</label>
                     <input type="number" name="base100gInr" required value="180" class="sn-input" />
@@ -1198,6 +1292,10 @@ function renderAdminPortalPage({
                     <label style="font-size:0.75rem;font-weight:600;">Growing Region *</label>
                     <input type="text" name="originRegion" required value="Kanyakumari, Tamil Nadu" class="sn-input" />
                   </div>
+                  <div>
+                    <label style="font-size:0.75rem;font-weight:600;">Product Photo (JPEG/PNG/WebP)</label>
+                    <input type="file" name="productImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input" style="padding:6px;" />
+                  </div>
                 </div>
                 <div style="margin-bottom:12px;">
                   <label style="font-size:0.75rem;font-weight:600;">Short Description (Humanizer-Checked) *</label>
@@ -1209,20 +1307,33 @@ function renderAdminPortalPage({
               <div class="sn-table-wrap">
                 <table class="sn-table">
                   <thead>
-                    <tr><th>SKU Base</th><th>HSN</th><th>Product Name</th><th>Origin &amp; Batch</th><th>GST</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th></tr>
+                    <tr><th>Photo</th><th>SKU &amp; HSN</th><th>Product Name &amp; Origin</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th><th>Quick Change Photo</th></tr>
                   </thead>
                   <tbody>
                     ${products.map(p => {
                       const pVars = variants.filter(v => v.product_id === p.id);
                       return `
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">${escapeHtml(p.sku_base)}</td>
-                          <td style="font-family:var(--sn-font-mono);">${escapeHtml(p.hsn_code || '080290')}</td>
-                          <td><strong><a href="${basePath}/product/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a></strong></td>
-                          <td>${escapeHtml(p.origin_region)} (${escapeHtml(p.harvest_batch)})</td>
-                          <td style="font-family:var(--sn-font-mono);">${p.gst_percent}%</td>
+                          <td>
+                            <img src="${basePath}${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" data-product-img-id="${p.id}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>${escapeHtml(p.sku_base)}</strong><br/>
+                            HSN: ${escapeHtml(p.hsn_code || '080290')} (${p.gst_percent}% GST)
+                          </td>
+                          <td>
+                            <strong><a href="${basePath}/product/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">${escapeHtml(p.origin_region)} • ${escapeHtml(p.harvest_batch)}</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             ${pVars.map(v => `${escapeHtml(v.pack_label)}: ${formatInr(v.selling_price_paise)} (${v.stock_qty})`).join(' | ')}
+                          </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="${p.id}" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
                           </td>
                         </tr>
                       `;

@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Magic-Byte Validated Product Image Upload Pipeline (src/core/checkout/imageUploader.js)
+ * Magic-Byte Validated Product & Category Image Upload Pipeline (src/core/checkout/imageUploader.js)
  * Restricts uploads strictly to verified JPEG, PNG, and WebP images (<= 5 MB) and saves to public/uploads/.
  */
 const fs = require('node:fs');
@@ -42,14 +42,7 @@ function detectImageFormatFromMagicBytes(buf) {
   return null;
 }
 
-function uploadProductImage({
-  productId,
-  imageBase64,
-  caption = 'Front / Nutrition Pack View',
-  setAsPrimary = false,
-  actorEmail = 'catalog@sasynaturals.com',
-  actorRole = 'PRODUCT_MANAGER'
-}) {
+function saveVerifiedImageToUploads(imageBase64, prefixSlug = 'media') {
   if (!imageBase64 || typeof imageBase64 !== 'string') {
     throw new Error('Missing image payload.');
   }
@@ -65,21 +58,38 @@ function uploadProductImage({
     throw new Error('Security Violation: File magic bytes do not match a valid JPEG, PNG, or WebP image.');
   }
 
+  const uploadsDir = path.join(ROOT_DIR, 'public/uploads');
+  fs.mkdirSync(uploadsDir, { recursive: true });
+
+  const hash = crypto.createHash('sha256').update(buf).digest('hex').slice(0, 12);
+  const safePrefix = String(prefixSlug || 'media').replace(/[^a-z0-9-_]/gi, '-').toLowerCase();
+  const fileName = `${safePrefix}-${hash}${format.ext}`;
+  const filePath = path.join(uploadsDir, fileName);
+  fs.writeFileSync(filePath, buf);
+
+  return {
+    publicUrl: `/uploads/${fileName}`,
+    mime: format.mime,
+    bytes: buf.length
+  };
+}
+
+function uploadProductImage({
+  productId,
+  imageBase64,
+  caption = 'Front / Nutrition Pack View',
+  setAsPrimary = true,
+  actorEmail = 'catalog@sasynaturals.com',
+  actorRole = 'PRODUCT_MANAGER'
+}) {
   const db = getDb();
   const product = db.prepare('SELECT * FROM products WHERE id = ?').get(Number(productId));
   if (!product) {
     throw new Error(`Product #${productId} not found.`);
   }
 
-  const uploadsDir = path.join(ROOT_DIR, 'public/uploads');
-  fs.mkdirSync(uploadsDir, { recursive: true });
+  const saved = saveVerifiedImageToUploads(imageBase64, product.slug);
 
-  const hash = crypto.createHash('sha256').update(buf).digest('hex').slice(0, 12);
-  const fileName = `${product.slug}-${hash}${format.ext}`;
-  const filePath = path.join(uploadsDir, fileName);
-  fs.writeFileSync(filePath, buf);
-
-  const publicUrl = `/uploads/${fileName}`;
   let gallery = [];
   try {
     gallery = JSON.parse(product.gallery_json || '[]');
@@ -87,11 +97,16 @@ function uploadProductImage({
   } catch {
     gallery = [];
   }
-  gallery.push({ url: publicUrl, caption: String(caption || '').trim(), mime: format.mime });
+  gallery.push({
+    url: saved.publicUrl,
+    caption: String(caption || '').trim(),
+    mime: saved.mime,
+    isPrimary: Boolean(setAsPrimary)
+  });
 
   if (setAsPrimary) {
     db.prepare('UPDATE products SET image_url = ?, image_caption = ?, gallery_json = ? WHERE id = ?').run(
-      publicUrl,
+      saved.publicUrl,
       String(caption || '').trim(),
       JSON.stringify(gallery),
       product.id
@@ -103,23 +118,60 @@ function uploadProductImage({
   recordAuditLog({
     actorEmail,
     actorRole,
-    action: 'PRODUCT_IMAGE_UPLOADED',
+    action: setAsPrimary ? 'PRODUCT_PRIMARY_IMAGE_CHANGED' : 'PRODUCT_GALLERY_IMAGE_ADDED',
     entityType: 'PRODUCT',
     entityId: product.sku_base,
-    details: { publicUrl, bytes: buf.length, mime: format.mime, setAsPrimary }
+    details: { publicUrl: saved.publicUrl, bytes: saved.bytes, mime: saved.mime, setAsPrimary }
   });
 
   return {
     productId: product.id,
-    publicUrl,
-    mime: format.mime,
-    bytes: buf.length,
+    publicUrl: saved.publicUrl,
+    mime: saved.mime,
+    bytes: saved.bytes,
+    setAsPrimary: Boolean(setAsPrimary),
     galleryCount: gallery.length
+  };
+}
+
+function uploadCategoryImage({
+  categoryId,
+  imageBase64,
+  actorEmail = 'catalog@sasynaturals.com',
+  actorRole = 'PRODUCT_MANAGER'
+}) {
+  const db = getDb();
+  const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(Number(categoryId));
+  if (!category) {
+    throw new Error(`Category #${categoryId} not found.`);
+  }
+
+  const saved = saveVerifiedImageToUploads(imageBase64, `cat-${category.slug}`);
+
+  db.prepare('UPDATE categories SET image_url = ? WHERE id = ?').run(saved.publicUrl, category.id);
+
+  recordAuditLog({
+    actorEmail,
+    actorRole,
+    action: 'CATEGORY_IMAGE_CHANGED',
+    entityType: 'CATEGORY',
+    entityId: category.slug,
+    details: { publicUrl: saved.publicUrl, bytes: saved.bytes, mime: saved.mime }
+  });
+
+  return {
+    categoryId: category.id,
+    slug: category.slug,
+    publicUrl: saved.publicUrl,
+    mime: saved.mime,
+    bytes: saved.bytes
   };
 }
 
 module.exports = {
   MAX_IMAGE_BYTES,
   detectImageFormatFromMagicBytes,
-  uploadProductImage
+  saveVerifiedImageToUploads,
+  uploadProductImage,
+  uploadCategoryImage
 };

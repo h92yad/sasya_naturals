@@ -14,7 +14,7 @@
   <meta property="og:url" content="https://sasynaturals.com/admin" />
   <meta property="og:site_name" content="Sasya Naturals" />
   <meta property="og:image" content="https://sasynaturals.com/images/hero-pantry.jpg" />
-  <link rel="stylesheet" href="/sasya_naturals/assets/sasya-core.css?v=1.2.0" />
+  <link rel="stylesheet" href="/sasya_naturals/assets/sasya-core.css?v=1.3.0" />
   <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://sasynaturals.com/#organization","name":"Sasya Naturals","url":"https://sasynaturals.com/","logo":{"@type":"ImageObject","url":"https://sasynaturals.com/images/hero-pantry.jpg"},"contactPoint":{"@type":"ContactPoint","telephone":"+91-80-4568-2200","contactType":"customer service","areaServed":"IN","availableLanguage":["en","hi","kn"]}},{"@type":"WebSite","@id":"https://sasynaturals.com/#website","url":"https://sasynaturals.com/","name":"Sasya Naturals","publisher":{"@id":"https://sasynaturals.com/#organization"},"potentialAction":{"@type":"SearchAction","target":"https://sasynaturals.com/shop?q={search_term_string}","query-input":"required name=search_term_string"}},{"@type":"BreadcrumbList","@id":"https://sasynaturals.com/admin#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://sasynaturals.com/"},{"@type":"ListItem","position":2,"name":"Admin Portal","item":"https://sasynaturals.com/admin"}]},{"@type":"WebPage","@id":"https://sasynaturals.com/admin#webpage","url":"https://sasynaturals.com/admin","name":"Staff RBAC Administration Portal | Sasya Naturals","description":"Role-based administration portal for Sasya Naturals Super Admin, Product Manager, Order Manager, Accounts Manager, and Staff.","isPartOf":{"@id":"https://sasynaturals.com/#website"},"breadcrumb":{"@id":"https://sasynaturals.com/admin#breadcrumb"}}]}</script>
 </head>
 <body>
@@ -54,7 +54,7 @@
     </div>
   </header>
 
-  <main id="app-mount" data-ssr-rendered="true" data-app-version="1.2.0">
+  <main id="app-mount" data-ssr-rendered="true" data-app-version="1.3.0">
     
     <section class="sn-section" id="sn-admin-portal">
       <div class="sn-container">
@@ -110,7 +110,7 @@
             <ul class="sn-admin-menu">
               <li><button type="button" class="sn-active" data-admin-tab-btn="orders" id="tab-btn-orders">1. Orders &amp; Manual Shipping</button></li>
               <li><button type="button" data-admin-tab-btn="vault" id="tab-btn-vault">2. API &amp; Razorpay Key Vault</button></li>
-              <li><button type="button" data-admin-tab-btn="products" id="tab-btn-products">3. Products &amp; Image Upload</button></li>
+              <li><button type="button" data-admin-tab-btn="products" id="tab-btn-products">3. Categories, Products &amp; Media</button></li>
               <li><button type="button" data-admin-tab-btn="inventory" id="tab-btn-inventory">4. Inventory &amp; Stock Ledger</button></li>
               <li><button type="button" data-admin-tab-btn="payments" id="tab-btn-payments">5. Payments, COD &amp; Reports</button></li>
               <li><button type="button" data-admin-tab-btn="rbac" id="tab-btn-rbac">6. Staff RBAC &amp; Audit Logs</button></li>
@@ -362,20 +362,122 @@
               </div>
             </div>
 
-            <!-- Panel 3: Products, Pack Variants & Magic-Byte Image Upload -->
+            <!-- Panel 3: Categories, Products, Pack Variants & Magic-Byte Image Manager -->
             <div class="sn-card" data-admin-panel="products" style="display:none;">
-              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Product Catalogue, Pack Variants &amp; Magic-Byte Image Uploader</h2>
+              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Categories, Products, Pack Variants &amp; Media Manager</h2>
               <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 18px;">
-                Authorized for <strong>SUPER_ADMIN</strong> and <strong>PRODUCT_MANAGER</strong>. Accounts Managers and Order Managers are blocked by server RBAC.
+                Authorized for <strong>SUPER_ADMIN</strong> and <strong>PRODUCT_MANAGER</strong>. Create new categories, replace category or product photos (JPEG/PNG/WebP magic-byte validated &le; 5 MB), and configure pack variants.
               </p>
 
+              <!-- 3A. Create New Category + Category Image Manager -->
+              <div class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:24px;">
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;color:var(--sn-bg-forest);">1. Add New Product Category (with Category Banner Photo)</h3>
+                <form id="sn-admin-create-category-form" style="margin-bottom:18px;">
+                  <div style="display:grid;grid-template-columns:1fr 1.2fr 1.4fr;gap:12px;margin-bottom:12px;">
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Category Name *</label>
+                      <input type="text" name="name" required placeholder="e.g. Cold-Pressed Oils &amp; Ghee" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Subtitle / Eyebrow *</label>
+                      <input type="text" name="subtitle" required placeholder="e.g. Wood-Pressed Wooden Ghani Oils &amp; A2 Ghee" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Category Banner Image (JPEG/PNG/WebP)</label>
+                      <input type="file" name="categoryImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input" style="padding:6px;" />
+                    </div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;">
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Category Description (Humanizer-Checked) *</label>
+                      <input type="text" name="description" required placeholder="e.g. Traditional wood-pressed groundnut, sesame, and coconut oils extracted at room temperature." class="sn-input" />
+                    </div>
+                    <button type="submit" class="sn-btn sn-btn-primary">Create Category</button>
+                  </div>
+                </form>
+
+                <h4 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1rem;color:var(--sn-bg-forest);">Existing Categories &amp; Category Image Updater</h4>
+                <div class="sn-table-wrap">
+                  <table class="sn-table" id="sn-admin-categories-table">
+                    <thead>
+                      <tr><th>Photo</th><th>Category Name &amp; Slug</th><th>Subtitle</th><th>Change Category Image</th></tr>
+                    </thead>
+                    <tbody>
+                      
+                        <tr>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-dry-fruits.jpg" alt="Dry Fruits" data-category-img-id="1" style="width:68px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/category/dry-fruits">Dry Fruits</a></strong><br/>
+                            <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">/category/dry-fruits</span>
+                          </td>
+                          <td style="font-size:0.82rem;">Single-Orchard Kernels, Whole Nuts &amp; Sun-Dried Fruits</td>
+                          <td>
+                            <form class="sn-admin-cat-img-form" style="display:flex;gap:8px;align-items:center;">
+                              <input type="hidden" name="categoryId" value="1" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:4px;font-size:0.75rem;max-width:210px;" />
+                              <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Update Photo</button>
+                            </form>
+                          </td>
+                        </tr>
+                      
+                        <tr>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-millets-grains.jpg" alt="Millets &amp; Grains" data-category-img-id="2" style="width:68px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/category/millets-grains">Millets &amp; Grains</a></strong><br/>
+                            <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">/category/millets-grains</span>
+                          </td>
+                          <td style="font-size:0.82rem;">Unpolished Native Siridhanya &amp; Heirloom Indian Grains</td>
+                          <td>
+                            <form class="sn-admin-cat-img-form" style="display:flex;gap:8px;align-items:center;">
+                              <input type="hidden" name="categoryId" value="2" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:4px;font-size:0.75rem;max-width:210px;" />
+                              <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Update Photo</button>
+                            </form>
+                          </td>
+                        </tr>
+                      
+                        <tr>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-spices.jpg" alt="Spices" data-category-img-id="3" style="width:68px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/category/spices">Spices</a></strong><br/>
+                            <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">/category/spices</span>
+                          </td>
+                          <td style="font-size:0.82rem;">Cold-Milled Single-Origin Spices &amp; Whole Aromatics</td>
+                          <td>
+                            <form class="sn-admin-cat-img-form" style="display:flex;gap:8px;align-items:center;">
+                              <input type="hidden" name="categoryId" value="3" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:4px;font-size:0.75rem;max-width:210px;" />
+                              <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Update Photo</button>
+                            </form>
+                          </td>
+                        </tr>
+                      
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- 3B. Dedicated Product Image Uploader (Primary Photo or Secondary Gallery) -->
               <form id="sn-admin-image-upload-form" class="sn-card" style="background-color:var(--sn-bg-mortar);margin-bottom:20px;">
-                <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.05rem;">Upload Verified Product / FSSAI Label Photo (JPEG/PNG/WebP &le; 5 MB)</h3>
-                <div style="display:grid;grid-template-columns:1.2fr 1.2fr 1fr auto;gap:10px;align-items:end;">
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.05rem;">2. Change Product Photo or Add FSSAI Nutrition Label to Gallery (JPEG/PNG/WebP &le; 5 MB)</h3>
+                <div style="display:grid;grid-template-columns:1.2fr 1.1fr 1.1fr 1fr auto;gap:10px;align-items:end;">
                   <div>
                     <label style="font-size:0.75rem;font-weight:600;">Select Product *</label>
-                    <select name="productId" class="sn-select">
+                    <select name="productId" class="sn-select" id="sn-upload-prod-select">
                       <option value="1">SN-DF-ALM - Kashmiri Mamra Giri Almonds</option><option value="2">SN-DF-CSH - Goan W240 Jumbo Whole Cashews</option><option value="3">SN-DF-PST - Lightly Salted Roasted Pistachios</option><option value="4">SN-DF-WLN - Kashmiri Snow-White Walnut Halves (Akhrot Giri)</option><option value="5">SN-DF-FIG - Sun-Dried Jumbo Anjeer (Dried Figs)</option><option value="6">SN-DF-MIX - Royal Panchmeva Roasted &amp; Raw Dry Fruit Mix</option><option value="7">SN-ML-RAG - Unpolished Haveri Finger Millet (Ragi Whole &amp; Flour)</option><option value="8">SN-ML-FOX - Chitradurga Unpolished Foxtail Millet (Navane / Kangni)</option><option value="9">SN-ML-LIT - Native Unpolished Little Millet (Saame / Kutki)</option><option value="10">SN-ML-KOD - Heirloom Unpolished Kodo Millet (Arikelu / Kodra)</option><option value="11">SN-ML-JWR - Solapur Maldandi White Jowar (Sorghum Grain)</option><option value="12">SN-SP-TUR - Meghalaya Lakadong High-Curcumin Turmeric Powder</option><option value="13">SN-SP-PEP - Wayanad TGSEB Bold Black Peppercorns</option><option value="14">SN-SP-CRD - Idukki 8mm+ Bold Green Cardamom (Elaichi)</option><option value="15">SN-SP-CHL - Dharwad Byadgi &amp; Guntur Balanced Red Chilli Powder</option><option value="16">SN-SP-CIN - True Ceylon Cinnamon Quills (Cinnamomum verum)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:0.75rem;font-weight:600;">Photo Target Role *</label>
+                    <select name="setAsPrimary" class="sn-select">
+                      <option value="true" selected>Replace Primary Storefront Photo</option>
+                      <option value="false">Add to Secondary Gallery (Back Label)</option>
                     </select>
                   </div>
                   <div>
@@ -384,14 +486,15 @@
                   </div>
                   <div>
                     <label style="font-size:0.75rem;font-weight:600;">Image Caption</label>
-                    <input type="text" name="caption" value="Back of Pouch - FSSAI &amp; Nutrition Table" class="sn-input" />
+                    <input type="text" name="caption" value="Front Pack / FSSAI Nutrition Label" class="sn-input" />
                   </div>
-                  <button type="submit" class="sn-btn sn-btn-forest">Upload Photo</button>
+                  <button type="submit" class="sn-btn sn-btn-forest">Save Product Photo</button>
                 </div>
               </form>
 
+              <!-- 3C. Add New Product (with Initial Product Photo) -->
               <form id="sn-admin-create-product-form" class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:24px;">
-                <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;">Add New Product (Auto-Generates 100 g, 250 g, 500 g &amp; 1 kg Variants)</h3>
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;">3. Add New Product (with Photo &amp; Auto-Generated 100 g, 250 g, 500 g, 1 kg Variants)</h3>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
                   <div>
                     <label style="font-size:0.75rem;font-weight:600;">Product Name *</label>
@@ -403,12 +506,12 @@
                   </div>
                   <div>
                     <label style="font-size:0.75rem;font-weight:600;">Category *</label>
-                    <select name="categoryId" class="sn-select">
+                    <select name="categoryId" class="sn-select" id="sn-create-prod-cat-select">
                       <option value="1">Dry Fruits</option><option value="2">Millets &amp; Grains</option><option value="3">Spices</option>
                     </select>
                   </div>
                 </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr;gap:12px;margin-bottom:12px;">
                   <div>
                     <label style="font-size:0.75rem;font-weight:600;">100g Base Selling Price (INR) *</label>
                     <input type="number" name="base100gInr" required value="180" class="sn-input" />
@@ -424,6 +527,10 @@
                     <label style="font-size:0.75rem;font-weight:600;">Growing Region *</label>
                     <input type="text" name="originRegion" required value="Kanyakumari, Tamil Nadu" class="sn-input" />
                   </div>
+                  <div>
+                    <label style="font-size:0.75rem;font-weight:600;">Product Photo (JPEG/PNG/WebP)</label>
+                    <input type="file" name="productImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input" style="padding:6px;" />
+                  </div>
                 </div>
                 <div style="margin-bottom:12px;">
                   <label style="font-size:0.75rem;font-weight:600;">Short Description (Humanizer-Checked) *</label>
@@ -435,183 +542,391 @@
               <div class="sn-table-wrap">
                 <table class="sn-table">
                   <thead>
-                    <tr><th>SKU Base</th><th>HSN</th><th>Product Name</th><th>Origin &amp; Batch</th><th>GST</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th></tr>
+                    <tr><th>Photo</th><th>SKU &amp; HSN</th><th>Product Name &amp; Origin</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th><th>Quick Change Photo</th></tr>
                   </thead>
                   <tbody>
                     
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-DF-ALM</td>
-                          <td style="font-family:var(--sn-font-mono);">080290</td>
-                          <td><strong><a href="/sasya_naturals/product/kashmiri-mamra-almonds">Kashmiri Mamra Giri Almonds</a></strong></td>
-                          <td>Pulwama, Jammu &amp; Kashmir (SN-KSH-2611A)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-dry-fruits.jpg" alt="Kashmiri Mamra Giri Almonds" data-product-img-id="1" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-DF-ALM</strong><br/>
+                            HSN: 080290 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/kashmiri-mamra-almonds">Kashmiri Mamra Giri Almonds</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Pulwama, Jammu &amp; Kashmir • SN-KSH-2611A</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹320 (45) | 250 g: ₹750 (60) | 500 g: ₹1,425 (35) | 1 kg: ₹2,720 (20)
                           </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="1" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
+                          </td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-DF-CSH</td>
-                          <td style="font-family:var(--sn-font-mono);">080132</td>
-                          <td><strong><a href="/sasya_naturals/product/goan-w240-whole-cashews">Goan W240 Jumbo Whole Cashews</a></strong></td>
-                          <td>Bicholim, Goa (SN-GOA-2611B)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-dry-fruits.jpg" alt="Goan W240 Jumbo Whole Cashews" data-product-img-id="2" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-DF-CSH</strong><br/>
+                            HSN: 080132 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/goan-w240-whole-cashews">Goan W240 Jumbo Whole Cashews</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Bicholim, Goa • SN-GOA-2611B</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹185 (45) | 250 g: ₹435 (60) | 500 g: ₹825 (35) | 1 kg: ₹1,575 (20)
                           </td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-DF-PST</td>
-                          <td style="font-family:var(--sn-font-mono);">080290</td>
-                          <td><strong><a href="/sasya_naturals/product/lightly-salted-roasted-pistachios">Lightly Salted Roasted Pistachios</a></strong></td>
-                          <td>Kerman Cultivar / Packed in Bengaluru (SN-PST-2611C)</td>
-                          <td style="font-family:var(--sn-font-mono);">12%</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
-                            100 g: ₹245 (45) | 250 g: ₹575 (60) | 500 g: ₹1,090 (35) | 1 kg: ₹2,085 (20)
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="2" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
                           </td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-DF-WLN</td>
-                          <td style="font-family:var(--sn-font-mono);">080290</td>
-                          <td><strong><a href="/sasya_naturals/product/kashmiri-snow-white-walnut-halves">Kashmiri Snow-White Walnut Halves (Akhrot Giri)</a></strong></td>
-                          <td>Kupwara, Jammu &amp; Kashmir (SN-WLN-2610D)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-dry-fruits.jpg" alt="Lightly Salted Roasted Pistachios" data-product-img-id="3" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-DF-PST</strong><br/>
+                            HSN: 080290 (12% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/lightly-salted-roasted-pistachios">Lightly Salted Roasted Pistachios</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Kerman Cultivar / Packed in Bengaluru • SN-PST-2611C</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
+                            100 g: ₹245 (45) | 250 g: ₹575 (60) | 500 g: ₹1,090 (35) | 1 kg: ₹2,085 (20)
+                          </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="3" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
+                          </td>
+                        </tr>
+                      
+                        <tr>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-dry-fruits.jpg" alt="Kashmiri Snow-White Walnut Halves (Akhrot Giri)" data-product-img-id="4" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-DF-WLN</strong><br/>
+                            HSN: 080290 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/kashmiri-snow-white-walnut-halves">Kashmiri Snow-White Walnut Halves (Akhrot Giri)</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Kupwara, Jammu &amp; Kashmir • SN-WLN-2610D</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹225 (45) | 250 g: ₹530 (60) | 500 g: ₹1,000 (35) | 1 kg: ₹1,915 (20)
                           </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="4" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
+                          </td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-DF-FIG</td>
-                          <td style="font-family:var(--sn-font-mono);">080420</td>
-                          <td><strong><a href="/sasya_naturals/product/afghan-jumbo-dried-figs-anjeer">Sun-Dried Jumbo Anjeer (Dried Figs)</a></strong></td>
-                          <td>Kandahar / Packed in Bengaluru (SN-ANJ-2611E)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-dry-fruits.jpg" alt="Sun-Dried Jumbo Anjeer (Dried Figs)" data-product-img-id="5" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-DF-FIG</strong><br/>
+                            HSN: 080420 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/afghan-jumbo-dried-figs-anjeer">Sun-Dried Jumbo Anjeer (Dried Figs)</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Kandahar / Packed in Bengaluru • SN-ANJ-2611E</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹215 (45) | 250 g: ₹505 (60) | 500 g: ₹955 (35) | 1 kg: ₹1,830 (20)
                           </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="5" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
+                          </td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-DF-MIX</td>
-                          <td style="font-family:var(--sn-font-mono);">080290</td>
-                          <td><strong><a href="/sasya_naturals/product/royal-panchmeva-daily-trail-mix">Royal Panchmeva Roasted &amp; Raw Dry Fruit Mix</a></strong></td>
-                          <td>Small-Batch Blended in Karnataka (SN-PMV-2611F)</td>
-                          <td style="font-family:var(--sn-font-mono);">12%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-dry-fruits.jpg" alt="Royal Panchmeva Roasted &amp; Raw Dry Fruit Mix" data-product-img-id="6" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-DF-MIX</strong><br/>
+                            HSN: 080290 (12% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/royal-panchmeva-daily-trail-mix">Royal Panchmeva Roasted &amp; Raw Dry Fruit Mix</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Small-Batch Blended in Karnataka • SN-PMV-2611F</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹200 (45) | 250 g: ₹470 (60) | 500 g: ₹885 (35) | 1 kg: ₹1,690 (20)
                           </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="6" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
+                          </td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-ML-RAG</td>
-                          <td style="font-family:var(--sn-font-mono);">100821</td>
-                          <td><strong><a href="/sasya_naturals/product/unpolished-haveri-finger-millet-ragi">Unpolished Haveri Finger Millet (Ragi Whole &amp; Flour)</a></strong></td>
-                          <td>Haveri, Karnataka (SN-RAG-2611A)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-millets-grains.jpg" alt="Unpolished Haveri Finger Millet (Ragi Whole &amp; Flour)" data-product-img-id="7" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-ML-RAG</strong><br/>
+                            HSN: 100821 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/unpolished-haveri-finger-millet-ragi">Unpolished Haveri Finger Millet (Ragi Whole &amp; Flour)</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Haveri, Karnataka • SN-RAG-2611A</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹35 (45) | 250 g: ₹80 (60) | 500 g: ₹155 (35) | 1 kg: ₹300 (20)
                           </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="7" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
+                          </td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-ML-FOX</td>
-                          <td style="font-family:var(--sn-font-mono);">100821</td>
-                          <td><strong><a href="/sasya_naturals/product/chitradurga-unpolished-foxtail-millet">Chitradurga Unpolished Foxtail Millet (Navane / Kangni)</a></strong></td>
-                          <td>Chitradurga, Karnataka (SN-FOX-2611B)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-millets-grains.jpg" alt="Chitradurga Unpolished Foxtail Millet (Navane / Kangni)" data-product-img-id="8" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-ML-FOX</strong><br/>
+                            HSN: 100821 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/chitradurga-unpolished-foxtail-millet">Chitradurga Unpolished Foxtail Millet (Navane / Kangni)</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Chitradurga, Karnataka • SN-FOX-2611B</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹40 (45) | 250 g: ₹100 (60) | 500 g: ₹185 (35) | 1 kg: ₹355 (20)
                           </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="8" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
+                          </td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-ML-LIT</td>
-                          <td style="font-family:var(--sn-font-mono);">100821</td>
-                          <td><strong><a href="/sasya_naturals/product/native-little-millet-saame-kutki">Native Unpolished Little Millet (Saame / Kutki)</a></strong></td>
-                          <td>Dharwad, Karnataka (SN-LIT-2611C)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-millets-grains.jpg" alt="Native Unpolished Little Millet (Saame / Kutki)" data-product-img-id="9" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-ML-LIT</strong><br/>
+                            HSN: 100821 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/native-little-millet-saame-kutki">Native Unpolished Little Millet (Saame / Kutki)</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Dharwad, Karnataka • SN-LIT-2611C</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹45 (45) | 250 g: ₹110 (60) | 500 g: ₹205 (35) | 1 kg: ₹390 (20)
                           </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="9" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
+                          </td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-ML-KOD</td>
-                          <td style="font-family:var(--sn-font-mono);">100821</td>
-                          <td><strong><a href="/sasya_naturals/product/vindhya-unpolished-kodo-millet">Heirloom Unpolished Kodo Millet (Arikelu / Kodra)</a></strong></td>
-                          <td>Mandla &amp; Dindori Belt, Madhya Pradesh (SN-KOD-2611D)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-millets-grains.jpg" alt="Heirloom Unpolished Kodo Millet (Arikelu / Kodra)" data-product-img-id="10" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-ML-KOD</strong><br/>
+                            HSN: 100821 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/vindhya-unpolished-kodo-millet">Heirloom Unpolished Kodo Millet (Arikelu / Kodra)</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Mandla &amp; Dindori Belt, Madhya Pradesh • SN-KOD-2611D</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹45 (45) | 250 g: ₹105 (60) | 500 g: ₹200 (35) | 1 kg: ₹385 (20)
                           </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="10" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
+                          </td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-ML-JWR</td>
-                          <td style="font-family:var(--sn-font-mono);">100790</td>
-                          <td><strong><a href="/sasya_naturals/product/solapur-maldandi-jowar-sorghum">Solapur Maldandi White Jowar (Sorghum Grain)</a></strong></td>
-                          <td>Solapur, Maharashtra (SN-JWR-2611E)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-millets-grains.jpg" alt="Solapur Maldandi White Jowar (Sorghum Grain)" data-product-img-id="11" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-ML-JWR</strong><br/>
+                            HSN: 100790 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/solapur-maldandi-jowar-sorghum">Solapur Maldandi White Jowar (Sorghum Grain)</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Solapur, Maharashtra • SN-JWR-2611E</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹30 (45) | 250 g: ₹75 (60) | 500 g: ₹140 (35) | 1 kg: ₹270 (20)
                           </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="11" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
+                          </td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-SP-TUR</td>
-                          <td style="font-family:var(--sn-font-mono);">091030</td>
-                          <td><strong><a href="/sasya_naturals/product/meghalaya-lakadong-turmeric-powder">Meghalaya Lakadong High-Curcumin Turmeric Powder</a></strong></td>
-                          <td>West Jaintia Hills, Meghalaya (SN-LAK-2611A)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-spices.jpg" alt="Meghalaya Lakadong High-Curcumin Turmeric Powder" data-product-img-id="12" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-SP-TUR</strong><br/>
+                            HSN: 091030 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/meghalaya-lakadong-turmeric-powder">Meghalaya Lakadong High-Curcumin Turmeric Powder</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">West Jaintia Hills, Meghalaya • SN-LAK-2611A</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹135 (45) | 250 g: ₹315 (60) | 500 g: ₹600 (35) | 1 kg: ₹1,150 (20)
                           </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="12" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
+                          </td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-SP-PEP</td>
-                          <td style="font-family:var(--sn-font-mono);">090411</td>
-                          <td><strong><a href="/sasya_naturals/product/wayanad-tellicherry-garbled-black-pepper">Wayanad TGSEB Bold Black Peppercorns</a></strong></td>
-                          <td>Wayanad, Kerala (SN-PEP-2611B)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-spices.jpg" alt="Wayanad TGSEB Bold Black Peppercorns" data-product-img-id="13" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-SP-PEP</strong><br/>
+                            HSN: 090411 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/wayanad-tellicherry-garbled-black-pepper">Wayanad TGSEB Bold Black Peppercorns</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Wayanad, Kerala • SN-PEP-2611B</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹165 (45) | 250 g: ₹390 (60) | 500 g: ₹735 (35) | 1 kg: ₹1,405 (20)
                           </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="13" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
+                          </td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-SP-CRD</td>
-                          <td style="font-family:var(--sn-font-mono);">090831</td>
-                          <td><strong><a href="/sasya_naturals/product/idukki-8mm-green-cardamom-pods">Idukki 8mm+ Bold Green Cardamom (Elaichi)</a></strong></td>
-                          <td>Idukki, Kerala (SN-CRD-2611C)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-spices.jpg" alt="Idukki 8mm+ Bold Green Cardamom (Elaichi)" data-product-img-id="14" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-SP-CRD</strong><br/>
+                            HSN: 090831 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/idukki-8mm-green-cardamom-pods">Idukki 8mm+ Bold Green Cardamom (Elaichi)</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Idukki, Kerala • SN-CRD-2611C</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹420 (45) | 250 g: ₹985 (60) | 500 g: ₹1,870 (35) | 1 kg: ₹3,570 (20)
                           </td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-SP-CHL</td>
-                          <td style="font-family:var(--sn-font-mono);">090422</td>
-                          <td><strong><a href="/sasya_naturals/product/byadgi-guntur-heirloom-chilli-powder">Dharwad Byadgi &amp; Guntur Balanced Red Chilli Powder</a></strong></td>
-                          <td>Byadgi (Karnataka) &amp; Guntur (Andhra Pradesh) (SN-CHL-2611D)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
-                            100 g: ₹95 (45) | 250 g: ₹225 (60) | 500 g: ₹425 (35) | 1 kg: ₹810 (20)
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="14" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
                           </td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);">SN-SP-CIN</td>
-                          <td style="font-family:var(--sn-font-mono);">090611</td>
-                          <td><strong><a href="/sasya_naturals/product/true-ceylon-alba-cinnamon-quills">True Ceylon Cinnamon Quills (Cinnamomum verum)</a></strong></td>
-                          <td>Southern Highlands / Packed in Bengaluru (SN-CIN-2611E)</td>
-                          <td style="font-family:var(--sn-font-mono);">5%</td>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-spices.jpg" alt="Dharwad Byadgi &amp; Guntur Balanced Red Chilli Powder" data-product-img-id="15" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-SP-CHL</strong><br/>
+                            HSN: 090422 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/byadgi-guntur-heirloom-chilli-powder">Dharwad Byadgi &amp; Guntur Balanced Red Chilli Powder</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Byadgi (Karnataka) &amp; Guntur (Andhra Pradesh) • SN-CHL-2611D</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
+                            100 g: ₹95 (45) | 250 g: ₹225 (60) | 500 g: ₹425 (35) | 1 kg: ₹810 (20)
+                          </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="15" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
+                          </td>
+                        </tr>
+                      
+                        <tr>
+                          <td>
+                            <img src="/sasya_naturals/images/cat-spices.jpg" alt="True Ceylon Cinnamon Quills (Cinnamomum verum)" data-product-img-id="16" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                            <strong>SN-SP-CIN</strong><br/>
+                            HSN: 090611 (5% GST)
+                          </td>
+                          <td>
+                            <strong><a href="/sasya_naturals/product/true-ceylon-alba-cinnamon-quills">True Ceylon Cinnamon Quills (Cinnamomum verum)</a></strong><br/>
+                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">Southern Highlands / Packed in Bengaluru • SN-CIN-2611E</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
                             100 g: ₹245 (45) | 250 g: ₹575 (60) | 500 g: ₹1,090 (35) | 1 kg: ₹2,085 (20)
+                          </td>
+                          <td>
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                              <input type="hidden" name="productId" value="16" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:175px;" />
+                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                            </form>
                           </td>
                         </tr>
                       
@@ -870,6 +1185,42 @@
                   <tbody>
                     
                       <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">2026-11-21 10:18:38</td>
+                        <td style="font-family:var(--sn-font-mono);">#3</td>
+                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-paid);">+2</td>
+                        <td style="font-family:var(--sn-font-mono);">33 -> 35</td>
+                        <td>ORDER_REFUNDED_RESTOCK</td>
+                        <td style="font-family:var(--sn-font-mono);">SN-2026-1004</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">2026-11-21 10:18:38</td>
+                        <td style="font-family:var(--sn-font-mono);">#3</td>
+                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-danger);">-2</td>
+                        <td style="font-family:var(--sn-font-mono);">35 -> 33</td>
+                        <td>ONLINE_PAYMENT_VERIFIED</td>
+                        <td style="font-family:var(--sn-font-mono);">SN-2026-1004</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">2026-11-21 10:18:11</td>
+                        <td style="font-family:var(--sn-font-mono);">#3</td>
+                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-paid);">+2</td>
+                        <td style="font-family:var(--sn-font-mono);">33 -> 35</td>
+                        <td>ORDER_REFUNDED_RESTOCK</td>
+                        <td style="font-family:var(--sn-font-mono);">SN-2026-1003</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">2026-11-21 10:18:11</td>
+                        <td style="font-family:var(--sn-font-mono);">#3</td>
+                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-danger);">-2</td>
+                        <td style="font-family:var(--sn-font-mono);">35 -> 33</td>
+                        <td>ONLINE_PAYMENT_VERIFIED</td>
+                        <td style="font-family:var(--sn-font-mono);">SN-2026-1003</td>
+                      </tr>
+                    
+                      <tr>
                         <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">2026-11-21 10:03:44</td>
                         <td style="font-family:var(--sn-font-mono);">#3</td>
                         <td style="font-family:var(--sn-font-mono);color:var(--sn-status-paid);">+2</td>
@@ -1065,6 +1416,123 @@
                   <tbody>
                     
                       <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:18:38</td>
+                        <td style="font-family:var(--sn-font-mono);">superadmin@sasynaturals.com</td>
+                        <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;">ADMIN_SESSION_LOGIN</td>
+                        <td style="font-family:var(--sn-font-mono);">AUTH:superadmin@sasynaturals.com</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;ip&quot;:&quot;10.0.0.99&quot;}</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:18:38</td>
+                        <td style="font-family:var(--sn-font-mono);">superadmin@sasynaturals.com</td>
+                        <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;">VAULT_CREDENTIAL_SEALED</td>
+                        <td style="font-family:var(--sn-font-mono);">CREDENTIAL_VAULT:SMTP_API_KEY</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;maskedHint&quot;:&quot;re_l••••••••4321 (Hidden)&quot;,&quot;status&quot;:&quot;ENCRYPTED_AND_HIDDEN&quot;}</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:18:38</td>
+                        <td style="font-family:var(--sn-font-mono);">superadmin@sasynaturals.com</td>
+                        <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;">RBAC_VERIFICATION_GATE_TEST</td>
+                        <td style="font-family:var(--sn-font-mono);">SYSTEM:GATE_4</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;verifiedRoles&quot;:5}</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:18:38</td>
+                        <td style="font-family:var(--sn-font-mono);">superadmin@sasynaturals.com</td>
+                        <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;">SHIPPING_POLICY_UPDATED</td>
+                        <td style="font-family:var(--sn-font-mono);">STORE_SETTINGS:SHIPPING_ENGINE</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;shipping_free_mode&quot;:&quot;THRESHOLD_WITH_WEIGHT_CAP&quot;}</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:18:38</td>
+                        <td style="font-family:var(--sn-font-mono);">superadmin@sasynaturals.com</td>
+                        <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;">SHIPPING_POLICY_UPDATED</td>
+                        <td style="font-family:var(--sn-font-mono);">STORE_SETTINGS:SHIPPING_ENGINE</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;shipping_free_mode&quot;:&quot;DISABLED&quot;}</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:18:38</td>
+                        <td style="font-family:var(--sn-font-mono);">catalog@sasynaturals.com</td>
+                        <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;">CATEGORY_IMAGE_CHANGED</td>
+                        <td style="font-family:var(--sn-font-mono);">CATEGORY:dry-fruits</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;publicUrl&quot;:&quot;/uploads/cat-dry-fruits-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;}</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:18:38</td>
+                        <td style="font-family:var(--sn-font-mono);">catalog@sasynaturals.com</td>
+                        <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;">PRODUCT_GALLERY_IMAGE_ADDED</td>
+                        <td style="font-family:var(--sn-font-mono);">PRODUCT:SN-DF-ALM</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;publicUrl&quot;:&quot;/uploads/kashmiri-mamra-almonds-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;,&quot;setAsPrimary&quot;:false}</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:18:38</td>
+                        <td style="font-family:var(--sn-font-mono);">admin@sasynaturals.com</td>
+                        <td><span class="sn-status sn-status-warn">ORDER_MANAGER</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;">ORDER_FULFILMENT_UPDATED</td>
+                        <td style="font-family:var(--sn-font-mono);">ORDER:SN-2026-1004</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;previousFulfilment&quot;:&quot;Shipped&quot;,&quot;newFulfilment&quot;:&quot;Refunded&quot;,&quot;courierName&quot;:&quot;&quot;,&quot;trackingNumber&quot;:&quot;&quot;,&quot;stockRestored&quot;:true}</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:18:38</td>
+                        <td style="font-family:var(--sn-font-mono);">admin@sasynaturals.com</td>
+                        <td><span class="sn-status sn-status-warn">ORDER_MANAGER</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;">ORDER_FULFILMENT_UPDATED</td>
+                        <td style="font-family:var(--sn-font-mono);">ORDER:SN-2026-1004</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;previousFulfilment&quot;:&quot;Confirmed&quot;,&quot;newFulfilment&quot;:&quot;Shipped&quot;,&quot;courierName&quot;:&quot;Delhivery Surface&quot;,&quot;trackingNumber&quot;:&quot;DLV99281726IN&quot;,&quot;stockRestored&quot;:false}</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:18:11</td>
+                        <td style="font-family:var(--sn-font-mono);">catalog@sasynaturals.com</td>
+                        <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;">CATEGORY_IMAGE_CHANGED</td>
+                        <td style="font-family:var(--sn-font-mono);">CATEGORY:dry-fruits</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;publicUrl&quot;:&quot;/uploads/cat-dry-fruits-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;}</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:18:11</td>
+                        <td style="font-family:var(--sn-font-mono);">catalog@sasynaturals.com</td>
+                        <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;">PRODUCT_GALLERY_IMAGE_ADDED</td>
+                        <td style="font-family:var(--sn-font-mono);">PRODUCT:SN-DF-ALM</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;publicUrl&quot;:&quot;/uploads/kashmiri-mamra-almonds-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;,&quot;setAsPrimary&quot;:false}</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:18:11</td>
+                        <td style="font-family:var(--sn-font-mono);">admin@sasynaturals.com</td>
+                        <td><span class="sn-status sn-status-warn">ORDER_MANAGER</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;">ORDER_FULFILMENT_UPDATED</td>
+                        <td style="font-family:var(--sn-font-mono);">ORDER:SN-2026-1003</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;previousFulfilment&quot;:&quot;Shipped&quot;,&quot;newFulfilment&quot;:&quot;Refunded&quot;,&quot;courierName&quot;:&quot;&quot;,&quot;trackingNumber&quot;:&quot;&quot;,&quot;stockRestored&quot;:true}</td>
+                      </tr>
+                    
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:18:11</td>
+                        <td style="font-family:var(--sn-font-mono);">admin@sasynaturals.com</td>
+                        <td><span class="sn-status sn-status-warn">ORDER_MANAGER</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:600;">ORDER_FULFILMENT_UPDATED</td>
+                        <td style="font-family:var(--sn-font-mono);">ORDER:SN-2026-1003</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;previousFulfilment&quot;:&quot;Confirmed&quot;,&quot;newFulfilment&quot;:&quot;Shipped&quot;,&quot;courierName&quot;:&quot;Delhivery Surface&quot;,&quot;trackingNumber&quot;:&quot;DLV99281726IN&quot;,&quot;stockRestored&quot;:false}</td>
+                      </tr>
+                    
+                      <tr>
                         <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 10:03:45</td>
                         <td style="font-family:var(--sn-font-mono);">superadmin@sasynaturals.com</td>
                         <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
@@ -1215,96 +1683,6 @@
                         <td style="font-family:var(--sn-font-mono);font-weight:600;">RBAC_VERIFICATION_GATE_TEST</td>
                         <td style="font-family:var(--sn-font-mono);">SYSTEM:GATE_4</td>
                         <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;verifiedRoles&quot;:5}</td>
-                      </tr>
-                    
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 09:50:01</td>
-                        <td style="font-family:var(--sn-font-mono);">catalog@sasynaturals.com</td>
-                        <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">PRODUCT_IMAGE_UPLOADED</td>
-                        <td style="font-family:var(--sn-font-mono);">PRODUCT:SN-DF-ALM</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;publicUrl&quot;:&quot;/uploads/kashmiri-mamra-almonds-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;,&quot;setAsPrimary&quot;:false}</td>
-                      </tr>
-                    
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 09:50:01</td>
-                        <td style="font-family:var(--sn-font-mono);">admin@sasynaturals.com</td>
-                        <td><span class="sn-status sn-status-warn">ORDER_MANAGER</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">ORDER_FULFILMENT_UPDATED</td>
-                        <td style="font-family:var(--sn-font-mono);">ORDER:SN-2026-1005</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;previousFulfilment&quot;:&quot;Shipped&quot;,&quot;newFulfilment&quot;:&quot;Refunded&quot;,&quot;courierName&quot;:&quot;&quot;,&quot;trackingNumber&quot;:&quot;&quot;,&quot;stockRestored&quot;:true}</td>
-                      </tr>
-                    
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 09:50:01</td>
-                        <td style="font-family:var(--sn-font-mono);">admin@sasynaturals.com</td>
-                        <td><span class="sn-status sn-status-warn">ORDER_MANAGER</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">ORDER_FULFILMENT_UPDATED</td>
-                        <td style="font-family:var(--sn-font-mono);">ORDER:SN-2026-1005</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;previousFulfilment&quot;:&quot;Confirmed&quot;,&quot;newFulfilment&quot;:&quot;Shipped&quot;,&quot;courierName&quot;:&quot;Delhivery Surface&quot;,&quot;trackingNumber&quot;:&quot;DLV99281726IN&quot;,&quot;stockRestored&quot;:false}</td>
-                      </tr>
-                    
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 09:28:23</td>
-                        <td style="font-family:var(--sn-font-mono);">superadmin@sasynaturals.com</td>
-                        <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">RBAC_VERIFICATION_GATE_TEST</td>
-                        <td style="font-family:var(--sn-font-mono);">SYSTEM:GATE_4</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;verifiedRoles&quot;:5}</td>
-                      </tr>
-                    
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 09:28:23</td>
-                        <td style="font-family:var(--sn-font-mono);">admin@sasynaturals.com</td>
-                        <td><span class="sn-status sn-status-warn">ORDER_MANAGER</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">ORDER_FULFILMENT_UPDATED</td>
-                        <td style="font-family:var(--sn-font-mono);">ORDER:SN-2026-1004</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;previousFulfilment&quot;:&quot;Shipped&quot;,&quot;newFulfilment&quot;:&quot;Refunded&quot;,&quot;courierName&quot;:&quot;&quot;,&quot;trackingNumber&quot;:&quot;&quot;,&quot;stockRestored&quot;:true}</td>
-                      </tr>
-                    
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 09:28:23</td>
-                        <td style="font-family:var(--sn-font-mono);">admin@sasynaturals.com</td>
-                        <td><span class="sn-status sn-status-warn">ORDER_MANAGER</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">ORDER_FULFILMENT_UPDATED</td>
-                        <td style="font-family:var(--sn-font-mono);">ORDER:SN-2026-1004</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;previousFulfilment&quot;:&quot;Confirmed&quot;,&quot;newFulfilment&quot;:&quot;Shipped&quot;,&quot;courierName&quot;:&quot;Delhivery Surface&quot;,&quot;trackingNumber&quot;:&quot;DLV99281726IN&quot;,&quot;stockRestored&quot;:false}</td>
-                      </tr>
-                    
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 09:27:36</td>
-                        <td style="font-family:var(--sn-font-mono);">superadmin@sasynaturals.com</td>
-                        <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">RBAC_VERIFICATION_GATE_TEST</td>
-                        <td style="font-family:var(--sn-font-mono);">SYSTEM:GATE_4</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;verifiedRoles&quot;:5}</td>
-                      </tr>
-                    
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 09:27:36</td>
-                        <td style="font-family:var(--sn-font-mono);">admin@sasynaturals.com</td>
-                        <td><span class="sn-status sn-status-warn">ORDER_MANAGER</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">ORDER_FULFILMENT_UPDATED</td>
-                        <td style="font-family:var(--sn-font-mono);">ORDER:SN-2026-1003</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;previousFulfilment&quot;:&quot;Shipped&quot;,&quot;newFulfilment&quot;:&quot;Refunded&quot;,&quot;courierName&quot;:&quot;&quot;,&quot;trackingNumber&quot;:&quot;&quot;,&quot;stockRestored&quot;:true}</td>
-                      </tr>
-                    
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 09:27:36</td>
-                        <td style="font-family:var(--sn-font-mono);">admin@sasynaturals.com</td>
-                        <td><span class="sn-status sn-status-warn">ORDER_MANAGER</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">ORDER_FULFILMENT_UPDATED</td>
-                        <td style="font-family:var(--sn-font-mono);">ORDER:SN-2026-1003</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;previousFulfilment&quot;:&quot;Confirmed&quot;,&quot;newFulfilment&quot;:&quot;Shipped&quot;,&quot;courierName&quot;:&quot;Delhivery Surface&quot;,&quot;trackingNumber&quot;:&quot;DLV99281726IN&quot;,&quot;stockRestored&quot;:false}</td>
-                      </tr>
-                    
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-21 09:27:35</td>
-                        <td style="font-family:var(--sn-font-mono);">superadmin@sasynaturals.com</td>
-                        <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">SYSTEM_SEED_INITIALIZED</td>
-                        <td style="font-family:var(--sn-font-mono);">CATALOG:ALL</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">{&quot;categories&quot;:3,&quot;products&quot;:16,&quot;variants&quot;:64}</td>
                       </tr>
                     
                   </tbody>
@@ -1576,7 +1954,7 @@
       </div>
       <div class="sn-footer-bottom">
         <span>© 2026 Sasya Naturals (sasynaturals.com). All rights reserved.</span>
-        <span>Engine: Node.js 22 SSR + Rust WASM Commerce Core (v1.2.0)</span>
+        <span>Engine: Node.js 22 SSR + Rust WASM Commerce Core (v1.3.0)</span>
       </div>
     </div>
   </footer>
@@ -1585,6 +1963,6 @@
     window.__SN_BASE_PATH__ = "/sasya_naturals";
     window.__SN_STATIC_DATA__ = {"variants":[{"variant_id":1,"product_id":1,"sku":"SN-DF-ALM-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":36000,"selling_price_paise":32000,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5},{"variant_id":2,"product_id":1,"sku":"SN-DF-ALM-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":84500,"selling_price_paise":75000,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5},{"variant_id":3,"product_id":1,"sku":"SN-DF-ALM-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":160000,"selling_price_paise":142500,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5},{"variant_id":4,"product_id":1,"sku":"SN-DF-ALM-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":306000,"selling_price_paise":272000,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5},{"variant_id":5,"product_id":2,"sku":"SN-DF-CSH-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":22000,"selling_price_paise":18500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5},{"variant_id":6,"product_id":2,"sku":"SN-DF-CSH-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":51500,"selling_price_paise":43500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5},{"variant_id":7,"product_id":2,"sku":"SN-DF-CSH-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":98000,"selling_price_paise":82500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5},{"variant_id":8,"product_id":2,"sku":"SN-DF-CSH-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":187000,"selling_price_paise":157500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5},{"variant_id":9,"product_id":3,"sku":"SN-DF-PST-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":28000,"selling_price_paise":24500,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12},{"variant_id":10,"product_id":3,"sku":"SN-DF-PST-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":66000,"selling_price_paise":57500,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12},{"variant_id":11,"product_id":3,"sku":"SN-DF-PST-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":124500,"selling_price_paise":109000,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12},{"variant_id":12,"product_id":3,"sku":"SN-DF-PST-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":238000,"selling_price_paise":208500,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12},{"variant_id":13,"product_id":4,"sku":"SN-DF-WLN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":26000,"selling_price_paise":22500,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5},{"variant_id":14,"product_id":4,"sku":"SN-DF-WLN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":61000,"selling_price_paise":53000,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5},{"variant_id":15,"product_id":4,"sku":"SN-DF-WLN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":115500,"selling_price_paise":100000,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5},{"variant_id":16,"product_id":4,"sku":"SN-DF-WLN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":221000,"selling_price_paise":191500,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5},{"variant_id":17,"product_id":5,"sku":"SN-DF-FIG-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":25000,"selling_price_paise":21500,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5},{"variant_id":18,"product_id":5,"sku":"SN-DF-FIG-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":59000,"selling_price_paise":50500,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5},{"variant_id":19,"product_id":5,"sku":"SN-DF-FIG-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":111500,"selling_price_paise":95500,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5},{"variant_id":20,"product_id":5,"sku":"SN-DF-FIG-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":212500,"selling_price_paise":183000,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5},{"variant_id":21,"product_id":6,"sku":"SN-DF-MIX-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":24000,"selling_price_paise":20000,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12},{"variant_id":22,"product_id":6,"sku":"SN-DF-MIX-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":56500,"selling_price_paise":47000,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12},{"variant_id":23,"product_id":6,"sku":"SN-DF-MIX-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":107000,"selling_price_paise":88500,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12},{"variant_id":24,"product_id":6,"sku":"SN-DF-MIX-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":204000,"selling_price_paise":169000,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12},{"variant_id":25,"product_id":7,"sku":"SN-ML-RAG-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":4500,"selling_price_paise":3500,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5},{"variant_id":26,"product_id":7,"sku":"SN-ML-RAG-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":10500,"selling_price_paise":8000,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5},{"variant_id":27,"product_id":7,"sku":"SN-ML-RAG-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":20000,"selling_price_paise":15500,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5},{"variant_id":28,"product_id":7,"sku":"SN-ML-RAG-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":38500,"selling_price_paise":30000,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5},{"variant_id":29,"product_id":8,"sku":"SN-ML-FOX-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":5500,"selling_price_paise":4000,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5},{"variant_id":30,"product_id":8,"sku":"SN-ML-FOX-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":13000,"selling_price_paise":10000,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5},{"variant_id":31,"product_id":8,"sku":"SN-ML-FOX-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":24500,"selling_price_paise":18500,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5},{"variant_id":32,"product_id":8,"sku":"SN-ML-FOX-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":47000,"selling_price_paise":35500,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5},{"variant_id":33,"product_id":9,"sku":"SN-ML-LIT-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":6000,"selling_price_paise":4500,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5},{"variant_id":34,"product_id":9,"sku":"SN-ML-LIT-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":14000,"selling_price_paise":11000,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5},{"variant_id":35,"product_id":9,"sku":"SN-ML-LIT-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":26500,"selling_price_paise":20500,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5},{"variant_id":36,"product_id":9,"sku":"SN-ML-LIT-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":51000,"selling_price_paise":39000,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5},{"variant_id":37,"product_id":10,"sku":"SN-ML-KOD-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":6000,"selling_price_paise":4500,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5},{"variant_id":38,"product_id":10,"sku":"SN-ML-KOD-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":13500,"selling_price_paise":10500,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5},{"variant_id":39,"product_id":10,"sku":"SN-ML-KOD-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":26000,"selling_price_paise":20000,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5},{"variant_id":40,"product_id":10,"sku":"SN-ML-KOD-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":49500,"selling_price_paise":38500,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5},{"variant_id":41,"product_id":11,"sku":"SN-ML-JWR-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":4000,"selling_price_paise":3000,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5},{"variant_id":42,"product_id":11,"sku":"SN-ML-JWR-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":10000,"selling_price_paise":7500,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5},{"variant_id":43,"product_id":11,"sku":"SN-ML-JWR-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":18500,"selling_price_paise":14000,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5},{"variant_id":44,"product_id":11,"sku":"SN-ML-JWR-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":35500,"selling_price_paise":27000,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5},{"variant_id":45,"product_id":12,"sku":"SN-SP-TUR-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":16000,"selling_price_paise":13500,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5},{"variant_id":46,"product_id":12,"sku":"SN-SP-TUR-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":37500,"selling_price_paise":31500,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5},{"variant_id":47,"product_id":12,"sku":"SN-SP-TUR-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":71000,"selling_price_paise":60000,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5},{"variant_id":48,"product_id":12,"sku":"SN-SP-TUR-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":136000,"selling_price_paise":115000,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5},{"variant_id":49,"product_id":13,"sku":"SN-SP-PEP-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":19500,"selling_price_paise":16500,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5},{"variant_id":50,"product_id":13,"sku":"SN-SP-PEP-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":46000,"selling_price_paise":39000,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5},{"variant_id":51,"product_id":13,"sku":"SN-SP-PEP-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":87000,"selling_price_paise":73500,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5},{"variant_id":52,"product_id":13,"sku":"SN-SP-PEP-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":166000,"selling_price_paise":140500,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5},{"variant_id":53,"product_id":14,"sku":"SN-SP-CRD-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":48000,"selling_price_paise":42000,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5},{"variant_id":54,"product_id":14,"sku":"SN-SP-CRD-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":113000,"selling_price_paise":98500,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5},{"variant_id":55,"product_id":14,"sku":"SN-SP-CRD-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":213500,"selling_price_paise":187000,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5},{"variant_id":56,"product_id":14,"sku":"SN-SP-CRD-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":408000,"selling_price_paise":357000,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5},{"variant_id":57,"product_id":15,"sku":"SN-SP-CHL-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":11500,"selling_price_paise":9500,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5},{"variant_id":58,"product_id":15,"sku":"SN-SP-CHL-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":27000,"selling_price_paise":22500,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5},{"variant_id":59,"product_id":15,"sku":"SN-SP-CHL-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":51000,"selling_price_paise":42500,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5},{"variant_id":60,"product_id":15,"sku":"SN-SP-CHL-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":98000,"selling_price_paise":81000,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5},{"variant_id":61,"product_id":16,"sku":"SN-SP-CIN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":29000,"selling_price_paise":24500,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5},{"variant_id":62,"product_id":16,"sku":"SN-SP-CIN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":68000,"selling_price_paise":57500,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5},{"variant_id":63,"product_id":16,"sku":"SN-SP-CIN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":129000,"selling_price_paise":109000,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5},{"variant_id":64,"product_id":16,"sku":"SN-SP-CIN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":246500,"selling_price_paise":208500,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5}],"coupons":[{"code":"SASYA10","description":"10% off on orders above Rs. 499","discount_type":"PERCENT","discount_value":10,"min_order_paise":49900,"max_discount_paise":50000,"is_active":1},{"code":"WELCOME15","description":"15% off first pantry order above Rs. 999","discount_type":"PERCENT","discount_value":15,"min_order_paise":99900,"max_discount_paise":75000,"is_active":1},{"code":"PANTRY100","description":"Flat Rs. 100 off on orders above Rs. 799","discount_type":"FLAT_PAISE","discount_value":10000,"min_order_paise":79900,"max_discount_paise":10000,"is_active":1}]};
   </script>
-  <script src="/sasya_naturals/assets/sasya-client.js?v=1.2.0" defer></script>
+  <script src="/sasya_naturals/assets/sasya-client.js?v=1.3.0" defer></script>
 </body>
 </html>

@@ -701,7 +701,179 @@
       });
     });
 
-    // Magic-Byte Image Upload Handler
+    function readFileAsDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        if (!file || !file.size) return resolve('');
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('Failed to read image file'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function updateDomProductImages(productId, imgSrc) {
+      document.querySelectorAll(`[data-product-img-id="${productId}"]`).forEach(img => {
+        img.src = imgSrc;
+      });
+    }
+
+    function updateDomCategoryImages(categoryId, imgSrc) {
+      document.querySelectorAll(`[data-category-img-id="${categoryId}"]`).forEach(img => {
+        img.src = imgSrc;
+      });
+    }
+
+    // 1. Create New Category (with Category Banner Image)
+    const createCatForm = document.getElementById('sn-admin-create-category-form');
+    if (createCatForm) {
+      createCatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(createCatForm);
+        const name = String(fd.get('name') || '').trim();
+        const subtitle = String(fd.get('subtitle') || '').trim();
+        const description = String(fd.get('description') || '').trim();
+        const file = fd.get('categoryImageFile');
+
+        try {
+          const imageBase64 = await readFileAsDataUrl(file);
+
+          if (IS_STATIC_SHOWCASE) {
+            const email = getActiveAdminEmail();
+            if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+              showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can create categories.');
+              return;
+            }
+            const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+            const customCats = JSON.parse(localStorage.getItem('sn_custom_categories_v1') || '[]');
+            const newId = 10 + customCats.length;
+            const imgUrl = imageBase64 || `${BASE_PATH}/images/cat-spices.jpg`;
+            const newCat = { id: newId, slug, name, subtitle, description, imageUrl: imgUrl };
+            customCats.push(newCat);
+            localStorage.setItem('sn_custom_categories_v1', JSON.stringify(customCats));
+            appendCategoryToAdminDom(newCat);
+            createCatForm.reset();
+            showToast(`Created category "${name}" with banner image!`);
+            return;
+          }
+
+          const res = await fetch('/api/admin/categories/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-admin-email': getActiveAdminEmail()
+            },
+            body: JSON.stringify({ name, subtitle, description, imageBase64 })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            showToast(data.error || 'Failed to create category');
+            return;
+          }
+          showToast(`Created category "${data.category.name}"!`);
+          setTimeout(() => window.location.reload(), 700);
+        } catch (err) {
+          showToast(err.message);
+        }
+      });
+    }
+
+    // 2. Change Existing Category Image
+    document.querySelectorAll('.sn-admin-cat-img-form').forEach(form => {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(form);
+        const categoryId = Number(fd.get('categoryId'));
+        const file = fd.get('imageFile');
+        if (!file || !file.size) {
+          showToast('Please select a category image file.');
+          return;
+        }
+
+        try {
+          const imageBase64 = await readFileAsDataUrl(file);
+          if (IS_STATIC_SHOWCASE) {
+            const email = getActiveAdminEmail();
+            if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+              showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can change category images.');
+              return;
+            }
+            const map = JSON.parse(localStorage.getItem('sn_custom_cat_images_v1') || '{}');
+            map[categoryId] = imageBase64;
+            localStorage.setItem('sn_custom_cat_images_v1', JSON.stringify(map));
+            updateDomCategoryImages(categoryId, imageBase64);
+            showToast(`Updated category #${categoryId} banner photo!`);
+            return;
+          }
+
+          const res = await fetch('/api/admin/categories/upload-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-admin-email': getActiveAdminEmail()
+            },
+            body: JSON.stringify({ categoryId, imageBase64 })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            showToast(data.error || 'Category image upload failed');
+            return;
+          }
+          updateDomCategoryImages(categoryId, data.publicUrl);
+          showToast(`Updated category photo (${data.publicUrl})`);
+        } catch (err) {
+          showToast(err.message);
+        }
+      });
+    });
+
+    // 3. Dedicated Product Image Uploader (Primary Photo or Secondary Gallery)
+    async function handleProductPhotoUpload({ productId, file, caption, setAsPrimary }) {
+      if (!file || !file.size) {
+        showToast('Please select an image file.');
+        return;
+      }
+      const imageBase64 = await readFileAsDataUrl(file);
+
+      if (IS_STATIC_SHOWCASE) {
+        const email = getActiveAdminEmail();
+        if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+          showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can upload product images.');
+          return;
+        }
+        if (setAsPrimary) {
+          const map = JSON.parse(localStorage.getItem('sn_custom_prod_images_v1') || '{}');
+          map[productId] = imageBase64;
+          localStorage.setItem('sn_custom_prod_images_v1', JSON.stringify(map));
+          updateDomProductImages(productId, imageBase64);
+        }
+        showToast(`Updated photo for product #${productId} (${setAsPrimary ? 'Primary Storefront Photo' : 'Added to Gallery'})`);
+        return;
+      }
+
+      const res = await fetch('/api/admin/products/upload-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-email': getActiveAdminEmail()
+        },
+        body: JSON.stringify({
+          productId,
+          imageBase64,
+          caption,
+          setAsPrimary
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showToast(data.error || 'Image upload failed');
+        return;
+      }
+      if (setAsPrimary) {
+        updateDomProductImages(productId, data.publicUrl);
+      }
+      showToast(`Saved ${data.publicUrl} (${data.bytes} bytes verified)`);
+    }
+
     const imgUploadForm = document.getElementById('sn-admin-image-upload-form');
     if (imgUploadForm) {
       imgUploadForm.addEventListener('submit', async (e) => {
@@ -710,46 +882,34 @@
         const file = fd.get('imageFile');
         const productId = Number(fd.get('productId'));
         const caption = fd.get('caption');
-        if (!file || !file.size) {
-          showToast('Please select an image file.');
-          return;
+        const setAsPrimary = fd.get('setAsPrimary') !== 'false';
+        try {
+          await handleProductPhotoUpload({ productId, file, caption, setAsPrimary });
+        } catch (err) {
+          showToast(err.message);
         }
-
-        if (IS_STATIC_SHOWCASE) {
-          const email = getActiveAdminEmail();
-          if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
-            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can upload product images.');
-            return;
-          }
-          showToast(`[Showcase Verified] Magic-byte validated & attached "${file.name}" to product #${productId}`);
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = async () => {
-          const res = await fetch('/api/admin/products/upload-image', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-admin-email': getActiveAdminEmail()
-            },
-            body: JSON.stringify({
-              productId,
-              imageBase64: reader.result,
-              caption,
-              setAsPrimary: false
-            })
-          });
-          const data = await res.json();
-          if (!res.ok) {
-            showToast(data.error || 'Image upload failed');
-            return;
-          }
-          showToast(`Uploaded ${data.publicUrl} (${data.bytes} bytes verified)`);
-        };
-        reader.readAsDataURL(file);
       });
     }
+
+    // 4. Inline Quick Product Image Changer in Products Table
+    document.querySelectorAll('.sn-admin-inline-prod-img-form').forEach(form => {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(form);
+        const productId = Number(fd.get('productId'));
+        const file = fd.get('imageFile');
+        try {
+          await handleProductPhotoUpload({
+            productId,
+            file,
+            caption: 'Primary Pack Photo',
+            setAsPrimary: true
+          });
+        } catch (err) {
+          showToast(err.message);
+        }
+      });
+    });
 
     document.querySelectorAll('.sn-admin-ship-form').forEach(form => {
       form.addEventListener('submit', async (e) => {
@@ -828,37 +988,56 @@
       });
     });
 
+    // 5. Create New Product (with Optional Product Photo)
     const newProdForm = document.getElementById('sn-admin-create-product-form');
     if (newProdForm) {
       newProdForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const fd = new FormData(newProdForm);
-        const payload = Object.fromEntries(fd.entries());
-        if (IS_STATIC_SHOWCASE) {
-          const email = getActiveAdminEmail();
-          if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
-            showToast(`RBAC Permission Denied: ${email} cannot create products.`);
+        const file = fd.get('productImageFile');
+        const payload = {
+          name: fd.get('name'),
+          skuBase: fd.get('skuBase'),
+          categoryId: fd.get('categoryId'),
+          base100gInr: fd.get('base100gInr'),
+          gstPercent: fd.get('gstPercent'),
+          originRegion: fd.get('originRegion'),
+          shortDescription: fd.get('shortDescription')
+        };
+
+        try {
+          const imageBase64 = await readFileAsDataUrl(file);
+          if (imageBase64) payload.imageBase64 = imageBase64;
+
+          if (IS_STATIC_SHOWCASE) {
+            const email = getActiveAdminEmail();
+            if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+              showToast(`RBAC Permission Denied: ${email} cannot create products.`);
+              return;
+            }
+            showToast(`Created product "${payload.name}" with 4 pack variants${imageBase64 ? ' & custom photo' : ''}!`);
+            newProdForm.reset();
             return;
           }
-          showToast(`[Showcase RBAC Verified] Created product "${payload.name}"`);
-          return;
-        }
 
-        const res = await fetch('/api/admin/products/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-email': getActiveAdminEmail()
-          },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          showToast(data.error || 'Failed to create product');
-          return;
+          const res = await fetch('/api/admin/products/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-admin-email': getActiveAdminEmail()
+            },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            showToast(data.error || 'Failed to create product');
+            return;
+          }
+          showToast(`Created product "${data.product.name}" with 4 pack variants!`);
+          setTimeout(() => window.location.reload(), 800);
+        } catch (err) {
+          showToast(err.message);
         }
-        showToast(`Created product "${data.product.name}" with 4 pack variants!`);
-        setTimeout(() => window.location.reload(), 800);
       });
     }
 
@@ -898,9 +1077,77 @@
     }
   }
 
+  function appendCategoryToAdminDom(cat) {
+    const tbody = document.querySelector('#sn-admin-categories-table tbody');
+    if (tbody) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><img src="${cat.imageUrl}" alt="${cat.name}" data-category-img-id="${cat.id}" style="width:68px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" /></td>
+        <td><strong>${cat.name}</strong><br/><span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">/category/${cat.slug}</span></td>
+        <td style="font-size:0.82rem;">${cat.subtitle}</td>
+        <td><span class="sn-status sn-status-paid">Active</span></td>
+      `;
+      tbody.appendChild(tr);
+    }
+    const prodCatSelect = document.getElementById('sn-create-prod-cat-select');
+    if (prodCatSelect) {
+      const opt = document.createElement('option');
+      opt.value = String(cat.id);
+      opt.textContent = cat.name;
+      prodCatSelect.appendChild(opt);
+    }
+    const homeGrid = document.getElementById('home-categories-grid');
+    if (homeGrid) {
+      const a = document.createElement('a');
+      a.href = `${BASE_PATH}/shop`;
+      a.className = 'sn-category-card';
+      a.innerHTML = `
+        <div class="sn-category-img-wrap"><img src="${cat.imageUrl}" alt="${cat.name}" data-category-img-id="${cat.id}" /></div>
+        <div class="sn-category-body">
+          <div><span class="sn-eyebrow">${cat.subtitle}</span><h3>${cat.name}</h3><p>${cat.description}</p></div>
+          <span style="font-weight:700;color:var(--sn-accent-terracotta);font-size:0.875rem;">Browse ${cat.name} -></span>
+        </div>
+      `;
+      homeGrid.appendChild(a);
+    }
+  }
+
+  function initPdpGalleryAndShowcaseOverrides() {
+    // PDP thumbnail switcher
+    document.addEventListener('click', (e) => {
+      const thumbBtn = e.target.closest('[data-pdp-thumb-url]');
+      if (thumbBtn) {
+        const mainImg = document.getElementById('sn-pdp-main-img');
+        const mainCap = document.getElementById('sn-pdp-main-caption');
+        if (mainImg) mainImg.src = thumbBtn.getAttribute('data-pdp-thumb-url');
+        if (mainCap) mainCap.textContent = thumbBtn.getAttribute('data-pdp-thumb-caption');
+      }
+    });
+
+    if (IS_STATIC_SHOWCASE) {
+      try {
+        const prodImgs = JSON.parse(localStorage.getItem('sn_custom_prod_images_v1') || '{}');
+        for (const [pid, dataUrl] of Object.entries(prodImgs)) {
+          document.querySelectorAll(`[data-product-img-id="${pid}"]`).forEach(img => { img.src = dataUrl; });
+        }
+        const catImgs = JSON.parse(localStorage.getItem('sn_custom_cat_images_v1') || '{}');
+        for (const [cid, dataUrl] of Object.entries(catImgs)) {
+          document.querySelectorAll(`[data-category-img-id="${cid}"]`).forEach(img => { img.src = dataUrl; });
+        }
+        const customCats = JSON.parse(localStorage.getItem('sn_custom_categories_v1') || '[]');
+        for (const cat of customCats) {
+          appendCategoryToAdminDom(cat);
+        }
+      } catch {
+        // ignore storage errors
+      }
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     updateCartBadges();
     bindGlobalListeners();
+    initPdpGalleryAndShowcaseOverrides();
     initCheckoutPage();
     initAdminPortal();
   });

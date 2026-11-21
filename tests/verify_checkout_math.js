@@ -141,8 +141,8 @@ function runVerifyCheckoutMath() {
   const otpValid = verifyCodOtp('+91 98450 77889', otpDispatch.sandboxOtpPreview);
   assert.strictEqual(otpValid.verified, true);
 
-  // 6. Verify Magic-Byte Validated Image Upload Pipeline
-  const { uploadProductImage } = require('../src/core/checkout/imageUploader');
+  // 6. Verify Magic-Byte Validated Product & Category Image Upload Pipeline
+  const { uploadProductImage, uploadCategoryImage } = require('../src/core/checkout/imageUploader');
   const fakeScriptBase64 = Buffer.from('<?php echo "hack"; ?>', 'utf8').toString('base64');
   assert.throws(() => {
     uploadProductImage({ productId: 1, imageBase64: fakeScriptBase64, caption: 'Malicious payload' });
@@ -150,8 +150,15 @@ function runVerifyCheckoutMath() {
 
   // Minimal valid 1x1 PNG magic bytes
   const validPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
-  const uploaded = uploadProductImage({ productId: 1, imageBase64: validPngBase64, caption: 'Back FSSAI Label' });
-  assert(uploaded.publicUrl.startsWith('/uploads/') && uploaded.mime === 'image/png', 'Valid PNG magic-byte upload must succeed');
+  const uploaded = uploadProductImage({ productId: 1, imageBase64: validPngBase64, caption: 'Back FSSAI Label', setAsPrimary: false });
+  assert(uploaded.publicUrl.startsWith('/uploads/') && uploaded.mime === 'image/png', 'Valid PNG magic-byte product upload must succeed');
+
+  const uploadedCat = uploadCategoryImage({ categoryId: 1, imageBase64: validPngBase64 });
+  assert(uploadedCat.publicUrl.startsWith('/uploads/') && uploadedCat.mime === 'image/png', 'Valid PNG magic-byte category upload must succeed');
+
+  // Restore canonical studio image on Category #1 and Product #1 for clean GitHub Pages export
+  db.prepare("UPDATE categories SET image_url = '/images/cat-dry-fruits.jpg' WHERE id = 1").run();
+  db.prepare("UPDATE products SET image_url = '/images/cat-dry-fruits.jpg', gallery_json = '[]' WHERE id = 1").run();
 
   // 7. Verify 4-Zone + 500g Weight-Slab + Free-Delivery Mode Switch (DISABLED vs THRESHOLD_WITH_WEIGHT_CAP) + COD Fee
   const { updateShippingPolicySettings } = require('../src/core/checkout/checkoutEngine');
