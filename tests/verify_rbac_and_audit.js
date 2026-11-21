@@ -115,7 +115,57 @@ function runVerifyRbacAndAudit() {
   const prodCsv = exportReportToCsv(reports, 'products');
   assert(prodCsv.includes('Product Name') && prodCsv.includes('Kashmiri Mamra Giri Almonds'), 'Products CSV export must include headers and products');
 
-  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth, Section 5.1 Reports Engine & immutable audit_logs');
+  // 10. Verify Change Password, Forgot Password 6-Digit OTP Reset & Explicit LOGGED_OUT Cookie State (v1.7.0)
+  const {
+    changeUserPassword,
+    requestPasswordResetOtp,
+    resetPasswordWithOtp,
+    buildCustomerCookieHeader
+  } = require('../src/core/auth/sessionManager');
+
+  const logoutCookie = buildCustomerCookieHeader('', true);
+  assert(logoutCookie.includes('sn_customer_session=LOGGED_OUT'), 'Customer sign-out cookie must explicitly record LOGGED_OUT state');
+
+  // Forgot Password 6-digit OTP reset to known baseline (Sasya@2026)
+  const otpDispatch1 = requestPasswordResetOtp('ananya.iyer@example.com');
+  assert(otpDispatch1.sent && /^\d{6}$/.test(otpDispatch1.sandboxOtpPreview), 'requestPasswordResetOtp must generate a 6-digit OTP');
+  const otpResetRes1 = resetPasswordWithOtp({
+    email: 'ananya.iyer@example.com',
+    otpCode: otpDispatch1.sandboxOtpPreview,
+    newPassword: 'Sasya@2026'
+  });
+  assert(otpResetRes1.sessionToken && otpResetRes1.user.email === 'ananya.iyer@example.com', 'resetPasswordWithOtp must reset password and return sessionToken');
+  // Verify OTP is single-use
+  assert.throws(
+    () => resetPasswordWithOtp({ email: 'ananya.iyer@example.com', otpCode: otpDispatch1.sandboxOtpPreview, newPassword: 'Sasya@2026' }),
+    /Please request a 6-digit password reset OTP first/,
+    'Consumed password reset OTP must not be reusable'
+  );
+
+  // Change password from Sasya@2026 -> SasyaNew@2026
+  const changedRes = changeUserPassword({
+    userId: custLoginRes.user.id,
+    currentPassword: 'Sasya@2026',
+    newPassword: 'SasyaNew@2026'
+  });
+  assert.strictEqual(changedRes.updated, true, 'changeUserPassword must update password hash when currentPassword matches');
+  assert.throws(
+    () => loginCustomerWithPassword('ananya.iyer@example.com', 'Sasya@2026', '10.0.0.99'),
+    /Invalid customer email or password/,
+    'Old password must be rejected after changeUserPassword'
+  );
+  clearFailedAttempts('cust:10.0.0.99:ananya.iyer@example.com');
+  const newLoginRes = loginCustomerWithPassword('ananya.iyer@example.com', 'SasyaNew@2026', '10.0.0.99');
+  assert(newLoginRes.sessionToken, 'Customer must be able to sign in with the newly changed password');
+
+  // Restore baseline password back to Sasya@2026
+  changeUserPassword({
+    userId: custLoginRes.user.id,
+    currentPassword: 'SasyaNew@2026',
+    newPassword: 'Sasya@2026'
+  });
+
+  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth, Section 5.1 Reports Engine & immutable audit_logs');
 }
 
 if (require.main === module) {

@@ -691,7 +691,14 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
   });
 }
 
-function renderCheckoutPage({ coupons, basePath = '', staticShowcaseScript = '', isNoIndex = false }) {
+function renderCheckoutPage({
+  coupons,
+  customer = null,
+  addresses = [],
+  basePath = '',
+  staticShowcaseScript = '',
+  isNoIndex = false
+}) {
   const title = `Secure Checkout (Razorpay UPI, Cards, NetBanking & COD) | ${BRAND_NAME}`;
   const description = 'Complete your Sasya Naturals order with server-verified Razorpay online payment or Cash on Delivery across India.';
   const schemaGraph = buildMasterSchemaGraph({
@@ -702,6 +709,16 @@ function renderCheckoutPage({ coupons, basePath = '', staticShowcaseScript = '',
     breadcrumbs: [{ name: 'Home', url: '/' }, { name: 'Checkout', url: '/checkout' }]
   });
 
+  const defAddr = addresses.find(a => a.is_default) || addresses[0] || null;
+  const initName = defAddr ? defAddr.recipient_name : (customer ? customer.full_name : 'Arjun Krishnamurthy');
+  const initPhone = defAddr ? defAddr.phone : (customer ? customer.phone : '+91 98450 11223');
+  const initEmail = customer ? customer.email : 'arjun.k@example.com';
+  const initLine1 = defAddr ? defAddr.line1 : 'No. 18, 4th Cross, Malleshwaram';
+  const initLine2 = defAddr ? defAddr.line2 : 'Near Sankey Tank';
+  const initCity = defAddr ? defAddr.city : 'Bengaluru';
+  const initState = defAddr ? defAddr.state : 'Karnataka';
+  const initPin = defAddr ? defAddr.pincode : '560003';
+
   const bodyHtml = `
     <section class="sn-section">
       <div class="sn-container">
@@ -710,47 +727,80 @@ function renderCheckoutPage({ coupons, basePath = '', staticShowcaseScript = '',
             <span class="sn-eyebrow">Rust WASM Integer-Paise Checkout &amp; Server HMAC Verification</span>
             <h1>Checkout &amp; Delivery Details</h1>
           </div>
+          <div>
+            ${customer ? `
+              <span class="sn-status sn-status-paid">Signed In as ${escapeHtml(customer.full_name)} (${escapeHtml(customer.email)})</span>
+            ` : `
+              <span class="sn-status sn-status-warn">Guest Checkout Active • <a href="${basePath}/account" style="color:var(--sn-bg-forest);text-decoration:underline;">Sign In for Saved Addresses</a></span>
+            `}
+          </div>
         </div>
 
         <div id="sn-checkout-result" style="display:none;margin-bottom:28px;"></div>
 
         <div class="sn-pdp-grid">
           <form class="sn-card" id="sn-checkout-form">
-            <h3 style="font-family:var(--sn-font-serif);margin:0 0 16px;color:var(--sn-bg-forest);">1. Contact &amp; Indian Delivery Address (Guest or Account)</h3>
+            <input type="hidden" name="userId" id="chk-user-id" value="${customer ? customer.id : ''}" />
+            <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">1. Contact &amp; Indian Delivery Address (Guest or Account)</h3>
+
+            ${addresses.length > 0 ? `
+              <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:16px;" id="sn-checkout-saved-addresses-bar">
+                <div style="font-family:var(--sn-font-mono);font-size:0.74rem;text-transform:uppercase;color:var(--sn-text-muted);margin-bottom:8px;">
+                  📍 Autofill from Your Saved Delivery Addresses (${addresses.length})
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  ${addresses.map((a, idx) => `
+                    <button
+                      type="button"
+                      class="sn-btn ${idx === 0 ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
+                      data-checkout-saved-addr
+                      data-addr-name="${escapeHtml(a.recipient_name)}"
+                      data-addr-phone="${escapeHtml(a.phone)}"
+                      data-addr-line1="${escapeHtml(a.line1)}"
+                      data-addr-line2="${escapeHtml(a.line2 || '')}"
+                      data-addr-city="${escapeHtml(a.city)}"
+                      data-addr-state="${escapeHtml(a.state)}"
+                      data-addr-pin="${escapeHtml(a.pincode)}"
+                    >${escapeHtml(a.label)} (${escapeHtml(a.city)} - ${escapeHtml(a.pincode)})${a.is_default ? ' ★' : ''}</button>
+                  `).join('')}
+                </div>
+              </div>
+            ` : ''}
+
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
               <div>
                 <label for="chk-name" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Full Name *</label>
-                <input type="text" id="chk-name" name="customerName" required value="Arjun Krishnamurthy" class="sn-input" />
+                <input type="text" id="chk-name" name="customerName" required value="${escapeHtml(initName)}" class="sn-input" />
               </div>
               <div>
                 <label for="chk-phone" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Mobile Number (India) *</label>
-                <input type="tel" id="chk-phone" name="customerPhone" required value="+91 98450 11223" class="sn-input" />
+                <input type="tel" id="chk-phone" name="customerPhone" required value="${escapeHtml(initPhone)}" class="sn-input" />
               </div>
             </div>
             <div style="margin-bottom:14px;">
               <label for="chk-email" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Email Address (for Order &amp; Courier Notifications) *</label>
-              <input type="email" id="chk-email" name="customerEmail" required value="arjun.k@example.com" class="sn-input" />
+              <input type="email" id="chk-email" name="customerEmail" required value="${escapeHtml(initEmail)}" class="sn-input" />
             </div>
             <div style="margin-bottom:14px;">
               <label for="chk-line1" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">House / Flat No., Building &amp; Street Address *</label>
-              <input type="text" id="chk-line1" name="shippingLine1" required value="No. 18, 4th Cross, Malleshwaram" class="sn-input" />
+              <input type="text" id="chk-line1" name="shippingLine1" required value="${escapeHtml(initLine1)}" class="sn-input" />
             </div>
             <div style="margin-bottom:14px;">
               <label for="chk-line2" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Landmark / Area (Optional)</label>
-              <input type="text" id="chk-line2" name="shippingLine2" value="Near Sankey Tank" class="sn-input" />
+              <input type="text" id="chk-line2" name="shippingLine2" value="${escapeHtml(initLine2)}" class="sn-input" />
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;">
               <div>
                 <label for="chk-city" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">City *</label>
-                <input type="text" id="chk-city" name="shippingCity" required value="Bengaluru" class="sn-input" />
+                <input type="text" id="chk-city" name="shippingCity" required value="${escapeHtml(initCity)}" class="sn-input" />
               </div>
               <div>
                 <label for="chk-state" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">State *</label>
-                <input type="text" id="chk-state" name="shippingState" required value="Karnataka" class="sn-input" />
+                <input type="text" id="chk-state" name="shippingState" required value="${escapeHtml(initState)}" class="sn-input" />
               </div>
               <div>
                 <label for="chk-pin" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">6-Digit PIN Code *</label>
-                <input type="text" id="chk-pin" name="shippingPincode" required pattern="\\d{6}" value="560003" class="sn-input" />
+                <input type="text" id="chk-pin" name="shippingPincode" required pattern="\\d{6}" value="${escapeHtml(initPin)}" class="sn-input" />
               </div>
             </div>
             <div style="margin-bottom:20px;">
@@ -1110,8 +1160,9 @@ function renderCustomerAccountPage({
     breadcrumbs: [{ name: 'Home', url: '/' }, { name: 'Customer Account', url: '/account' }]
   });
 
+  const isSignedIn = Boolean(customer && customer.id);
   const activeCustomer = customer || {
-    id: 6,
+    id: 0,
     email: 'ananya.iyer@example.com',
     full_name: 'Ananya Iyer',
     phone: '+91 98450 22334',
@@ -1119,41 +1170,77 @@ function renderCustomerAccountPage({
   };
 
   const bodyHtml = `
-    <section class="sn-section" id="sn-customer-account-page">
+    <section class="sn-section" id="sn-customer-account-page" data-customer-signed-in="${isSignedIn ? '1' : '0'}">
       <div class="sn-container">
         <div class="sn-section-head">
           <div>
-            <span class="sn-eyebrow">Section 4 Customer Account • Profile, Saved Delivery Addresses &amp; Order History</span>
+            <span class="sn-eyebrow">Section 4 Customer Account • Registration, Login, OTP Reset, Saved Addresses &amp; Order History</span>
             <h1>My Sasya Naturals Pantry Account</h1>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-            <span class="sn-status sn-status-paid" id="sn-account-active-badge">Signed In: ${escapeHtml(activeCustomer.email)}</span>
-            <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-customer-logout-btn">Sign Out</button>
+            <span class="sn-status ${isSignedIn ? 'sn-status-paid' : 'sn-status-warn'}" id="sn-account-active-badge">
+              ${isSignedIn ? `Signed In: ${escapeHtml(activeCustomer.full_name)} (${escapeHtml(activeCustomer.email)})` : 'Logged Out • Please Sign In or Register'}
+            </span>
+            <button
+              type="button"
+              class="sn-btn sn-btn-outline sn-btn-sm"
+              id="sn-customer-logout-btn"
+              style="display:${isSignedIn ? 'inline-flex' : 'none'};"
+            >Sign Out</button>
           </div>
         </div>
 
-        <!-- 1. Customer Sign-In & Registration Forms (Section 4: Registration/Login) -->
+        <!-- 1. Customer Sign-In, New Customer Registration & Forgot Password via 6-Digit OTP -->
         <div class="sn-pdp-grid" style="margin-bottom:24px;">
-          <form class="sn-card" id="sn-customer-login-form" style="background-color:var(--sn-bg-parchment);">
-            <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;color:var(--sn-bg-forest);">1. Customer Sign In (HttpOnly Session Cookie)</h3>
-            <p style="font-size:0.82rem;color:var(--sn-text-secondary);margin:0 0 12px;">
-              Demo customer account pre-filled (<strong>ananya.iyer@example.com</strong> / <strong>Sasya@2026</strong>).
-            </p>
-            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;">
-              <div>
-                <label style="font-size:0.75rem;font-weight:600;">Email Address *</label>
-                <input type="email" name="email" required value="${escapeHtml(activeCustomer.email)}" class="sn-input" />
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <form class="sn-card" id="sn-customer-login-form" style="background-color:var(--sn-bg-parchment);">
+              <h3 style="font-family:var(--sn-font-serif);margin:0 0 8px;color:var(--sn-bg-forest);">1. Customer Sign In (PBKDF2-SHA512 + HttpOnly Cookie)</h3>
+              <p style="font-size:0.82rem;color:var(--sn-text-secondary);margin:0 0 12px;">
+                Demo customer account pre-filled (<strong>ananya.iyer@example.com</strong> / <strong>Sasya@2026</strong>).
+              </p>
+              <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;">
+                <div>
+                  <label style="font-size:0.75rem;font-weight:600;">Email Address *</label>
+                  <input type="email" name="email" required value="${escapeHtml(activeCustomer.email)}" class="sn-input" />
+                </div>
+                <div>
+                  <label style="font-size:0.75rem;font-weight:600;">Password *</label>
+                  <input type="password" name="password" required value="Sasya@2026" class="sn-input" />
+                </div>
+                <button type="submit" class="sn-btn sn-btn-forest">Sign In</button>
               </div>
-              <div>
-                <label style="font-size:0.75rem;font-weight:600;">Password *</label>
-                <input type="password" name="password" required value="Sasya@2026" class="sn-input" />
-              </div>
-              <button type="submit" class="sn-btn sn-btn-forest">Sign In</button>
+            </form>
+
+            <!-- Forgot Password / 6-Digit OTP Reset Card -->
+            <div class="sn-card" style="background-color:var(--sn-bg-mortar);">
+              <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;font-size:1.05rem;color:var(--sn-bg-forest);">Forgot Password? Reset via 6-Digit OTP</h3>
+              <form id="sn-customer-reset-otp-request-form" style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-bottom:10px;">
+                <div>
+                  <label style="font-size:0.74rem;font-weight:600;">Registered Email Address *</label>
+                  <input type="email" name="email" id="sn-reset-otp-email" required value="${escapeHtml(activeCustomer.email)}" class="sn-input" />
+                </div>
+                <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Send 6-Digit OTP</button>
+              </form>
+
+              <form id="sn-customer-reset-otp-confirm-form" style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
+                <div>
+                  <label style="font-size:0.74rem;font-weight:600;">6-Digit OTP Code *</label>
+                  <input type="text" name="otpCode" id="sn-reset-otp-code" required pattern="\\d{6}" placeholder="e.g. 482910" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                </div>
+                <div>
+                  <label style="font-size:0.74rem;font-weight:600;">New Password (min 6 chars) *</label>
+                  <input type="password" name="newPassword" required minlength="6" placeholder="New password" class="sn-input" />
+                </div>
+                <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Verify OTP &amp; Reset</button>
+              </form>
             </div>
-          </form>
+          </div>
 
           <form class="sn-card" id="sn-customer-register-form" style="background-color:var(--sn-bg-parchment);">
             <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;color:var(--sn-bg-forest);">2. New Customer Registration</h3>
+            <p style="font-size:0.82rem;color:var(--sn-text-secondary);margin:0 0 12px;">
+              Create an account to save delivery addresses across India and link past guest checkout orders automatically.
+            </p>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
               <div>
                 <label style="font-size:0.75rem;font-weight:600;">Full Name *</label>
@@ -1164,7 +1251,7 @@ function renderCustomerAccountPage({
                 <input type="tel" name="phone" required placeholder="+91 98200 11223" class="sn-input" />
               </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
               <div>
                 <label style="font-size:0.75rem;font-weight:600;">Email Address *</label>
                 <input type="email" name="email" required placeholder="rohan.d@example.com" class="sn-input" />
@@ -1173,127 +1260,147 @@ function renderCustomerAccountPage({
                 <label style="font-size:0.75rem;font-weight:600;">Create Password (min 6 chars) *</label>
                 <input type="password" name="password" required minlength="6" placeholder="••••••••" class="sn-input" />
               </div>
-              <button type="submit" class="sn-btn sn-btn-primary">Create Account</button>
             </div>
+            <button type="submit" class="sn-btn sn-btn-primary" style="width:100%;">Create Customer Account &amp; Sign In -></button>
           </form>
         </div>
 
-        <!-- 2. Profile Management & Saved Delivery Addresses -->
-        <div class="sn-pdp-grid" style="margin-bottom:28px;">
-          <form class="sn-card" id="sn-customer-profile-form">
-            <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">3. Customer Profile &amp; Contact Preferences</h3>
-            <input type="hidden" name="userId" value="${activeCustomer.id}" />
-            <div style="margin-bottom:12px;">
-              <label style="font-size:0.76rem;font-weight:600;display:block;margin-bottom:4px;">Full Name *</label>
-              <input type="text" name="fullName" required value="${escapeHtml(activeCustomer.full_name)}" class="sn-input" id="cust-prof-name" />
-            </div>
-            <div style="margin-bottom:12px;">
-              <label style="font-size:0.76rem;font-weight:600;display:block;margin-bottom:4px;">Registered Email Address</label>
-              <input type="email" name="email" readonly value="${escapeHtml(activeCustomer.email)}" class="sn-input" style="background-color:var(--sn-bg-mortar);" id="cust-prof-email" />
-            </div>
-            <div style="margin-bottom:16px;">
-              <label style="font-size:0.76rem;font-weight:600;display:block;margin-bottom:4px;">Mobile Number (for Courier &amp; COD OTP Updates) *</label>
-              <input type="tel" name="phone" required value="${escapeHtml(activeCustomer.phone)}" class="sn-input" id="cust-prof-phone" />
-            </div>
-            <button type="submit" class="sn-btn sn-btn-forest">Save Profile Changes</button>
-          </form>
-
-          <div class="sn-card">
-            <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">4. Saved Delivery Addresses (${addresses.length})</h3>
-            <div id="sn-customer-addresses-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
-              ${addresses.map(a => `
-                <div class="sn-card" style="padding:12px 16px;background-color:var(--sn-bg-parchment);" data-address-card="${a.id}">
-                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;">
-                    <div>
-                      <strong>${escapeHtml(a.label)}</strong> • ${escapeHtml(a.recipient_name)} (${escapeHtml(a.phone)})
-                      ${a.is_default ? `<span class="sn-status sn-status-paid" style="margin-left:6px;">Default</span>` : ''}
-                    </div>
-                    <div style="display:flex;gap:6px;">
-                      ${!a.is_default ? `<button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-set-default-addr="${a.id}">Set Default</button>` : ''}
-                      <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-delete-addr="${a.id}">Remove</button>
-                    </div>
-                  </div>
-                  <div style="font-size:0.82rem;color:var(--sn-text-secondary);">
-                    ${escapeHtml(a.line1)}${a.line2 ? ', ' + escapeHtml(a.line2) : ''}, ${escapeHtml(a.city)}, ${escapeHtml(a.state)} - <strong>${escapeHtml(a.pincode)}</strong>
-                  </div>
+        <!-- Authenticated Customer Sections (Hidden when Signed Out) -->
+        <div id="sn-customer-authenticated-sections" style="display:${isSignedIn ? 'block' : 'none'};">
+          <!-- 2. Profile Management, Change Password & Saved Delivery Addresses -->
+          <div class="sn-pdp-grid" style="margin-bottom:28px;">
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <form class="sn-card" id="sn-customer-profile-form">
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">3. Customer Profile &amp; Contact Preferences</h3>
+                <input type="hidden" name="userId" value="${activeCustomer.id}" />
+                <div style="margin-bottom:12px;">
+                  <label style="font-size:0.76rem;font-weight:600;display:block;margin-bottom:4px;">Full Name *</label>
+                  <input type="text" name="fullName" required value="${escapeHtml(activeCustomer.full_name)}" class="sn-input" id="cust-prof-name" />
                 </div>
-              `).join('')}
+                <div style="margin-bottom:12px;">
+                  <label style="font-size:0.76rem;font-weight:600;display:block;margin-bottom:4px;">Registered Email Address</label>
+                  <input type="email" name="email" readonly value="${escapeHtml(activeCustomer.email)}" class="sn-input" style="background-color:var(--sn-bg-mortar);" id="cust-prof-email" />
+                </div>
+                <div style="margin-bottom:16px;">
+                  <label style="font-size:0.76rem;font-weight:600;display:block;margin-bottom:4px;">Mobile Number (for Courier &amp; COD OTP Updates) *</label>
+                  <input type="tel" name="phone" required value="${escapeHtml(activeCustomer.phone)}" class="sn-input" id="cust-prof-phone" />
+                </div>
+                <button type="submit" class="sn-btn sn-btn-forest">Save Profile Changes</button>
+              </form>
+
+              <form class="sn-card" id="sn-customer-change-password-form">
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.05rem;color:var(--sn-bg-forest);">Change Account Password</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
+                  <div>
+                    <label style="font-size:0.74rem;font-weight:600;">Current Password *</label>
+                    <input type="password" name="currentPassword" required placeholder="Current password" class="sn-input" />
+                  </div>
+                  <div>
+                    <label style="font-size:0.74rem;font-weight:600;">New Password (min 6 chars) *</label>
+                    <input type="password" name="newPassword" required minlength="6" placeholder="New password" class="sn-input" />
+                  </div>
+                  <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Update Password</button>
+                </div>
+              </form>
             </div>
 
-            <form id="sn-customer-add-address-form" style="padding-top:12px;border-top:1px solid var(--sn-border-warm);">
-              <div style="font-family:var(--sn-font-mono);font-size:0.75rem;text-transform:uppercase;color:var(--sn-text-muted);margin-bottom:8px;">Add New Delivery Address</div>
-              <input type="hidden" name="userId" value="${activeCustomer.id}" />
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
-                <input type="text" name="label" required placeholder="Label (e.g. Office)" class="sn-input" />
-                <input type="text" name="recipientName" required value="${escapeHtml(activeCustomer.full_name)}" placeholder="Recipient Name" class="sn-input" />
-                <input type="tel" name="phone" required value="${escapeHtml(activeCustomer.phone)}" placeholder="Mobile No." class="sn-input" />
+            <div class="sn-card">
+              <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">4. Saved Delivery Addresses (${addresses.length})</h3>
+              <div id="sn-customer-addresses-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+                ${addresses.map(a => `
+                  <div class="sn-card" style="padding:12px 16px;background-color:var(--sn-bg-parchment);" data-address-card="${a.id}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px;">
+                      <div>
+                        <strong>${escapeHtml(a.label)}</strong> • ${escapeHtml(a.recipient_name)} (${escapeHtml(a.phone)})
+                        ${a.is_default ? `<span class="sn-status sn-status-paid" style="margin-left:6px;">Default</span>` : ''}
+                      </div>
+                      <div style="display:flex;gap:6px;">
+                        ${!a.is_default ? `<button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-set-default-addr="${a.id}">Set Default</button>` : ''}
+                        <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-delete-addr="${a.id}">Remove</button>
+                      </div>
+                    </div>
+                    <div style="font-size:0.82rem;color:var(--sn-text-secondary);">
+                      ${escapeHtml(a.line1)}${a.line2 ? ', ' + escapeHtml(a.line2) : ''}, ${escapeHtml(a.city)}, ${escapeHtml(a.state)} - <strong>${escapeHtml(a.pincode)}</strong>
+                    </div>
+                  </div>
+                `).join('')}
               </div>
-              <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:8px;margin-bottom:8px;">
-                <input type="text" name="line1" required placeholder="House / Flat / Street Address" class="sn-input" />
-                <input type="text" name="line2" placeholder="Landmark / Area (Optional)" class="sn-input" />
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;">
-                <input type="text" name="city" required placeholder="City (e.g. Bengaluru)" class="sn-input" />
-                <input type="text" name="state" required placeholder="State (e.g. Karnataka)" class="sn-input" />
-                <input type="text" name="pincode" required pattern="\\d{6}" placeholder="6-Digit PIN" class="sn-input" />
-                <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Save Address</button>
-              </div>
-            </form>
-          </div>
-        </div>
 
-        <!-- 3. Customer Order History & GST Tax Invoices -->
-        <div class="sn-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
-            <div>
-              <h2 style="font-family:var(--sn-font-serif);margin:0;font-size:1.35rem;color:var(--sn-bg-forest);">5. My Order History, Courier Tracking &amp; GST Invoices</h2>
-              <p style="font-size:0.84rem;color:var(--sn-text-secondary);margin:4px 0 0;">View real-time dual payment &amp; fulfilment statuses and manual courier AWB numbers.</p>
+              <form id="sn-customer-add-address-form" style="padding-top:12px;border-top:1px solid var(--sn-border-warm);">
+                <div style="font-family:var(--sn-font-mono);font-size:0.75rem;text-transform:uppercase;color:var(--sn-text-muted);margin-bottom:8px;">Add New Delivery Address</div>
+                <input type="hidden" name="userId" value="${activeCustomer.id}" />
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">
+                  <input type="text" name="label" required placeholder="Label (e.g. Office)" class="sn-input" />
+                  <input type="text" name="recipientName" required value="${escapeHtml(activeCustomer.full_name)}" placeholder="Recipient Name" class="sn-input" />
+                  <input type="tel" name="phone" required value="${escapeHtml(activeCustomer.phone)}" placeholder="Mobile No." class="sn-input" />
+                </div>
+                <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:8px;margin-bottom:8px;">
+                  <input type="text" name="line1" required placeholder="House / Flat / Street Address" class="sn-input" />
+                  <input type="text" name="line2" placeholder="Landmark / Area (Optional)" class="sn-input" />
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;align-items:center;">
+                  <input type="text" name="city" required placeholder="City (e.g. Bengaluru)" class="sn-input" />
+                  <input type="text" name="state" required placeholder="State (e.g. Karnataka)" class="sn-input" />
+                  <input type="text" name="pincode" required pattern="\\d{6}" placeholder="6-Digit PIN" class="sn-input" />
+                  <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Save Address</button>
+                </div>
+              </form>
             </div>
-            <a href="${basePath}/shop" class="sn-btn sn-btn-forest sn-btn-sm">Place New Order -></a>
           </div>
-          <div class="sn-table-wrap">
-            <table class="sn-table" id="sn-customer-orders-table">
-              <thead>
-                <tr>
-                  <th>Order No.</th>
-                  <th>Date</th>
-                  <th>Ordered Packs</th>
-                  <th>Total (INR)</th>
-                  <th>Payment Status</th>
-                  <th>Fulfilment Status</th>
-                  <th>Courier &amp; AWB</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${orders.map(o => {
-                  const oItems = orderItems.filter(it => Number(it.order_id) === Number(o.id));
-                  return `
-                    <tr>
-                      <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(o.order_number)}</td>
-                      <td style="font-family:var(--sn-font-mono);font-size:0.78rem;">${escapeHtml((o.created_at || '').slice(0, 10))}</td>
-                      <td style="font-size:0.82rem;">
-                        ${oItems.length > 0
-                          ? oItems.map(it => `${escapeHtml(it.product_name)} (${escapeHtml(it.pack_label)} × ${it.quantity})`).join(', ')
-                          : 'Pantry Order Packs'}
-                      </td>
-                      <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(o.total_paise)}</td>
-                      <td><span class="sn-status ${o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(o.payment_status)}</span></td>
-                      <td><span class="sn-status sn-status-paid">${escapeHtml(o.fulfilment_status)}</span></td>
-                      <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
-                        ${o.courier_name ? `${escapeHtml(o.courier_name)}<br/>AWB: ${escapeHtml(o.tracking_number)}` : 'Awaiting Dispatch'}
-                      </td>
-                      <td>
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                          <a href="${basePath}/track-order?order=${encodeURIComponent(o.order_number)}" class="sn-btn sn-btn-forest sn-btn-sm">Track</a>
-                          <a href="${basePath}/orders/${encodeURIComponent(o.order_number)}/invoice" class="sn-btn sn-btn-outline sn-btn-sm">GST Invoice</a>
-                        </div>
-                      </td>
-                    </tr>
-                  `;
-                }).join('')}
-              </tbody>
-            </table>
+
+          <!-- 3. Customer Order History & GST Tax Invoices -->
+          <div class="sn-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+              <div>
+                <h2 style="font-family:var(--sn-font-serif);margin:0;font-size:1.35rem;color:var(--sn-bg-forest);">5. My Order History, Courier Tracking &amp; GST Invoices</h2>
+                <p style="font-size:0.84rem;color:var(--sn-text-secondary);margin:4px 0 0;">View real-time dual payment &amp; fulfilment statuses and manual courier AWB numbers.</p>
+              </div>
+              <a href="${basePath}/checkout" class="sn-btn sn-btn-forest sn-btn-sm">Checkout with Saved Addresses -></a>
+            </div>
+            <div class="sn-table-wrap">
+              <table class="sn-table" id="sn-customer-orders-table">
+                <thead>
+                  <tr>
+                    <th>Order No.</th>
+                    <th>Date</th>
+                    <th>Ordered Packs</th>
+                    <th>Total (INR)</th>
+                    <th>Payment Status</th>
+                    <th>Fulfilment Status</th>
+                    <th>Courier &amp; AWB</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${orders.map(o => {
+                    const oItems = orderItems.filter(it => Number(it.order_id) === Number(o.id));
+                    return `
+                      <tr>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(o.order_number)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.78rem;">${escapeHtml((o.created_at || '').slice(0, 10))}</td>
+                        <td style="font-size:0.82rem;">
+                          ${oItems.length > 0
+                            ? oItems.map(it => `${escapeHtml(it.product_name)} (${escapeHtml(it.pack_label)} × ${it.quantity})`).join(', ')
+                            : 'Pantry Order Packs'}
+                        </td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(o.total_paise)}</td>
+                        <td><span class="sn-status ${o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(o.payment_status)}</span></td>
+                        <td><span class="sn-status sn-status-paid">${escapeHtml(o.fulfilment_status)}</span></td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                          ${o.courier_name ? `${escapeHtml(o.courier_name)}<br/>AWB: ${escapeHtml(o.tracking_number)}` : 'Awaiting Dispatch'}
+                        </td>
+                        <td>
+                          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                            <a href="${basePath}/track-order?order=${encodeURIComponent(o.order_number)}" class="sn-btn sn-btn-forest sn-btn-sm">Track</a>
+                            <a href="${basePath}/orders/${encodeURIComponent(o.order_number)}/invoice" class="sn-btn sn-btn-outline sn-btn-sm">GST Invoice</a>
+                          </div>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>

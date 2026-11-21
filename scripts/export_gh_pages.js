@@ -142,8 +142,14 @@ function runExport() {
   }
 
   // 4. Checkout & Track Order & Admin
+  const demoCustForCheckout = db.prepare("SELECT * FROM users WHERE role = 'CUSTOMER' ORDER BY id LIMIT 1").get() || null;
+  const demoAddressesForCheckout = demoCustForCheckout
+    ? db.prepare('SELECT * FROM customer_addresses WHERE user_id = ? ORDER BY is_default DESC, id ASC').all(demoCustForCheckout.id)
+    : [];
   writeRouteHtml('/checkout', renderCheckoutPage({
     coupons,
+    customer: demoCustForCheckout,
+    addresses: demoAddressesForCheckout,
     basePath: BASE_PATH,
     staticShowcaseScript,
     isNoIndex: true

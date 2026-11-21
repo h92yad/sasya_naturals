@@ -483,6 +483,38 @@
       radio.addEventListener('change', renderSummary);
     });
 
+    // Saved Delivery Address 1-Click Auto-Fill Selector
+    document.querySelectorAll('[data-checkout-saved-addr]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        try {
+          const addr = JSON.parse(btn.getAttribute('data-checkout-saved-addr') || '{}');
+          const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el && val !== undefined) el.value = val;
+          };
+          setVal('chk-name', addr.recipient_name || '');
+          setVal('chk-phone', addr.phone || '');
+          setVal('chk-line1', addr.line1 || '');
+          setVal('chk-line2', addr.line2 || '');
+          setVal('chk-city', addr.city || '');
+          setVal('chk-state', addr.state || '');
+          setVal('chk-pin', addr.pincode || '');
+
+          document.querySelectorAll('[data-checkout-saved-addr]').forEach(b => {
+            b.classList.remove('sn-btn-forest');
+            b.classList.add('sn-btn-outline');
+          });
+          btn.classList.remove('sn-btn-outline');
+          btn.classList.add('sn-btn-forest');
+
+          renderSummary();
+          showToast(`Auto-filled saved address: ${addr.label || 'Saved Address'} (PIN ${addr.pincode})`);
+        } catch {
+          // ignore malformed attribute
+        }
+      });
+    });
+
     const codOtpBtn = document.getElementById('sn-request-cod-otp-btn');
     const codOtpInput = document.getElementById('sn-cod-otp-input');
     const codOtpHint = document.getElementById('sn-cod-otp-hint');
@@ -525,7 +557,9 @@
       }
 
       const formData = new FormData(checkoutForm);
+      const rawUserId = formData.get('userId');
       const payload = {
+        userId: rawUserId ? Number(rawUserId) : null,
         customerName: formData.get('customerName'),
         customerEmail: formData.get('customerEmail'),
         customerPhone: formData.get('customerPhone'),
@@ -1510,6 +1544,9 @@
     const accRoot = document.getElementById('sn-customer-account-page');
     if (!accRoot) return;
 
+    const authSections = document.getElementById('sn-customer-authenticated-sections');
+    const logoutBtn = document.getElementById('sn-customer-logout-btn');
+
     const loginForm = document.getElementById('sn-customer-login-form');
     if (loginForm) {
       loginForm.addEventListener('submit', async (e) => {
@@ -1519,7 +1556,12 @@
         const password = String(fd.get('password') || '');
         if (IS_STATIC_SHOWCASE) {
           const badge = document.getElementById('sn-account-active-badge');
-          if (badge) badge.textContent = `Signed In: ${email}`;
+          if (badge) {
+            badge.className = 'sn-status sn-status-paid';
+            badge.textContent = `Signed In: ${email}`;
+          }
+          if (authSections) authSections.style.display = 'block';
+          if (logoutBtn) logoutBtn.style.display = 'inline-flex';
           showToast(`Signed in to Customer Account (${email})`);
           return;
         }
@@ -1546,7 +1588,12 @@
         const payload = Object.fromEntries(fd.entries());
         if (IS_STATIC_SHOWCASE) {
           const badge = document.getElementById('sn-account-active-badge');
-          if (badge) badge.textContent = `Signed In: ${payload.email}`;
+          if (badge) {
+            badge.className = 'sn-status sn-status-paid';
+            badge.textContent = `Signed In: ${payload.email}`;
+          }
+          if (authSections) authSections.style.display = 'block';
+          if (logoutBtn) logoutBtn.style.display = 'inline-flex';
           const nameInput = document.getElementById('cust-prof-name');
           const emailInput = document.getElementById('cust-prof-email');
           const phoneInput = document.getElementById('cust-prof-phone');
@@ -1572,14 +1619,116 @@
       });
     }
 
-    const logoutBtn = document.getElementById('sn-customer-logout-btn');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', async () => {
-        if (!IS_STATIC_SHOWCASE) {
-          await fetch('/api/account/logout', { method: 'POST' });
+        if (IS_STATIC_SHOWCASE) {
+          const badge = document.getElementById('sn-account-active-badge');
+          if (badge) {
+            badge.className = 'sn-status sn-status-warn';
+            badge.textContent = 'Logged Out • Please Sign In or Register';
+          }
+          if (authSections) authSections.style.display = 'none';
+          logoutBtn.style.display = 'none';
+          showToast('Signed out of customer account');
+          return;
         }
+        await fetch('/api/account/logout', { method: 'POST' });
         showToast('Signed out of customer account');
         setTimeout(() => window.location.reload(), 500);
+      });
+    }
+
+    // Forgot Password 6-Digit OTP Request & Confirm
+    const resetReqForm = document.getElementById('sn-customer-reset-otp-request-form');
+    if (resetReqForm) {
+      resetReqForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(resetReqForm);
+        const email = String(fd.get('email') || '').trim();
+        const otpInput = document.getElementById('sn-reset-otp-code');
+        const confirmEmailInput = document.getElementById('sn-reset-confirm-email');
+        if (confirmEmailInput) confirmEmailInput.value = email;
+
+        if (IS_STATIC_SHOWCASE) {
+          const simOtp = '739204';
+          if (otpInput) otpInput.value = simOtp;
+          showToast(`Password Reset OTP sent to ${email} (Sandbox OTP: ${simOtp})`);
+          return;
+        }
+        const res = await fetch('/api/account/password/reset-otp/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to request password reset OTP');
+          return;
+        }
+        if (data.sandboxOtpPreview && otpInput) {
+          otpInput.value = data.sandboxOtpPreview;
+        }
+        showToast(`6-digit reset OTP sent to ${data.email}${data.sandboxOtpPreview ? ` (Sandbox: ${data.sandboxOtpPreview})` : ''}`);
+      });
+    }
+
+    const resetConfirmForm = document.getElementById('sn-customer-reset-otp-confirm-form');
+    if (resetConfirmForm) {
+      resetConfirmForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(resetConfirmForm);
+        const payload = Object.fromEntries(fd.entries());
+        if (IS_STATIC_SHOWCASE) {
+          const badge = document.getElementById('sn-account-active-badge');
+          if (badge) {
+            badge.className = 'sn-status sn-status-paid';
+            badge.textContent = `Signed In: ${payload.email}`;
+          }
+          if (authSections) authSections.style.display = 'block';
+          if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+          resetConfirmForm.reset();
+          showToast(`Password reset & signed in as ${payload.email}!`);
+          return;
+        }
+        const res = await fetch('/api/account/password/reset-otp/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Password reset failed');
+          return;
+        }
+        showToast(`Password reset complete! Signed in as ${data.user.fullName}`);
+        setTimeout(() => window.location.reload(), 500);
+      });
+    }
+
+    // Change Password Form (Signed-In Customer)
+    const changePassForm = document.getElementById('sn-customer-change-password-form');
+    if (changePassForm) {
+      changePassForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(changePassForm);
+        const payload = Object.fromEntries(fd.entries());
+        if (IS_STATIC_SHOWCASE) {
+          changePassForm.reset();
+          showToast('Updated account password (PBKDF2-SHA512 verified)!');
+          return;
+        }
+        const res = await fetch('/api/account/password/change', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to change password');
+          return;
+        }
+        changePassForm.reset();
+        showToast('Password updated successfully!');
       });
     }
 

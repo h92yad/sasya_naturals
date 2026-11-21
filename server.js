@@ -47,6 +47,9 @@ const {
   loginAdminWithPassword,
   loginCustomerWithPassword,
   registerCustomerAccount,
+  changeUserPassword,
+  requestPasswordResetOtp,
+  resetPasswordWithOtp,
   parseCookies,
   buildSessionCookieHeader,
   buildCustomerCookieHeader
@@ -194,14 +197,22 @@ function resolveAdminUser(req) {
 function resolveCustomerUser(req) {
   const db = getDb();
   const cookies = parseCookies(req.headers.cookie || '');
-  if (cookies[CUSTOMER_COOKIE_NAME]) {
-    const verified = verifySessionToken(cookies[CUSTOMER_COOKIE_NAME]);
+  const cookieVal = cookies[CUSTOMER_COOKIE_NAME];
+  if (cookieVal === 'LOGGED_OUT') {
+    return null;
+  }
+  if (cookieVal) {
+    const verified = verifySessionToken(cookieVal);
     if (verified && verified.email) {
       const user = db.prepare('SELECT * FROM users WHERE lower(email) = ? AND is_active = 1').get(verified.email.toLowerCase());
       if (user) return user;
     }
+    return null;
   }
-  return db.prepare("SELECT * FROM users WHERE email = 'ananya.iyer@example.com'").get();
+  if (!IS_PROD) {
+    return db.prepare("SELECT * FROM users WHERE email = 'ananya.iyer@example.com'").get();
+  }
+  return null;
 }
 
 function createServerHandler() {
@@ -405,6 +416,42 @@ function createServerHandler() {
         const phone = String(body.phone || cust.phone).trim();
         db.prepare('UPDATE users SET full_name = ?, phone = ? WHERE id = ?').run(fullName, phone, cust.id);
         return sendJson(res, 200, { user: { id: cust.id, email: cust.email, fullName, phone } });
+      }
+
+      if (pathname === '/api/account/password/change' && req.method === 'POST') {
+        const cust = resolveCustomerUser(req);
+        if (!cust) return sendJson(res, 401, { error: 'Please sign in to change your password.' });
+        const body = await readJsonBody(req);
+        const changed = changeUserPassword({
+          userId: cust.id,
+          currentPassword: body.currentPassword,
+          newPassword: body.newPassword
+        });
+        return sendJson(res, 200, changed);
+      }
+
+      if (pathname === '/api/account/password/reset-otp/request' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const otpInfo = requestPasswordResetOtp(body.email);
+        return sendJson(res, 200, otpInfo);
+      }
+
+      if (pathname === '/api/account/password/reset-otp/confirm' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const resetRes = resetPasswordWithOtp({
+          email: body.email,
+          otpCode: body.otpCode,
+          newPassword: body.newPassword
+        });
+        const cookieHeader = resetRes.user.role === 'CUSTOMER'
+          ? buildCustomerCookieHeader(resetRes.sessionToken, false)
+          : buildSessionCookieHeader(resetRes.sessionToken, false);
+        return sendJson(
+          res,
+          200,
+          { user: resetRes.user },
+          { 'Set-Cookie': cookieHeader }
+        );
       }
 
       if (pathname === '/api/account/addresses/add' && req.method === 'POST') {
@@ -1143,7 +1190,11 @@ function createServerHandler() {
 
       if (pathname === '/checkout' || pathname === '/cart') {
         const coupons = db.prepare('SELECT * FROM coupons WHERE is_active = 1').all();
-        const html = renderCheckoutPage({ coupons });
+        const customer = resolveCustomerUser(req);
+        const addresses = customer
+          ? db.prepare('SELECT * FROM customer_addresses WHERE user_id = ? ORDER BY is_default DESC, id ASC').all(customer.id)
+          : [];
+        const html = renderCheckoutPage({ coupons, customer, addresses });
         return sendHtml(res, 200, html, '/checkout');
       }
 
