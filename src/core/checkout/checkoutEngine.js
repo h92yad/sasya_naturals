@@ -6,9 +6,16 @@ const crypto = require('node:crypto');
 const { getDb } = require('../../db/database');
 const {
   PAYMENT_CONFIG,
+  SELLER_ORIGIN_STATE,
   ORDER_PAYMENT_STATUSES,
   ORDER_FULFILMENT_STATUSES
 } = require('../../config/appConfig');
+const { getVaultSecret } = require('../auth/credentialVault');
+const {
+  validatePincodeServiceability,
+  verifyCodOtp,
+  isPhoneCodVerified
+} = require('./codProtection');
 
 // Load compiled Rust WebAssembly Commerce Core (wasm_core.wasm)
 const wasmPath = path.join(__dirname, 'wasm_core.wasm');
@@ -58,14 +65,22 @@ function wasmOrderTotalPaise(subtotalPaise, discountPaise, shippingPaise) {
   );
 }
 
-function computeRazorpaySignature(gatewayOrderId, gatewayPaymentId, secret = PAYMENT_CONFIG.keySecret) {
+function getActiveRazorpayKeyId() {
+  return getVaultSecret('RAZORPAY_KEY_ID', PAYMENT_CONFIG.keyId);
+}
+
+function getActiveRazorpayKeySecret() {
+  return getVaultSecret('RAZORPAY_KEY_SECRET', PAYMENT_CONFIG.keySecret);
+}
+
+function computeRazorpaySignature(gatewayOrderId, gatewayPaymentId, secret = getActiveRazorpayKeySecret()) {
   return crypto
     .createHmac('sha256', secret)
     .update(`${gatewayOrderId}|${gatewayPaymentId}`)
     .digest('hex');
 }
 
-function verifyRazorpaySignature(gatewayOrderId, gatewayPaymentId, providedSignature, secret = PAYMENT_CONFIG.keySecret) {
+function verifyRazorpaySignature(gatewayOrderId, gatewayPaymentId, providedSignature, secret = getActiveRazorpayKeySecret()) {
   if (!gatewayOrderId || !gatewayPaymentId || !providedSignature) return false;
   const expected = computeRazorpaySignature(gatewayOrderId, gatewayPaymentId, secret);
   if (expected.length !== providedSignature.length) return false;
@@ -77,9 +92,40 @@ function verifyRazorpaySignature(gatewayOrderId, gatewayPaymentId, providedSigna
 }
 
 /**
+ * Splits total GST paise into Intra-State (CGST + SGST) or Inter-State (IGST) based on place of supply.
+ */
+function computeStateGstSplit(gstPaise, shippingState = 'Karnataka', shippingPincode = '560001') {
+  const cleanState = String(shippingState || '').trim().toLowerCase();
+  const cleanPin = String(shippingPincode || '').trim();
+  const isIntraState =
+    cleanState === SELLER_ORIGIN_STATE.toLowerCase() ||
+    cleanPin.startsWith('56') ||
+    cleanPin.startsWith('57') ||
+    cleanPin.startsWith('58') ||
+    cleanPin.startsWith('59');
+
+  if (isIntraState) {
+    const cgstPaise = Math.floor(gstPaise / 2);
+    const sgstPaise = gstPaise - cgstPaise;
+    return {
+      taxSupplyType: 'CGST_SGST',
+      cgstPaise,
+      sgstPaise,
+      igstPaise: 0
+    };
+  }
+  return {
+    taxSupplyType: 'IGST',
+    cgstPaise: 0,
+    sgstPaise: 0,
+    igstPaise: gstPaise
+  };
+}
+
+/**
  * Deterministically calculates cart totals in integer paise via Rust WASM Core + database variant prices.
  */
-function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLINE_UPI') {
+function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLINE_UPI', shippingState = 'Karnataka', shippingPincode = '560001') {
   const db = getDb();
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error('Cart is empty. Please add at least one product pack.');
@@ -96,10 +142,12 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
       v.selling_price_paise,
       v.promo_price_paise,
       v.stock_qty,
+      v.low_stock_threshold,
       v.is_active AS variant_active,
       p.name AS product_name,
       p.slug AS product_slug,
       p.gst_percent,
+      p.hsn_code,
       p.image_url,
       p.is_active AS product_active
     FROM product_variants v
@@ -146,6 +194,7 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
       productSlug: row.product_slug,
       imageUrl: row.image_url,
       sku: row.sku,
+      hsnCode: row.hsn_code || '080290',
       packLabel: row.pack_label,
       weightGrams: row.weight_grams,
       unitPricePaise,
@@ -153,6 +202,7 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
       gstPercent: row.gst_percent,
       quantity,
       stockQty: row.stock_qty,
+      lowStockThreshold: row.low_stock_threshold || 10,
       lineTotalPaise,
       lineGstPaise
     });
@@ -187,6 +237,8 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
     ? Math.round(rawGstPaise * (discountedSubtotalPaise / subtotalPaise))
     : 0;
 
+  const gstSplit = computeStateGstSplit(gstPaise, shippingState, shippingPincode);
+
   const shippingPaise = wasmShippingPaise(
     discountedSubtotalPaise,
     PAYMENT_CONFIG.freeShippingThresholdPaise,
@@ -208,6 +260,10 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
     discountPaise,
     discountedSubtotalPaise,
     gstPaise,
+    taxSupplyType: gstSplit.taxSupplyType,
+    cgstPaise: gstSplit.cgstPaise,
+    sgstPaise: gstSplit.sgstPaise,
+    igstPaise: gstSplit.igstPaise,
     shippingPaise,
     totalPaise,
     totalWeightGrams,
@@ -232,27 +288,42 @@ function createOrder({
   deliveryInstructions = '',
   items,
   couponCode = '',
-  paymentMethod = 'ONLINE_UPI'
+  paymentMethod = 'ONLINE_UPI',
+  codOtpCode = '',
+  requireCodOtp = false
 }) {
   if (!customerName || !customerEmail || !customerPhone || !shippingLine1 || !shippingCity || !shippingState || !shippingPincode) {
     throw new Error('Please complete all required customer contact and Indian delivery address fields.');
   }
-  if (!/^\d{6}$/.test(String(shippingPincode).trim())) {
-    throw new Error('Please enter a valid 6-digit Indian PIN code.');
-  }
+
+  // Validate PIN code serviceability & high-RTO COD rules
+  validatePincodeServiceability(shippingPincode, paymentMethod);
 
   const validMethods = ['ONLINE_UPI', 'ONLINE_CARD', 'ONLINE_NETBANKING', 'COD'];
   if (!validMethods.includes(paymentMethod)) {
     throw new Error(`Unsupported payment method: ${paymentMethod}`);
   }
 
-  const pricing = calculateCartPricing(items, couponCode, paymentMethod);
+  const isCod = paymentMethod === 'COD';
+  let codOtpVerified = 0;
+
+  if (isCod) {
+    if (codOtpCode) {
+      verifyCodOtp(customerPhone, codOtpCode);
+      codOtpVerified = 1;
+    } else if (isPhoneCodVerified(customerPhone)) {
+      codOtpVerified = 1;
+    } else if (requireCodOtp) {
+      throw new Error('Cash on Delivery requires 6-digit Mobile OTP verification to prevent RTO fraud.');
+    }
+  }
+
+  const pricing = calculateCartPricing(items, couponCode, paymentMethod, shippingState, shippingPincode);
   const db = getDb();
 
   const seqRow = db.prepare('SELECT COUNT(*) AS cnt FROM orders').get();
   const nextSeq = 1001 + Number(seqRow ? seqRow.cnt : 0);
   const orderNumber = `SN-2026-${nextSeq}`;
-  const isCod = paymentMethod === 'COD';
   const gatewayOrderId = isCod
     ? `cod_${orderNumber.replace(/-/g, '')}`
     : `order_rzp_${orderNumber.replace(/-/g, '')}_${crypto.randomBytes(3).toString('hex')}`;
@@ -266,10 +337,11 @@ function createOrder({
       INSERT INTO orders (
         order_number, user_id, customer_name, customer_email, customer_phone,
         shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_pincode,
-        delivery_instructions, subtotal_paise, discount_paise, gst_paise, shipping_paise,
-        total_paise, coupon_code, payment_method, payment_status, fulfilment_status,
-        gateway_order_id, stock_deducted
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        delivery_instructions, subtotal_paise, discount_paise, gst_paise,
+        tax_supply_type, cgst_paise, sgst_paise, igst_paise,
+        shipping_paise, total_paise, coupon_code, payment_method, payment_status, fulfilment_status,
+        gateway_order_id, stock_deducted, cod_otp_verified
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const ordResult = insertOrderStmt.run(
@@ -287,6 +359,10 @@ function createOrder({
       pricing.subtotalPaise,
       pricing.discountPaise,
       pricing.gstPaise,
+      pricing.taxSupplyType,
+      pricing.cgstPaise,
+      pricing.sgstPaise,
+      pricing.igstPaise,
       pricing.shippingPaise,
       pricing.totalPaise,
       pricing.appliedCoupon,
@@ -294,15 +370,16 @@ function createOrder({
       paymentStatus,
       fulfilmentStatus,
       gatewayOrderId,
-      isCod ? 1 : 0
+      isCod ? 1 : 0,
+      codOtpVerified
     );
     const orderId = Number(ordResult.lastInsertRowid);
 
     const insertItemStmt = db.prepare(`
       INSERT INTO order_items (
-        order_id, product_id, variant_id, product_name, sku, pack_label,
+        order_id, product_id, variant_id, product_name, sku, hsn_code, pack_label,
         weight_grams, unit_price_paise, mrp_paise, gst_percent, quantity, line_total_paise
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const deductStockStmt = db.prepare(`
@@ -324,6 +401,7 @@ function createOrder({
         item.variantId,
         item.productName,
         item.sku,
+        item.hsnCode,
         item.packLabel,
         item.weightGrams,
         item.unitPricePaise,
@@ -338,15 +416,26 @@ function createOrder({
         if (res.changes !== 1) {
           throw new Error(`Stock race condition detected for ${item.productName} (${item.packLabel}).`);
         }
+        const remainingStock = item.stockQty - item.quantity;
         insertMovementStmt.run(
           item.variantId,
           -item.quantity,
           item.stockQty,
-          item.stockQty - item.quantity,
+          remainingStock,
           'ORDER_PLACED_COD',
           orderNumber,
           customerName
         );
+        if (remainingStock <= item.lowStockThreshold) {
+          db.prepare(`
+            INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
+            VALUES (?, 'ADMIN_ALERT', 'catalog@sasynaturals.com', 'LOW_STOCK_ALERT', ?, ?)
+          `).run(
+            orderNumber,
+            `Low Stock Alert: ${item.sku} (${remainingStock} remaining)`,
+            `${item.productName} (${item.packLabel}) dropped to ${remainingStock} units.`
+          );
+        }
       }
     }
 
@@ -373,7 +462,7 @@ function createOrder({
       String(customerEmail).trim(),
       isCod ? 'ORDER_CONFIRMED_COD' : 'ORDER_CREATED_AWAITING_PAYMENT',
       `Sasya Naturals Order ${orderNumber} (${fulfilmentStatus})`,
-      `Order total Rs. ${(pricing.totalPaise / 100).toFixed(2)} via ${paymentMethod}.`
+      `Order total Rs. ${(pricing.totalPaise / 100).toFixed(2)} via ${paymentMethod}. Tax Invoice: /orders/${orderNumber}/invoice`
     );
 
     db.exec('COMMIT;');
@@ -385,7 +474,8 @@ function createOrder({
       paymentStatus,
       fulfilmentStatus,
       gatewayOrderId,
-      razorpayKeyId: PAYMENT_CONFIG.keyId,
+      razorpayKeyId: getActiveRazorpayKeyId(),
+      invoiceUrl: `/orders/${orderNumber}/invoice`,
       pricing,
       sandboxSignaturePreview: !isCod
         ? computeRazorpaySignature(gatewayOrderId, `pay_rzp_${orderNumber.replace(/-/g, '')}`)
@@ -438,7 +528,7 @@ function verifyAndCaptureOnlinePayment({
   db.exec('BEGIN IMMEDIATE TRANSACTION;');
   try {
     if (!order.stock_deducted) {
-      const getVarStmt = db.prepare('SELECT stock_qty FROM product_variants WHERE id = ?');
+      const getVarStmt = db.prepare('SELECT stock_qty, low_stock_threshold FROM product_variants WHERE id = ?');
       const deductStmt = db.prepare('UPDATE product_variants SET stock_qty = stock_qty - ? WHERE id = ? AND stock_qty >= ?');
       const moveStmt = db.prepare(`
         INSERT INTO inventory_movements (variant_id, delta_qty, previous_qty, new_qty, reason, reference_id, actor_name)
@@ -448,11 +538,23 @@ function verifyAndCaptureOnlinePayment({
       for (const item of items) {
         const vRow = getVarStmt.get(item.variant_id);
         const prevQty = vRow ? vRow.stock_qty : 0;
+        const threshold = vRow ? vRow.low_stock_threshold : 10;
         const res = deductStmt.run(item.quantity, item.variant_id, item.quantity);
         if (res.changes !== 1) {
           throw new Error(`Insufficient stock while capturing order ${orderNumber} for SKU ${item.sku}.`);
         }
-        moveStmt.run(item.variant_id, -item.quantity, prevQty, prevQty - item.quantity, orderNumber);
+        const remaining = prevQty - item.quantity;
+        moveStmt.run(item.variant_id, -item.quantity, prevQty, remaining, orderNumber);
+        if (remaining <= threshold) {
+          db.prepare(`
+            INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
+            VALUES (?, 'ADMIN_ALERT', 'catalog@sasynaturals.com', 'LOW_STOCK_ALERT', ?, ?)
+          `).run(
+            orderNumber,
+            `Low Stock Alert: ${item.sku} (${remaining} remaining)`,
+            `${item.product_name} (${item.pack_label}) dropped to ${remaining} units.`
+          );
+        }
       }
     }
 
@@ -483,7 +585,7 @@ function verifyAndCaptureOnlinePayment({
       orderNumber,
       order.customer_email,
       `Payment Confirmed for Sasya Naturals Order ${orderNumber}`,
-      `Server-verified payment ${gatewayPaymentId} of Rs. ${(order.total_paise / 100).toFixed(2)}.`
+      `Server-verified payment ${gatewayPaymentId} of Rs. ${(order.total_paise / 100).toFixed(2)}. Invoice: /orders/${orderNumber}/invoice`
     );
 
     db.exec('COMMIT;');
@@ -493,7 +595,8 @@ function verifyAndCaptureOnlinePayment({
       orderNumber,
       paymentStatus: 'PAID',
       fulfilmentStatus: 'Confirmed',
-      gatewayPaymentId
+      gatewayPaymentId,
+      invoiceUrl: `/orders/${orderNumber}/invoice`
     };
   } catch (err) {
     db.exec('ROLLBACK;');
@@ -641,8 +744,11 @@ module.exports = {
   wasmOrderTotalPaise,
   ORDER_PAYMENT_STATUSES,
   ORDER_FULFILMENT_STATUSES,
+  getActiveRazorpayKeyId,
+  getActiveRazorpayKeySecret,
   computeRazorpaySignature,
   verifyRazorpaySignature,
+  computeStateGstSplit,
   calculateCartPricing,
   createOrder,
   verifyAndCaptureOnlinePayment,

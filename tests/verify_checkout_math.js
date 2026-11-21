@@ -120,7 +120,44 @@ function runVerifyCheckoutMath() {
   const restoredStock = db.prepare('SELECT stock_qty FROM product_variants WHERE id = 3').get().stock_qty;
   assert.strictEqual(restoredStock, beforeStock, 'Stock must be restored to original count on Refund/Cancellation');
 
-  console.log('✓ [Suite 3/7: verify_checkout_math] Verified Rust WASM paise math, Razorpay HMAC-SHA256, idempotency, manual shipping & atomic stock lifecycle');
+  // 4. Verify Intra-State (CGST + SGST) vs Inter-State (IGST) Tax Split
+  const intraCalc = calculateCartPricing([{ variantId: 2, quantity: 1 }], '', 'ONLINE_UPI', 'Karnataka', '560038');
+  assert.strictEqual(intraCalc.taxSupplyType, 'CGST_SGST');
+  assert(intraCalc.cgstPaise > 0 && intraCalc.sgstPaise > 0 && intraCalc.igstPaise === 0, 'Karnataka order must split CGST + SGST');
+
+  const interCalc = calculateCartPricing([{ variantId: 2, quantity: 1 }], '', 'ONLINE_UPI', 'Maharashtra', '411004');
+  assert.strictEqual(interCalc.taxSupplyType, 'IGST');
+  assert(interCalc.igstPaise > 0 && interCalc.cgstPaise === 0 && interCalc.sgstPaise === 0, 'Inter-state order must bill IGST');
+
+  // 5. Verify PIN-Code Serviceability & COD Mobile OTP Anti-RTO Gate
+  const { validatePincodeServiceability, requestCodOtp, verifyCodOtp } = require('../src/core/checkout/codProtection');
+  assert.throws(() => validatePincodeServiceability('999999', 'ONLINE_UPI'), /not a valid serviceable/);
+  assert.throws(() => validatePincodeServiceability('800099', 'COD'), /Cash on Delivery is unavailable for PIN code 800099/);
+  assert.strictEqual(validatePincodeServiceability('800099', 'ONLINE_UPI').serviceable, true);
+
+  const otpDispatch = requestCodOtp('+91 98450 77889');
+  assert(otpDispatch.sent && otpDispatch.sandboxOtpPreview, 'COD OTP must be generated');
+  assert.throws(() => verifyCodOtp('+91 98450 77889', '000000'), /Incorrect 6-digit COD OTP/);
+  const otpValid = verifyCodOtp('+91 98450 77889', otpDispatch.sandboxOtpPreview);
+  assert.strictEqual(otpValid.verified, true);
+
+  // 6. Verify Magic-Byte Validated Image Upload Pipeline
+  const { uploadProductImage } = require('../src/core/checkout/imageUploader');
+  const fakeScriptBase64 = Buffer.from('<?php echo "hack"; ?>', 'utf8').toString('base64');
+  assert.throws(() => {
+    uploadProductImage({ productId: 1, imageBase64: fakeScriptBase64, caption: 'Malicious payload' });
+  }, /Security Violation: File magic bytes/);
+
+  // Minimal valid 1x1 PNG magic bytes
+  const validPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+  const uploaded = uploadProductImage({ productId: 1, imageBase64: validPngBase64, caption: 'Back FSSAI Label' });
+  assert(uploaded.publicUrl.startsWith('/uploads/') && uploaded.mime === 'image/png', 'Valid PNG magic-byte upload must succeed');
+
+  // Clean up test order so showcase export stays canonical
+  db.prepare('DELETE FROM orders WHERE order_number = ?').run(created.orderNumber);
+  db.prepare("DELETE FROM orders WHERE customer_email = 'buyer@example.com'").run();
+
+  console.log('✓ [Suite 3/7: verify_checkout_math] Verified Rust WASM paise math, CGST/SGST vs IGST, COD OTP & PIN gate, Magic-Byte Image Upload, Razorpay HMAC & atomic stock');
 }
 
 if (require.main === module) {

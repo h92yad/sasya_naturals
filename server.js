@@ -7,6 +7,7 @@ const { URL } = require('node:url');
 
 const {
   APP_VERSION,
+  IS_PROD,
   PORT,
   CANONICAL_ORIGIN,
   BRAND_NAME,
@@ -20,9 +21,26 @@ const {
   updateOrderFulfilmentAndShipping
 } = require('./src/core/checkout/checkoutEngine');
 const {
+  requestCodOtp,
+  verifyCodOtp,
+  validatePincodeServiceability
+} = require('./src/core/checkout/codProtection');
+const { uploadProductImage } = require('./src/core/checkout/imageUploader');
+const {
   assertAdminPermission,
   recordAuditLog
 } = require('./src/core/auth/rbac');
+const {
+  saveVaultCredential,
+  listVaultStatus
+} = require('./src/core/auth/credentialVault');
+const {
+  SESSION_COOKIE_NAME,
+  verifySessionToken,
+  loginAdminWithPassword,
+  parseCookies,
+  buildSessionCookieHeader
+} = require('./src/core/auth/sessionManager');
 const { lintContentText } = require('./src/core/content/contentLinter');
 const {
   renderHomePage,
@@ -30,6 +48,7 @@ const {
   renderProductDetailPage,
   renderCheckoutPage,
   renderTrackOrderPage,
+  renderGstInvoicePage,
   renderAdminPortalPage,
   renderStaticInfoPage,
   renderMarkdownTwin
@@ -99,7 +118,7 @@ function readJsonBody(req) {
     let body = '';
     req.on('data', chunk => {
       body += chunk.toString('utf8');
-      if (body.length > 1024 * 1024) {
+      if (body.length > 8 * 1024 * 1024) {
         reject(new Error('Request payload too large'));
       }
     });
@@ -115,12 +134,13 @@ function readJsonBody(req) {
   });
 }
 
-function sendJson(res, statusCode, payload) {
+function sendJson(res, statusCode, payload, extraHeaders = {}) {
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
     'X-Content-Type-Options': 'nosniff',
-    'Cache-Control': 'no-store'
+    'Cache-Control': 'no-store',
+    ...extraHeaders
   });
   res.end(body);
 }
@@ -137,10 +157,26 @@ function sendHtml(res, statusCode, html, canonicalPath = '/') {
   res.end(html);
 }
 
+/**
+ * Resolves authenticated staff user:
+ * 1. First checks signed HttpOnly session cookie (sn_admin_session).
+ * 2. In non-production mode (NODE_ENV !== 'production'), falls back to x-admin-email header for RBAC demo testing.
+ */
 function resolveAdminUser(req) {
   const db = getDb();
-  const headerEmail = req.headers['x-admin-email'] || 'superadmin@sasynaturals.com';
-  return db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1').get(String(headerEmail).trim());
+  const cookies = parseCookies(req.headers.cookie || '');
+  if (cookies[SESSION_COOKIE_NAME]) {
+    const verified = verifySessionToken(cookies[SESSION_COOKIE_NAME]);
+    if (verified && verified.email) {
+      const user = db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1').get(verified.email);
+      if (user) return user;
+    }
+  }
+  if (!IS_PROD) {
+    const headerEmail = req.headers['x-admin-email'] || 'superadmin@sasynaturals.com';
+    return db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1').get(String(headerEmail).trim());
+  }
+  return null;
 }
 
 function createServerHandler() {
@@ -150,8 +186,8 @@ function createServerHandler() {
       const pathname = parsedUrl.pathname.replace(/\/+$/, '') || '/';
       const db = getDb();
 
-      // 1. Static Assets (/assets/*, /images/*)
-      if (pathname.startsWith('/assets/') || pathname.startsWith('/images/')) {
+      // 1. Static Assets (/assets/*, /images/*, /uploads/*)
+      if (pathname.startsWith('/assets/') || pathname.startsWith('/images/') || pathname.startsWith('/uploads/')) {
         const filePath = path.join(__dirname, 'public', pathname);
         if (!filePath.startsWith(path.join(__dirname, 'public')) || !fs.existsSync(filePath)) {
           res.writeHead(404);
@@ -182,6 +218,7 @@ function createServerHandler() {
           'Allow: /',
           'Allow: /llms.txt',
           'Disallow: /admin',
+          'Disallow: /orders/',
           'Disallow: /api/',
           '',
           `Sitemap: ${CANONICAL_ORIGIN}/sitemap.xml`
@@ -228,7 +265,7 @@ function createServerHandler() {
           ...cats.map(c => `- [${c.name}](${CANONICAL_ORIGIN}/category/${c.slug}): ${c.description}`),
           '',
           '## Product Catalogue',
-          ...prods.map(p => `- [${p.name}](${CANONICAL_ORIGIN}/product/${p.slug}): ${p.short_description} (Origin: ${p.origin_region}, Batch: ${p.harvest_batch})`)
+          ...prods.map(p => `- [${p.name}](${CANONICAL_ORIGIN}/product/${p.slug}): ${p.short_description} (HSN: ${p.hsn_code}, Origin: ${p.origin_region}, Batch: ${p.harvest_batch})`)
         ];
         res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
         return res.end(lines.join('\n'));
@@ -262,7 +299,7 @@ function createServerHandler() {
             description: product.short_description,
             sections: [
               { heading: 'Product Overview', body: product.description },
-              { heading: 'Origin & Compliance', body: `Origin: ${product.origin_region} | Batch: ${product.harvest_batch} | Ingredients: ${product.ingredients} | Allergens: ${product.allergen_info}` },
+              { heading: 'Origin & Compliance', body: `Origin: ${product.origin_region} | HSN: ${product.hsn_code} | Batch: ${product.harvest_batch} | Ingredients: ${product.ingredients} | Allergens: ${product.allergen_info}` },
               { heading: 'Available Pack Variants', body: pVars.map(v => `- ${v.pack_label} (${v.sku}): Rs. ${(v.selling_price_paise / 100).toFixed(2)} (MRP Rs. ${(v.mrp_paise / 100).toFixed(2)})`).join('\n') }
             ]
           });
@@ -281,9 +318,73 @@ function createServerHandler() {
         });
       }
 
+      if (pathname === '/api/admin/auth/login' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const clientIp = req.socket.remoteAddress || '127.0.0.1';
+        const authResult = loginAdminWithPassword(body.email, body.password, clientIp);
+        return sendJson(
+          res,
+          200,
+          { user: authResult.user, csrfToken: authResult.csrfToken },
+          { 'Set-Cookie': buildSessionCookieHeader(authResult.sessionToken, false) }
+        );
+      }
+
+      if (pathname === '/api/admin/auth/logout' && req.method === 'POST') {
+        return sendJson(
+          res,
+          200,
+          { loggedOut: true },
+          { 'Set-Cookie': buildSessionCookieHeader('', true) }
+        );
+      }
+
+      if (pathname === '/api/admin/vault/status' && req.method === 'GET') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'settings.manage');
+        return sendJson(res, 200, { vault: listVaultStatus() });
+      }
+
+      if (pathname === '/api/admin/vault/seal' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'settings.manage');
+        const body = await readJsonBody(req);
+        const sealed = saveVaultCredential({
+          keyName: body.keyName,
+          secretValue: body.secretValue,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role
+        });
+        return sendJson(res, 200, sealed);
+      }
+
+      if (pathname === '/api/checkout/cod-otp/request' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const otpRes = requestCodOtp(body.phone);
+        return sendJson(res, 200, otpRes);
+      }
+
+      if (pathname === '/api/checkout/cod-otp/verify' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const verRes = verifyCodOtp(body.phone, body.otpCode);
+        return sendJson(res, 200, verRes);
+      }
+
+      if (pathname === '/api/checkout/pincode/check' && req.method === 'POST') {
+        const body = await readJsonBody(req);
+        const pinRes = validatePincodeServiceability(body.pincode, body.paymentMethod || 'ONLINE_UPI');
+        return sendJson(res, 200, pinRes);
+      }
+
       if (pathname === '/api/cart/calculate' && req.method === 'POST') {
         const body = await readJsonBody(req);
-        const pricing = calculateCartPricing(body.items || [], body.couponCode || '', body.paymentMethod || 'ONLINE_UPI');
+        const pricing = calculateCartPricing(
+          body.items || [],
+          body.couponCode || '',
+          body.paymentMethod || 'ONLINE_UPI',
+          body.shippingState || 'Karnataka',
+          body.shippingPincode || '560001'
+        );
         return sendJson(res, 200, { pricing });
       }
 
@@ -340,6 +441,21 @@ function createServerHandler() {
         return sendJson(res, 200, { variantId, newStockQty });
       }
 
+      if (pathname === '/api/admin/products/upload-image' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'products.write');
+        const body = await readJsonBody(req);
+        const uploadRes = uploadProductImage({
+          productId: body.productId,
+          imageBase64: body.imageBase64,
+          caption: body.caption,
+          setAsPrimary: Boolean(body.setAsPrimary),
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role
+        });
+        return sendJson(res, 201, uploadRes);
+      }
+
       if (pathname === '/api/admin/products/create' && req.method === 'POST') {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'products.write');
@@ -363,9 +479,9 @@ function createServerHandler() {
           INSERT INTO products (
             sku_base, slug, name, category_id, short_description, description,
             origin_region, harvest_batch, shelf_life_months, fssai_notes,
-            ingredients, allergen_info, gst_percent, image_url, image_caption,
+            ingredients, allergen_info, gst_percent, hsn_code, image_url, image_caption,
             is_featured, is_new_arrival, is_bestseller, is_active
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'SN-BATCH-2611', 12, 'Store in a cool, dry container.', ?, 'Packed in a facility handling tree nuts.', ?, '/images/cat-spices.jpg', ?, 0, 1, 0, 1)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'SN-BATCH-2611', 12, 'Store in a cool, dry container.', ?, 'Packed in a facility handling tree nuts.', ?, '091030', '/images/cat-spices.jpg', ?, 0, 1, 0, 1)
         `).run(
           skuBase,
           slug,
@@ -408,7 +524,7 @@ function createServerHandler() {
         return sendJson(res, 201, { product: { id: newProdId, name: body.name, slug } });
       }
 
-      // 5. Storefront & Admin SSR HTML Routes
+      // 5. Storefront, GST Tax Invoice & Admin SSR HTML Routes
       const categories = db.prepare('SELECT * FROM categories WHERE is_active = 1 ORDER BY display_order').all();
       const allProducts = db.prepare('SELECT * FROM products WHERE is_active = 1 ORDER BY id').all();
       const allVariants = db.prepare('SELECT * FROM product_variants WHERE is_active = 1 ORDER BY weight_grams').all();
@@ -416,6 +532,20 @@ function createServerHandler() {
       if (pathname === '/') {
         const html = renderHomePage({ categories, products: allProducts, variants: allVariants });
         return sendHtml(res, 200, html, '/');
+      }
+
+      if (pathname.startsWith('/orders/') && pathname.endsWith('/invoice')) {
+        const ordNum = decodeURIComponent(pathname.replace('/orders/', '').replace('/invoice', '')).trim().toUpperCase();
+        const order = db.prepare('SELECT * FROM orders WHERE order_number = ?').get(ordNum);
+        if (!order) {
+          res.writeHead(404);
+          return res.end('Order invoice not found');
+        }
+        const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+        const settingsRows = db.prepare('SELECT * FROM store_settings').all();
+        const settingsMap = Object.fromEntries(settingsRows.map(r => [r.key, r.value]));
+        const html = renderGstInvoicePage({ order, orderItems, settingsMap });
+        return sendHtml(res, 200, html, pathname);
       }
 
       if (pathname === '/shop' || pathname.startsWith('/category/')) {
@@ -514,6 +644,7 @@ function createServerHandler() {
         const auditLogs = db.prepare('SELECT * FROM audit_logs ORDER BY id DESC LIMIT 30').all();
         const settings = db.prepare('SELECT * FROM store_settings ORDER BY key').all();
         const movements = db.prepare('SELECT * FROM inventory_movements ORDER BY id DESC LIMIT 25').all();
+        const vaultStatus = listVaultStatus();
 
         const html = renderAdminPortalPage({
           categories,
@@ -524,7 +655,8 @@ function createServerHandler() {
           staffUsers,
           auditLogs,
           settings,
-          movements
+          movements,
+          vaultStatus
         });
         return sendHtml(res, 200, html, '/admin');
       }
@@ -553,7 +685,6 @@ function createServerHandler() {
 function startServer(port = PORT) {
   getDb();
   const server = http.createServer(createServerHandler());
-  // Guardrail Gate 2 Rule 1.4: Strict port binding (never silently hunt ports)
   server.on('error', (err) => {
     console.error(`[FATAL_PORT_BIND_ERROR] Failed to bind strictly to port ${port}:`, err.message);
     process.exit(1);

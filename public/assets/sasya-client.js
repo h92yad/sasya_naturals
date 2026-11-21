@@ -392,6 +392,39 @@
       applyCouponBtn.addEventListener('click', renderSummary);
     }
 
+    const codOtpBtn = document.getElementById('sn-request-cod-otp-btn');
+    const codOtpInput = document.getElementById('sn-cod-otp-input');
+    const codOtpHint = document.getElementById('sn-cod-otp-hint');
+    if (codOtpBtn) {
+      codOtpBtn.addEventListener('click', async () => {
+        const phoneEl = document.getElementById('chk-phone');
+        const phone = phoneEl ? phoneEl.value.trim() : '+91 98450 11223';
+        try {
+          if (IS_STATIC_SHOWCASE) {
+            const simOtp = '482910';
+            if (codOtpInput) codOtpInput.value = simOtp;
+            if (codOtpHint) codOtpHint.textContent = `Sandbox OTP Dispatched: ${simOtp} (Auto-filled)`;
+            showToast(`COD Verification OTP sent to ${phone}`);
+            return;
+          }
+          const res = await fetch('/api/checkout/cod-otp/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'OTP dispatch failed');
+          if (data.sandboxOtpPreview && codOtpInput) {
+            codOtpInput.value = data.sandboxOtpPreview;
+            if (codOtpHint) codOtpHint.textContent = `Sandbox OTP: ${data.sandboxOtpPreview} (Verified)`;
+          }
+          showToast(`6-digit COD OTP sent to ${data.phone}`);
+        } catch (err) {
+          showToast(err.message);
+        }
+      });
+    }
+
     checkoutForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const cart = getCart();
@@ -412,6 +445,7 @@
         shippingPincode: formData.get('shippingPincode'),
         deliveryInstructions: formData.get('deliveryInstructions'),
         paymentMethod: formData.get('paymentMethod'),
+        codOtpCode: formData.get('codOtpCode') || '',
         couponCode: couponInput ? couponInput.value.trim() : '',
         items: cart
       };
@@ -475,7 +509,10 @@
                 Payment Status: <strong>${paymentMethod === 'COD' ? 'COD_PENDING (Due on Delivery)' : 'PAID (Server HMAC Verified)'}</strong> |
                 Fulfilment Status: <strong>Confirmed</strong>
               </p>
-              <a href="${BASE_PATH}/track-order?order=${encodeURIComponent(orderNumber)}" class="sn-btn sn-btn-forest">Track Order ${orderNumber} -></a>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <a href="${BASE_PATH}/track-order?order=${encodeURIComponent(orderNumber)}" class="sn-btn sn-btn-forest">Track Order ${orderNumber} -></a>
+                ${!IS_STATIC_SHOWCASE ? `<a href="${BASE_PATH}/orders/${encodeURIComponent(orderNumber)}/invoice" class="sn-btn sn-btn-outline">View GST Tax Invoice -></a>` : ''}
+              </div>
             </div>
           `;
         }
@@ -517,6 +554,111 @@
         });
       });
     });
+
+    // Write-Only API & Razorpay Credential Vault handlers
+    document.querySelectorAll('[data-vault-rotate-btn]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const keyName = btn.getAttribute('data-vault-rotate-btn');
+        const form = document.querySelector(`[data-vault-form="${keyName}"]`);
+        if (form) {
+          form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+        }
+      });
+    });
+
+    document.querySelectorAll('.sn-admin-vault-form').forEach(form => {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(form);
+        const keyName = fd.get('keyName');
+        const secretValue = fd.get('secretValue');
+
+        if (IS_STATIC_SHOWCASE) {
+          const email = getActiveAdminEmail();
+          if (email !== 'superadmin@sasynaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can access the Credential Vault.');
+            return;
+          }
+          form.style.display = 'none';
+          const card = form.closest('[data-vault-item]');
+          if (card) {
+            const badge = card.querySelector('.sn-status');
+            if (badge) {
+              badge.className = 'sn-status sn-status-paid';
+              badge.textContent = `🔒 Sealed & Hidden: ${String(secretValue).slice(0, 3)}•••••••• (Hidden)`;
+            }
+          }
+          showToast(`Sealed & encrypted ${keyName} in AES-256-GCM Vault!`);
+          return;
+        }
+
+        const res = await fetch('/api/admin/vault/seal', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': getActiveAdminEmail()
+          },
+          body: JSON.stringify({ keyName, secretValue })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Vault permission denied');
+          return;
+        }
+        showToast(`Sealed & encrypted ${keyName} (${data.maskedHint})`);
+        setTimeout(() => window.location.reload(), 600);
+      });
+    });
+
+    // Magic-Byte Image Upload Handler
+    const imgUploadForm = document.getElementById('sn-admin-image-upload-form');
+    if (imgUploadForm) {
+      imgUploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(imgUploadForm);
+        const file = fd.get('imageFile');
+        const productId = Number(fd.get('productId'));
+        const caption = fd.get('caption');
+        if (!file || !file.size) {
+          showToast('Please select an image file.');
+          return;
+        }
+
+        if (IS_STATIC_SHOWCASE) {
+          const email = getActiveAdminEmail();
+          if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can upload product images.');
+            return;
+          }
+          showToast(`[Showcase Verified] Magic-byte validated & attached "${file.name}" to product #${productId}`);
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = async () => {
+          const res = await fetch('/api/admin/products/upload-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-admin-email': getActiveAdminEmail()
+            },
+            body: JSON.stringify({
+              productId,
+              imageBase64: reader.result,
+              caption,
+              setAsPrimary: false
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            showToast(data.error || 'Image upload failed');
+            return;
+          }
+          showToast(`Uploaded ${data.publicUrl} (${data.bytes} bytes verified)`);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
 
     document.querySelectorAll('.sn-admin-ship-form').forEach(form => {
       form.addEventListener('submit', async (e) => {

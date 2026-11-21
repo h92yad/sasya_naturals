@@ -162,6 +162,20 @@ function runExport() {
     isNoIndex: true
   }));
 
+  const { listVaultStatus } = require('../src/core/auth/credentialVault');
+  const { renderGstInvoicePage } = require('../src/views/renderViews');
+  const settingsMap = Object.fromEntries(settings.map(s => [s.key, s.value]));
+
+  for (const ord of orders) {
+    const ordItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(ord.id);
+    writeRouteHtml(`/orders/${ord.order_number}/invoice`, renderGstInvoicePage({
+      order: ord,
+      orderItems: ordItems,
+      settingsMap,
+      basePath: BASE_PATH
+    }));
+  }
+
   writeRouteHtml('/admin', renderAdminPortalPage({
     categories,
     products,
@@ -172,6 +186,7 @@ function runExport() {
     auditLogs,
     settings,
     movements,
+    vaultStatus: listVaultStatus(),
     basePath: BASE_PATH,
     staticShowcaseScript
   }));

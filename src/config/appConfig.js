@@ -2,8 +2,11 @@
 
 const path = require('node:path');
 
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 const WIKIDATA_MORATORIUM_UNTIL = '2027-11-20';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'sasya_naturals_session_hmac_secret_2026_v1';
+const SELLER_ORIGIN_STATE = 'Karnataka';
+const SELLER_ORIGIN_PIN_PREFIX = '56';
 
 const ENV = process.env.NODE_ENV || 'development';
 const IS_PROD = ENV === 'production';
@@ -75,6 +78,9 @@ const STAFF_ROLES = {
 module.exports = {
   APP_VERSION,
   WIKIDATA_MORATORIUM_UNTIL,
+  SESSION_SECRET,
+  SELLER_ORIGIN_STATE,
+  SELLER_ORIGIN_PIN_PREFIX,
   ENV,
   IS_PROD,
   PORT,

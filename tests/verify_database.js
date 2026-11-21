@@ -19,7 +19,10 @@ function runVerifyDatabase() {
     'order_items',
     'payments',
     'audit_logs',
-    'notification_logs'
+    'notification_logs',
+    'credential_vault',
+    'cod_otps',
+    'blocked_pincodes'
   ];
 
   for (const tbl of requiredTables) {

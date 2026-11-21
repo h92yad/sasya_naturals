@@ -239,7 +239,110 @@ function initSchema(db) {
       status TEXT NOT NULL DEFAULT 'SENT_SANDBOX',
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS credential_vault (
+      key_name TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      provider_group TEXT NOT NULL,
+      encrypted_ciphertext TEXT NOT NULL DEFAULT '',
+      iv_hex TEXT NOT NULL DEFAULT '',
+      auth_tag_hex TEXT NOT NULL DEFAULT '',
+      masked_hint TEXT NOT NULL DEFAULT 'NOT_CONFIGURED',
+      is_configured INTEGER NOT NULL DEFAULT 0,
+      updated_by TEXT NOT NULL DEFAULT 'system',
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS cod_otps (
+      phone TEXT PRIMARY KEY,
+      otp_hash TEXT NOT NULL,
+      verified INTEGER NOT NULL DEFAULT 0,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      expires_at INTEGER NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS blocked_pincodes (
+      pincode TEXT PRIMARY KEY,
+      reason TEXT NOT NULL,
+      block_cod_only INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
+
+  // Safe idempotent column migrations for existing databases
+  const safeAlter = [
+    "ALTER TABLE products ADD COLUMN hsn_code TEXT NOT NULL DEFAULT '080290'",
+    "ALTER TABLE products ADD COLUMN gallery_json TEXT NOT NULL DEFAULT '[]'",
+    "ALTER TABLE orders ADD COLUMN tax_supply_type TEXT NOT NULL DEFAULT 'CGST_SGST'",
+    "ALTER TABLE orders ADD COLUMN cgst_paise INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE orders ADD COLUMN sgst_paise INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE orders ADD COLUMN igst_paise INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE orders ADD COLUMN cod_otp_verified INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE order_items ADD COLUMN hsn_code TEXT NOT NULL DEFAULT '080290'"
+  ];
+  for (const sql of safeAlter) {
+    try {
+      db.exec(sql);
+    } catch {
+      // Column already exists
+    }
+  }
+
+  seedVaultAndHsnDefaults(db);
+}
+
+function seedVaultAndHsnDefaults(db) {
+  const vaultEntries = [
+    ['RAZORPAY_KEY_ID', 'Razorpay Live/Test Key ID', 'RAZORPAY'],
+    ['RAZORPAY_KEY_SECRET', 'Razorpay Key Secret (HMAC-SHA256)', 'RAZORPAY'],
+    ['RAZORPAY_WEBHOOK_SECRET', 'Razorpay Async Webhook Secret', 'RAZORPAY'],
+    ['SMTP_API_KEY', 'Transactional Email (SMTP / Resend / SES) API Key', 'NOTIFICATIONS'],
+    ['WHATSAPP_OTP_API_KEY', 'SMS / WhatsApp COD OTP Provider API Key', 'NOTIFICATIONS']
+  ];
+  const insertVault = db.prepare(`
+    INSERT OR IGNORE INTO credential_vault (key_name, label, provider_group, is_configured, masked_hint)
+    VALUES (?, ?, ?, 0, 'NOT_CONFIGURED')
+  `);
+  for (const [k, label, grp] of vaultEntries) {
+    insertVault.run(k, label, grp);
+  }
+
+  db.prepare(`
+    INSERT OR IGNORE INTO blocked_pincodes (pincode, reason, block_cod_only)
+    VALUES ('999999', 'Unserviceable Test PIN Code', 0),
+           ('800099', 'High RTO Zone - Prepaid Only (COD Disabled)', 1)
+  `).run();
+
+  // Assign authentic Indian GST HSN codes by category if default
+  db.prepare("UPDATE products SET hsn_code = '080132' WHERE slug LIKE '%cashew%'").run();
+  db.prepare("UPDATE products SET hsn_code = '080420' WHERE slug LIKE '%fig%'").run();
+  db.prepare("UPDATE products SET hsn_code = '100821' WHERE category_id = 2").run();
+  db.prepare("UPDATE products SET hsn_code = '100790' WHERE slug LIKE '%jowar%'").run();
+  db.prepare("UPDATE products SET hsn_code = '091030' WHERE slug LIKE '%turmeric%'").run();
+  db.prepare("UPDATE products SET hsn_code = '090411' WHERE slug LIKE '%pepper%'").run();
+  db.prepare("UPDATE products SET hsn_code = '090831' WHERE slug LIKE '%cardamom%'").run();
+  db.prepare("UPDATE products SET hsn_code = '090422' WHERE slug LIKE '%chilli%'").run();
+  db.prepare("UPDATE products SET hsn_code = '090611' WHERE slug LIKE '%cinnamon%'").run();
+
+  // Backfill CGST/SGST vs IGST on seeded orders
+  db.prepare(`
+    UPDATE orders
+    SET tax_supply_type = 'CGST_SGST',
+        cgst_paise = gst_paise / 2,
+        sgst_paise = gst_paise - (gst_paise / 2),
+        igst_paise = 0
+    WHERE shipping_state = 'Karnataka' AND cgst_paise = 0 AND igst_paise = 0
+  `).run();
+
+  db.prepare(`
+    UPDATE orders
+    SET tax_supply_type = 'IGST',
+        cgst_paise = 0,
+        sgst_paise = 0,
+        igst_paise = gst_paise
+    WHERE shipping_state != 'Karnataka' AND cgst_paise = 0 AND igst_paise = 0
+  `).run();
 }
 
 function seedDatabaseIfEmpty(db) {

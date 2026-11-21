@@ -53,7 +53,39 @@ function runVerifyRbacAndAudit() {
   const afterCount = db.prepare('SELECT COUNT(*) AS cnt FROM audit_logs').get().cnt;
   assert.strictEqual(afterCount, beforeCount + 1, 'Audit log entry was not persisted');
 
-  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified all 5 staff roles (Super Admin, Product, Order, Accounts, Staff) & immutable audit_logs');
+  // 7. Verify Write-Only AES-256-GCM Credential Vault (Once added, encrypted at rest and hidden in console status)
+  const { saveVaultCredential, listVaultStatus, getVaultSecret } = require('../src/core/auth/credentialVault');
+  const sealed = saveVaultCredential({
+    keyName: 'SMTP_API_KEY',
+    secretValue: 're_live_SasyaSecretKey987654321',
+    actorEmail: superAdmin.email,
+    actorRole: superAdmin.role
+  });
+  assert.strictEqual(sealed.isConfigured, true);
+  assert(sealed.maskedHint.includes('••••••••') && !sealed.maskedHint.includes('SasyaSecretKey'), 'Masked hint must hide the raw secret');
+
+  const publicVaultList = listVaultStatus();
+  const smtpEntry = publicVaultList.find(v => v.key_name === 'SMTP_API_KEY');
+  assert(smtpEntry && smtpEntry.is_configured === 1, 'Vault status must mark key as configured');
+  assert(!JSON.stringify(smtpEntry).includes('SasyaSecretKey'), 'Public vault status must NEVER leak plaintext or ciphertext');
+  assert.strictEqual(getVaultSecret('SMTP_API_KEY'), 're_live_SasyaSecretKey987654321', 'Internal server decryptor must recover exact secret');
+  db.prepare("UPDATE credential_vault SET encrypted_ciphertext = '', iv_hex = '', auth_tag_hex = '', masked_hint = 'NOT_CONFIGURED', is_configured = 0 WHERE key_name = 'SMTP_API_KEY'").run();
+
+  // 8. Verify Hardened Session Cookie Login & 5-Attempt Lockout Rate-Limiter
+  const { loginAdminWithPassword, verifySessionToken, clearFailedAttempts } = require('../src/core/auth/sessionManager');
+  clearFailedAttempts('10.0.0.99:superadmin@sasynaturals.com');
+  const loginRes = loginAdminWithPassword('superadmin@sasynaturals.com', 'Sasya@2026', '10.0.0.99');
+  assert(loginRes.sessionToken && loginRes.csrfToken, 'Valid password login must issue signed sessionToken and csrfToken');
+  const decodedSession = verifySessionToken(loginRes.sessionToken);
+  assert.strictEqual(decodedSession.role, 'SUPER_ADMIN');
+
+  for (let i = 0; i < 5; i++) {
+    assert.throws(() => loginAdminWithPassword('superadmin@sasynaturals.com', 'WrongPass', '10.0.0.88'), /Invalid staff email or password/);
+  }
+  assert.throws(() => loginAdminWithPassword('superadmin@sasynaturals.com', 'Sasya@2026', '10.0.0.88'), /Too many failed login attempts/);
+  clearFailedAttempts('10.0.0.88:superadmin@sasynaturals.com');
+
+  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth + Rate-Limiter & immutable audit_logs');
 }
 
 if (require.main === module) {

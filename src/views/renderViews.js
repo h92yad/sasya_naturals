@@ -759,6 +759,9 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
                   <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">ORDER TOTAL</div>
                   <strong style="font-family:var(--sn-font-mono);font-size:1.1rem;color:var(--sn-bg-forest);">${formatInr(order.total_paise)}</strong>
                 </div>
+                <div>
+                  <a href="${basePath}/orders/${escapeHtml(order.order_number)}/invoice" class="sn-btn sn-btn-outline sn-btn-sm" id="download-gst-invoice-btn">GST Tax Invoice -></a>
+                </div>
               </div>
             </div>
 
@@ -791,17 +794,18 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
               `}
             </div>
 
-            <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;color:var(--sn-bg-forest);">Ordered Pack Items</h3>
+            <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;color:var(--sn-bg-forest);">Ordered Pack Items &amp; HSN Tax Breakdown (${escapeHtml(order.tax_supply_type || 'CGST_SGST')})</h3>
             <div class="sn-table-wrap">
               <table class="sn-table">
                 <thead>
-                  <tr><th>Product</th><th>SKU</th><th>Pack Size</th><th>Qty</th><th>Unit Price</th><th>Line Total</th></tr>
+                  <tr><th>Product</th><th>SKU</th><th>HSN Code</th><th>Pack Size</th><th>Qty</th><th>Unit Price</th><th>Line Total</th></tr>
                 </thead>
                 <tbody>
                   ${orderItems.map(item => `
                     <tr>
                       <td><strong>${escapeHtml(item.product_name)}</strong></td>
                       <td style="font-family:var(--sn-font-mono);">${escapeHtml(item.sku)}</td>
+                      <td style="font-family:var(--sn-font-mono);">${escapeHtml(item.hsn_code || '080290')}</td>
                       <td style="font-family:var(--sn-font-mono);">${escapeHtml(item.pack_label)}</td>
                       <td style="font-family:var(--sn-font-mono);">${item.quantity}</td>
                       <td style="font-family:var(--sn-font-mono);">${formatInr(item.unit_price_paise)}</td>
@@ -832,6 +836,130 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
   });
 }
 
+function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, basePath = '' }) {
+  const title = `GST Tax Invoice ${order.order_number} | ${BRAND_NAME}`;
+  const isIntra = (order.tax_supply_type || 'CGST_SGST') === 'CGST_SGST';
+  const cgst = order.cgst_paise || Math.floor(order.gst_paise / 2);
+  const sgst = order.sgst_paise || (order.gst_paise - cgst);
+  const igst = order.igst_paise || order.gst_paise;
+
+  const schemaGraph = buildMasterSchemaGraph({
+    pageType: 'webpage',
+    canonicalPath: `/orders/${order.order_number}/invoice`,
+    title,
+    description: `GST Tax Invoice for Sasya Naturals Order ${order.order_number}`,
+    breadcrumbs: [{ name: 'Home', url: '/' }, { name: 'Track Order', url: '/track-order' }, { name: `Invoice ${order.order_number}`, url: `/orders/${order.order_number}/invoice` }]
+  });
+
+  const bodyHtml = `
+    <section class="sn-section">
+      <div class="sn-container" style="max-width:920px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <a href="${basePath}/track-order?order=${encodeURIComponent(order.order_number)}" class="sn-btn sn-btn-outline sn-btn-sm">&lt;- Back to Order Tracker</a>
+          <button type="button" onclick="window.print()" class="sn-btn sn-btn-forest sn-btn-sm" id="print-invoice-btn">Print / Save GST Invoice PDF</button>
+        </div>
+
+        <div class="sn-card" style="padding:32px;">
+          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;padding-bottom:20px;border-bottom:2px solid var(--sn-bg-forest);">
+            <div>
+              <span class="sn-eyebrow">Tax Invoice (Original for Recipient)</span>
+              <h1 style="font-family:var(--sn-font-serif);font-size:1.75rem;margin:0;color:var(--sn-bg-forest);">${escapeHtml(settingsMap.business_legal_name || BRAND_NAME)}</h1>
+              <div style="font-size:0.84rem;color:var(--sn-text-secondary);margin-top:4px;">
+                ${escapeHtml(settingsMap.registered_address || 'Bengaluru, Karnataka')}<br/>
+                <strong>GSTIN:</strong> <span style="font-family:var(--sn-font-mono);">${escapeHtml(settingsMap.gstin || 'CONFIGURABLE')}</span> |
+                <strong>FSSAI:</strong> <span style="font-family:var(--sn-font-mono);">${escapeHtml(settingsMap.fssai_license || 'CONFIGURABLE')}</span>
+              </div>
+            </div>
+            <div style="text-align:right;font-family:var(--sn-font-mono);font-size:0.82rem;">
+              <div><strong>Invoice No:</strong> INV-${escapeHtml(order.order_number)}</div>
+              <div><strong>Order No:</strong> ${escapeHtml(order.order_number)}</div>
+              <div><strong>Date:</strong> ${escapeHtml(order.created_at.slice(0, 10))}</div>
+              <div><strong>Place of Supply:</strong> ${escapeHtml(order.shipping_state)} (${escapeHtml(order.shipping_pincode)})</div>
+              <div><strong>Tax Regime:</strong> ${isIntra ? 'Intra-State (CGST + SGST)' : 'Inter-State (IGST)'}</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:18px 0;border-bottom:1px solid var(--sn-border-warm);font-size:0.86rem;">
+            <div>
+              <strong style="color:var(--sn-bg-forest);">Billed &amp; Shipped To:</strong><br/>
+              <strong>${escapeHtml(order.customer_name)}</strong><br/>
+              ${escapeHtml(order.shipping_line1)} ${escapeHtml(order.shipping_line2)}<br/>
+              ${escapeHtml(order.shipping_city)}, ${escapeHtml(order.shipping_state)} - ${escapeHtml(order.shipping_pincode)}<br/>
+              Phone: ${escapeHtml(order.customer_phone)} | Email: ${escapeHtml(order.customer_email)}
+            </div>
+            <div>
+              <strong style="color:var(--sn-bg-forest);">Payment &amp; Dispatch Summary:</strong><br/>
+              Payment Mode: <strong>${escapeHtml(order.payment_method)}</strong><br/>
+              Payment Status: <strong>${escapeHtml(order.payment_status)}</strong><br/>
+              Gateway Ref: <span style="font-family:var(--sn-font-mono);">${escapeHtml(order.gateway_payment_id || order.gateway_order_id)}</span><br/>
+              Courier / AWB: <span style="font-family:var(--sn-font-mono);">${escapeHtml(order.courier_name ? `${order.courier_name} (${order.tracking_number})` : 'Pending Manual Dispatch')}</span>
+            </div>
+          </div>
+
+          <div class="sn-table-wrap" style="margin:20px 0;">
+            <table class="sn-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Description of Goods</th>
+                  <th>HSN</th>
+                  <th>Pack</th>
+                  <th>Qty</th>
+                  <th>Rate (Incl. Tax)</th>
+                  <th>GST %</th>
+                  <th>Line Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${orderItems.map((it, idx) => `
+                  <tr>
+                    <td style="font-family:var(--sn-font-mono);">${idx + 1}</td>
+                    <td><strong>${escapeHtml(it.product_name)}</strong><br/><span style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-muted);">SKU: ${escapeHtml(it.sku)}</span></td>
+                    <td style="font-family:var(--sn-font-mono);">${escapeHtml(it.hsn_code || '080290')}</td>
+                    <td style="font-family:var(--sn-font-mono);">${escapeHtml(it.pack_label)}</td>
+                    <td style="font-family:var(--sn-font-mono);">${it.quantity}</td>
+                    <td style="font-family:var(--sn-font-mono);">${formatInr(it.unit_price_paise)}</td>
+                    <td style="font-family:var(--sn-font-mono);">${it.gst_percent}%</td>
+                    <td style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(it.line_total_paise)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;">
+            <div style="width:340px;font-size:0.88rem;display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;justify-content:space-between;"><span>Gross Subtotal:</span><strong style="font-family:var(--sn-font-mono);">${formatInr(order.subtotal_paise)}</strong></div>
+              ${order.discount_paise > 0 ? `<div style="display:flex;justify-content:space-between;color:var(--sn-status-paid);"><span>Coupon Discount (${escapeHtml(order.coupon_code)}):</span><strong style="font-family:var(--sn-font-mono);">-${formatInr(order.discount_paise)}</strong></div>` : ''}
+              ${isIntra ? `
+                <div style="display:flex;justify-content:space-between;color:var(--sn-text-secondary);"><span>Included CGST (Central Tax):</span><span style="font-family:var(--sn-font-mono);">${formatInr(cgst)}</span></div>
+                <div style="display:flex;justify-content:space-between;color:var(--sn-text-secondary);"><span>Included SGST (Karnataka State Tax):</span><span style="font-family:var(--sn-font-mono);">${formatInr(sgst)}</span></div>
+              ` : `
+                <div style="display:flex;justify-content:space-between;color:var(--sn-text-secondary);"><span>Included IGST (Integrated Tax):</span><span style="font-family:var(--sn-font-mono);">${formatInr(igst)}</span></div>
+              `}
+              <div style="display:flex;justify-content:space-between;"><span>Shipping Charges:</span><strong style="font-family:var(--sn-font-mono);">${order.shipping_paise === 0 ? 'FREE' : formatInr(order.shipping_paise)}</strong></div>
+              <div style="display:flex;justify-content:space-between;font-size:1.15rem;padding-top:10px;border-top:2px solid var(--sn-bg-forest);color:var(--sn-bg-forest);">
+                <strong>Grand Total (INR):</strong><strong style="font-family:var(--sn-font-mono);">${formatInr(order.total_paise)}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+
+  return renderShell({
+    title,
+    description: `GST Tax Invoice for Order ${order.order_number}`,
+    canonicalPath: `/orders/${order.order_number}/invoice`,
+    activeNav: 'track',
+    schemaGraph,
+    bodyHtml,
+    isNoIndex: true,
+    basePath
+  });
+}
+
 function renderAdminPortalPage({
   categories,
   products,
@@ -842,6 +970,7 @@ function renderAdminPortalPage({
   auditLogs,
   settings,
   movements,
+  vaultStatus = [],
   basePath = '',
   staticShowcaseScript = ''
 }) {
@@ -862,13 +991,14 @@ function renderAdminPortalPage({
     .filter(o => o.payment_status === 'COD_PENDING')
     .reduce((acc, o) => acc + o.total_paise, 0);
   const lowStockVariants = variants.filter(v => v.stock_qty <= v.low_stock_threshold);
+  const configuredVaultCount = vaultStatus.filter(v => v.is_configured).length;
 
   const bodyHtml = `
     <section class="sn-section" id="sn-admin-portal">
       <div class="sn-container">
         <div class="sn-filter-bar" style="background-color:var(--sn-bg-forest);color:#FAF6EE;border-color:var(--sn-bg-forest);">
           <div>
-            <span class="sn-eyebrow" style="color:#E7B971;margin-bottom:2px;">Separate Authenticated Staff Portal • Server-Side RBAC</span>
+            <span class="sn-eyebrow" style="color:#E7B971;margin-bottom:2px;">Separate Authenticated Staff Portal • Server-Side RBAC &amp; Write-Only API Vault</span>
             <h1 style="font-family:var(--sn-font-serif);font-size:1.55rem;margin:0;color:#FFFFFF;">Sasya Naturals Operations &amp; Role Management</h1>
           </div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -895,8 +1025,8 @@ function renderAdminPortalPage({
             <div class="sn-kpi-val">${formatInr(codPendingPaise)}</div>
           </div>
           <div class="sn-kpi-card">
-            <div class="sn-kpi-label">Active SKUs &amp; Variants</div>
-            <div class="sn-kpi-val">${products.length} / ${variants.length}</div>
+            <div class="sn-kpi-label">API Keys Sealed in Vault</div>
+            <div class="sn-kpi-val">${configuredVaultCount} / ${vaultStatus.length}</div>
           </div>
           <div class="sn-kpi-card">
             <div class="sn-kpi-label">Low-Stock Alerts</div>
@@ -909,11 +1039,12 @@ function renderAdminPortalPage({
             <div style="font-family:var(--sn-font-mono);font-size:0.73rem;text-transform:uppercase;color:#B8C4BB;">Admin Modules (Section 5.1)</div>
             <ul class="sn-admin-menu">
               <li><button type="button" class="sn-active" data-admin-tab-btn="orders" id="tab-btn-orders">1. Orders &amp; Manual Shipping</button></li>
-              <li><button type="button" data-admin-tab-btn="products" id="tab-btn-products">2. Products &amp; Pack Variants</button></li>
-              <li><button type="button" data-admin-tab-btn="inventory" id="tab-btn-inventory">3. Inventory &amp; Stock Ledger</button></li>
-              <li><button type="button" data-admin-tab-btn="payments" id="tab-btn-payments">4. Payments, COD &amp; Reports</button></li>
-              <li><button type="button" data-admin-tab-btn="rbac" id="tab-btn-rbac">5. Staff RBAC &amp; Audit Logs</button></li>
-              <li><button type="button" data-admin-tab-btn="compliance" id="tab-btn-compliance">6. GST &amp; FSSAI Compliance</button></li>
+              <li><button type="button" data-admin-tab-btn="vault" id="tab-btn-vault">2. API &amp; Razorpay Key Vault</button></li>
+              <li><button type="button" data-admin-tab-btn="products" id="tab-btn-products">3. Products &amp; Image Upload</button></li>
+              <li><button type="button" data-admin-tab-btn="inventory" id="tab-btn-inventory">4. Inventory &amp; Stock Ledger</button></li>
+              <li><button type="button" data-admin-tab-btn="payments" id="tab-btn-payments">5. Payments, COD &amp; Reports</button></li>
+              <li><button type="button" data-admin-tab-btn="rbac" id="tab-btn-rbac">6. Staff RBAC &amp; Audit Logs</button></li>
+              <li><button type="button" data-admin-tab-btn="compliance" id="tab-btn-compliance">7. GST &amp; FSSAI Compliance</button></li>
             </ul>
           </aside>
 
@@ -922,7 +1053,7 @@ function renderAdminPortalPage({
             <div class="sn-card" data-admin-panel="orders">
               <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Orders &amp; Manual Courier Dispatch Workflow</h2>
               <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 20px;">
-                Authorized for <strong>SUPER_ADMIN</strong>, <strong>ORDER_MANAGER</strong>, and permitted <strong>STAFF</strong>. Payment status and fulfilment status are tracked independently.
+                Authorized for <strong>SUPER_ADMIN</strong>, <strong>ORDER_MANAGER</strong>, and permitted <strong>STAFF</strong>. Includes direct GST Tax Invoice links.
               </p>
               ${orders.map(o => `
                 <div class="sn-card" style="margin-bottom:16px;background-color:var(--sn-bg-parchment);">
@@ -931,10 +1062,11 @@ function renderAdminPortalPage({
                       <strong style="font-family:var(--sn-font-mono);font-size:1rem;color:var(--sn-bg-forest);">${escapeHtml(o.order_number)}</strong>
                       <span style="font-size:0.85rem;color:var(--sn-text-secondary);"> • ${escapeHtml(o.customer_name)} (${escapeHtml(o.customer_phone)}) • ${escapeHtml(o.shipping_city)} (${escapeHtml(o.shipping_pincode)})</span>
                     </div>
-                    <div style="display:flex;gap:8px;align-items:center;">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                       <span class="sn-status ${o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">Payment: ${escapeHtml(o.payment_status)}</span>
                       <span class="sn-status sn-status-paid">Fulfilment: ${escapeHtml(o.fulfilment_status)}</span>
                       <strong style="font-family:var(--sn-font-mono);">${formatInr(o.total_paise)}</strong>
+                      <a href="${basePath}/orders/${escapeHtml(o.order_number)}/invoice" class="sn-btn sn-btn-outline sn-btn-sm">GST Invoice</a>
                     </div>
                   </div>
                   <form class="sn-admin-ship-form" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px;align-items:end;">
@@ -969,12 +1101,69 @@ function renderAdminPortalPage({
               `).join('')}
             </div>
 
-            <!-- Panel 2: Products & Pack Variants -->
+            <!-- Panel 2: Write-Only API & Razorpay Credential Vault -->
+            <div class="sn-card" data-admin-panel="vault" style="display:none;">
+              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Write-Only AES-256-GCM API &amp; Payment Credential Vault</h2>
+              <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 20px;">
+                Strictly restricted to <strong>SUPER_ADMIN</strong>. Paste your Razorpay, SMTP, or WhatsApp OTP API keys once. Once added, the key is encrypted with AES-256-GCM and <strong>permanently hidden from the console</strong>.
+              </p>
+              <div style="display:flex;flex-direction:column;gap:14px;">
+                ${vaultStatus.map(v => `
+                  <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:16px 20px;" data-vault-item="${escapeHtml(v.key_name)}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+                      <div>
+                        <span class="sn-eyebrow" style="margin:0;">${escapeHtml(v.provider_group)}</span>
+                        <h3 style="font-family:var(--sn-font-mono);font-size:0.95rem;margin:2px 0;color:var(--sn-bg-forest);">${escapeHtml(v.key_name)}</h3>
+                        <div style="font-size:0.82rem;color:var(--sn-text-secondary);">${escapeHtml(v.label)}</div>
+                      </div>
+                      <div>
+                        ${v.is_configured ? `
+                          <span class="sn-status sn-status-paid">🔒 Sealed &amp; Hidden: ${escapeHtml(v.masked_hint)}</span>
+                          <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-vault-rotate-btn="${escapeHtml(v.key_name)}" style="margin-left:8px;">Rotate Key</button>
+                        ` : `
+                          <span class="sn-status sn-status-warn">Sandbox Fallback Active (Not Configured)</span>
+                        `}
+                      </div>
+                    </div>
+
+                    <form class="sn-admin-vault-form" data-vault-form="${escapeHtml(v.key_name)}" style="display:${v.is_configured ? 'none' : 'flex'};gap:10px;margin-top:12px;align-items:center;">
+                      <input type="hidden" name="keyName" value="${escapeHtml(v.key_name)}" />
+                      <input type="password" name="secretValue" required minlength="6" placeholder="Paste live ${escapeHtml(v.key_name)} here (will be encrypted &amp; hidden immediately)" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                      <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm" style="white-space:nowrap;">Seal &amp; Hide Key</button>
+                    </form>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <!-- Panel 3: Products, Pack Variants & Magic-Byte Image Upload -->
             <div class="sn-card" data-admin-panel="products" style="display:none;">
-              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Product Catalogue &amp; Pack-Size Variant Builder</h2>
+              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Product Catalogue, Pack Variants &amp; Magic-Byte Image Uploader</h2>
               <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 18px;">
                 Authorized for <strong>SUPER_ADMIN</strong> and <strong>PRODUCT_MANAGER</strong>. Accounts Managers and Order Managers are blocked by server RBAC.
               </p>
+
+              <form id="sn-admin-image-upload-form" class="sn-card" style="background-color:var(--sn-bg-mortar);margin-bottom:20px;">
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.05rem;">Upload Verified Product / FSSAI Label Photo (JPEG/PNG/WebP &le; 5 MB)</h3>
+                <div style="display:grid;grid-template-columns:1.2fr 1.2fr 1fr auto;gap:10px;align-items:end;">
+                  <div>
+                    <label style="font-size:0.75rem;font-weight:600;">Select Product *</label>
+                    <select name="productId" class="sn-select">
+                      ${products.map(p => `<option value="${p.id}">${escapeHtml(p.sku_base)} - ${escapeHtml(p.name)}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div>
+                    <label style="font-size:0.75rem;font-weight:600;">Image File (Magic-Byte Checked) *</label>
+                    <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:6px;" />
+                  </div>
+                  <div>
+                    <label style="font-size:0.75rem;font-weight:600;">Image Caption</label>
+                    <input type="text" name="caption" value="Back of Pouch - FSSAI &amp; Nutrition Table" class="sn-input" />
+                  </div>
+                  <button type="submit" class="sn-btn sn-btn-forest">Upload Photo</button>
+                </div>
+              </form>
+
               <form id="sn-admin-create-product-form" class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:24px;">
                 <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;">Add New Product (Auto-Generates 100 g, 250 g, 500 g &amp; 1 kg Variants)</h3>
                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;">
@@ -1020,7 +1209,7 @@ function renderAdminPortalPage({
               <div class="sn-table-wrap">
                 <table class="sn-table">
                   <thead>
-                    <tr><th>SKU Base</th><th>Product Name</th><th>Origin &amp; Batch</th><th>GST</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th></tr>
+                    <tr><th>SKU Base</th><th>HSN</th><th>Product Name</th><th>Origin &amp; Batch</th><th>GST</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th></tr>
                   </thead>
                   <tbody>
                     ${products.map(p => {
@@ -1028,6 +1217,7 @@ function renderAdminPortalPage({
                       return `
                         <tr>
                           <td style="font-family:var(--sn-font-mono);">${escapeHtml(p.sku_base)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${escapeHtml(p.hsn_code || '080290')}</td>
                           <td><strong><a href="${basePath}/product/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a></strong></td>
                           <td>${escapeHtml(p.origin_region)} (${escapeHtml(p.harvest_batch)})</td>
                           <td style="font-family:var(--sn-font-mono);">${p.gst_percent}%</td>
@@ -1042,7 +1232,7 @@ function renderAdminPortalPage({
               </div>
             </div>
 
-            <!-- Panel 3: Inventory & Stock Movements -->
+            <!-- Panel 4: Inventory & Stock Movements -->
             <div class="sn-card" data-admin-panel="inventory" style="display:none;">
               <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Inventory Control &amp; Atomic Stock Movement Ledger</h2>
               <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 18px;">
@@ -1095,7 +1285,7 @@ function renderAdminPortalPage({
               </div>
             </div>
 
-            <!-- Panel 4: Payments, COD & Reports -->
+            <!-- Panel 5: Payments, COD & Reports -->
             <div class="sn-card" data-admin-panel="payments" style="display:none;">
               <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Payment Gateway Reconciliation, COD Collections &amp; Settlement</h2>
               <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 18px;">
@@ -1123,7 +1313,7 @@ function renderAdminPortalPage({
               </div>
             </div>
 
-            <!-- Panel 5: Staff RBAC & Audit Logs -->
+            <!-- Panel 6: Staff RBAC & Audit Logs -->
             <div class="sn-card" data-admin-panel="rbac" style="display:none;">
               <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">5-Role Staff RBAC Directory &amp; Immutable Audit Logs</h2>
               <div class="sn-table-wrap" style="margin-bottom:24px;">
@@ -1167,7 +1357,7 @@ function renderAdminPortalPage({
               </div>
             </div>
 
-            <!-- Panel 6: GST & FSSAI Business Compliance Settings -->
+            <!-- Panel 7: GST & FSSAI Business Compliance Settings -->
             <div class="sn-card" data-admin-panel="compliance" style="display:none;">
               <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Configurable Business, Tax (GST) &amp; FSSAI Settings (Section 11)</h2>
               <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 18px;">
@@ -1264,6 +1454,7 @@ module.exports = {
   renderProductDetailPage,
   renderCheckoutPage,
   renderTrackOrderPage,
+  renderGstInvoicePage,
   renderAdminPortalPage,
   renderStaticInfoPage,
   renderMarkdownTwin

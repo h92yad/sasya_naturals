@@ -3,6 +3,7 @@ node_modules/
 data/*.db
 data/*.db-shm
 data/*.db-wal
+public/uploads/
 rust/sasya_commerce_core/target/
 .env
 .env.local
