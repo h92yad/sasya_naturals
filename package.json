@@ -1,0 +1,19 @@
+{
+  "name": "sasya-naturals-ecommerce",
+  "version": "1.0.0",
+  "description": "Sasya Naturals (sasynaturals.com) — Isomorphic Node.js SSR + Rust WASM E-Commerce Platform & 5-Role Admin Portal",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --no-warnings server.js",
+    "dev": "node --no-warnings server.js",
+    "build:wasm": "cargo build --manifest-path rust/sasya_commerce_core/Cargo.toml --target wasm32-unknown-unknown --release && cp rust/sasya_commerce_core/target/wasm32-unknown-unknown/release/sasya_commerce_core.wasm src/core/checkout/wasm_core.wasm && cp rust/sasya_commerce_core/target/wasm32-unknown-unknown/release/sasya_commerce_core.wasm public/assets/wasm_core.wasm",
+    "export:gh-pages": "node --no-warnings scripts/export_gh_pages.js",
+    "test": "node --no-warnings tests/run_all_gates.js",
+    "bookmark": "node --no-warnings scripts/create_bookmark.js",
+    "deploy:vps": "node --no-warnings scripts/deploy_live_hardened.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "private": true
+}

@@ -1,0 +1,15 @@
+[package]
+name = "sasya_commerce_core"
+version = "1.0.0"
+edition = "2021"
+description = "Zero-dependency Rust WebAssembly deterministic integer-paise checkout, GST, and coupon math engine for Sasya Naturals (sasynaturals.com)"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

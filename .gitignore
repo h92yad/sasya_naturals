@@ -1,0 +1,10 @@
+node_modules/
+.bookmarks/
+data/*.db
+data/*.db-shm
+data/*.db-wal
+rust/sasya_commerce_core/target/
+.env
+.env.local
+.env.production
+*.log
