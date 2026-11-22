@@ -885,14 +885,58 @@
       });
     }
 
+    const authToggleBtn = document.getElementById('sn-admin-auth-toggle-btn');
+    const adminLoginForm = document.getElementById('sn-admin-login-form');
+    if (authToggleBtn && adminLoginForm) {
+      authToggleBtn.addEventListener('click', () => {
+        const isOpen = adminLoginForm.classList.toggle('sn-open');
+        authToggleBtn.textContent = isOpen ? '✕ Hide Login' : '🔑 Staff Login / Sign Out';
+      });
+    }
+
+    document.querySelectorAll('[data-toggle-admin-form]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-toggle-admin-form');
+        const targetEl = document.getElementById(targetId);
+        if (targetEl) {
+          const isOpen = targetEl.classList.toggle('sn-open');
+          btn.textContent = isOpen ? '− Hide Form' : '+ Expand Form';
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-admin-jump-form]').forEach(link => {
+      link.addEventListener('click', () => {
+        const formId = link.getAttribute('data-admin-jump-form');
+        const formEl = document.getElementById(formId);
+        if (formEl) {
+          formEl.classList.add('sn-open');
+          const innerBody = formEl.querySelector('.sn-admin-collapsible-form');
+          if (innerBody) innerBody.classList.add('sn-open');
+        }
+      });
+    });
+
     document.querySelectorAll('[data-admin-tab-btn]').forEach(btn => {
       btn.addEventListener('click', () => {
         const target = btn.getAttribute('data-admin-tab-btn');
         document.querySelectorAll('[data-admin-tab-btn]').forEach(b => b.classList.remove('sn-active'));
         btn.classList.add('sn-active');
+        if (typeof btn.scrollIntoView === 'function') {
+          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+        let activePanelEl = null;
         document.querySelectorAll('[data-admin-panel]').forEach(panel => {
-          panel.style.display = panel.getAttribute('data-admin-panel') === target ? 'block' : 'none';
+          const isMatch = panel.getAttribute('data-admin-panel') === target;
+          panel.style.display = isMatch ? 'block' : 'none';
+          if (isMatch) activePanelEl = panel;
         });
+        if (activePanelEl && window.innerWidth <= 960) {
+          const panelTop = activePanelEl.getBoundingClientRect().top + window.scrollY;
+          if (window.scrollY > panelTop - 90) {
+            window.scrollTo({ top: Math.max(0, panelTop - 115), behavior: 'smooth' });
+          }
+        }
       });
     });
 

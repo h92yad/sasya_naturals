@@ -1741,21 +1741,30 @@ function renderAdminPortalPage({
     <section class="sn-section" id="sn-admin-portal">
       <div class="sn-container">
         <!-- Separate Staff Authentication & RBAC Session Bar (Section 5 & Section 10) -->
-        <div class="sn-filter-bar" style="background-color:var(--sn-bg-forest);color:#FAF6EE;border-color:var(--sn-bg-forest);margin-bottom:14px;">
-          <div>
-            <span class="sn-eyebrow" style="color:#E7B971;margin-bottom:2px;">Separate Authenticated Staff Portal • Server-Side RBAC &amp; Write-Only API Vault</span>
-            <h1 style="font-family:var(--sn-font-serif);font-size:1.55rem;margin:0;color:#FFFFFF;">Sasya Naturals Operations &amp; Role Management</h1>
+        <div class="sn-filter-bar sn-admin-session-bar" style="background-color:var(--sn-bg-forest);color:#FAF6EE;border-color:var(--sn-bg-forest);margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:10px;flex-wrap:wrap;">
+            <div>
+              <span class="sn-eyebrow" style="color:#E7B971;margin-bottom:2px;">Separate Authenticated Staff Portal • Server-Side RBAC &amp; Write-Only API Vault</span>
+              <h1 style="font-family:var(--sn-font-serif);font-size:1.45rem;margin:0;color:#FFFFFF;">Sasya Naturals Operations &amp; Role Management</h1>
+            </div>
+            <button
+              type="button"
+              class="sn-btn sn-btn-outline sn-btn-sm sn-admin-auth-toggle"
+              id="sn-admin-auth-toggle-btn"
+              data-toggle-admin-login
+              style="background-color:rgba(255,255,255,0.14);color:#FFFFFF;border-color:rgba(255,255,255,0.45);"
+            >🔑 Staff Login / Sign Out</button>
           </div>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <form id="sn-admin-login-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-              <input type="email" name="email" id="sn-admin-auth-email" value="${escapeHtml(authenticatedAdmin ? authenticatedAdmin.email : 'superadmin@sasynaturals.com')}" placeholder="Staff Email" class="sn-input" style="width:210px;padding:6px 10px;font-size:0.78rem;" />
-              <input type="password" name="password" value="Sasya@2026" placeholder="Password" class="sn-input" style="width:115px;padding:6px 10px;font-size:0.78rem;" />
+          <div class="sn-admin-session-controls" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;">
+            <form id="sn-admin-login-form" class="sn-admin-login-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <input type="email" name="email" id="sn-admin-auth-email" value="${escapeHtml(authenticatedAdmin ? authenticatedAdmin.email : 'superadmin@sasynaturals.com')}" placeholder="Staff Email" class="sn-input sn-admin-email-input" style="padding:6px 10px;font-size:0.78rem;" />
+              <input type="password" name="password" value="Sasya@2026" placeholder="Password" class="sn-input sn-admin-pass-input" style="padding:6px 10px;font-size:0.78rem;" />
               <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Staff Sign In</button>
               <button type="button" id="sn-admin-logout-btn" class="sn-btn sn-btn-outline sn-btn-sm" style="background-color:rgba(255,255,255,0.14);color:#FFFFFF;border-color:rgba(255,255,255,0.45);">Sign Out</button>
             </form>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <label for="sn-admin-role-switcher" style="font-family:var(--sn-font-mono);font-size:0.74rem;">Role Switcher:</label>
-              <select id="sn-admin-role-switcher" class="sn-select" style="min-width:315px;max-width:100%;font-weight:600;padding:6px 10px;font-size:0.78rem;">
+            <div class="sn-admin-role-wrap" style="display:flex;align-items:center;gap:6px;flex:1;min-width:240px;">
+              <label for="sn-admin-role-switcher" style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">Active Role:</label>
+              <select id="sn-admin-role-switcher" class="sn-select sn-admin-role-select" style="font-weight:600;padding:6px 10px;font-size:0.78rem;flex:1;">
                 ${staffUsers.map(u => `
                   <option value="${escapeHtml(u.email)}">${escapeHtml(u.role)} - ${escapeHtml(u.full_name)}${u.is_active ? '' : ' (Inactive)'}</option>
                 `).join('')}
@@ -1765,14 +1774,14 @@ function renderAdminPortalPage({
         </div>
 
         <!-- Section 8 Operational Admin Alerts Strip (New Orders, Low Stock, Payment/COD Exceptions) -->
-        <div class="sn-card" style="background-color:var(--sn-bg-mortar);padding:12px 18px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
-          <div style="font-family:var(--sn-font-mono);font-size:0.78rem;display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
-            <strong>🔔 Operational Alerts (Section 8):</strong>
-            <span class="sn-status sn-status-paid">New / Awaiting Dispatch Orders: ${pendingFulfilmentOrders.length}</span>
-            <span class="sn-status ${lowStockVariants.length > 0 ? 'sn-status-danger' : 'sn-status-paid'}">Low-Stock Pack Variants: ${lowStockVariants.length}</span>
-            <span class="sn-status ${codPendingPaise > 0 ? 'sn-status-warn' : 'sn-status-paid'}">Uncollected COD / Exceptions: ${formatInr(codPendingPaise)}</span>
+        <div class="sn-card sn-admin-alerts-bar" style="background-color:var(--sn-bg-mortar);padding:10px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div style="font-family:var(--sn-font-mono);font-size:0.76rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <strong>🔔 Alerts:</strong>
+            <span class="sn-status sn-status-paid">Awaiting Dispatch: ${pendingFulfilmentOrders.length}</span>
+            <span class="sn-status ${lowStockVariants.length > 0 ? 'sn-status-danger' : 'sn-status-paid'}">Low-Stock: ${lowStockVariants.length}</span>
+            <span class="sn-status ${codPendingPaise > 0 ? 'sn-status-warn' : 'sn-status-paid'}">COD Pending: ${formatInr(codPendingPaise)}</span>
           </div>
-          <span style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-muted);">Catalogue: ${categories.length} Categories • ${products.length} Products • ${variants.length} Pack Variants</span>
+          <span class="sn-admin-catalogue-meta" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">Catalogue: ${categories.length} Categories • ${products.length} Products • ${variants.length} Variants</span>
         </div>
 
         <div class="sn-kpi-grid">
@@ -1800,7 +1809,7 @@ function renderAdminPortalPage({
 
         <div class="sn-admin-grid">
           <aside class="sn-admin-sidebar">
-            <div style="font-family:var(--sn-font-mono);font-size:0.73rem;text-transform:uppercase;color:#B8C4BB;">Admin Modules (Section 5.1)</div>
+            <div class="sn-admin-sidebar-label" style="font-family:var(--sn-font-mono);font-size:0.73rem;text-transform:uppercase;color:#B8C4BB;">Admin Modules (Section 5.1)</div>
             <ul class="sn-admin-menu">
               <li><button type="button" class="sn-active" data-admin-tab-btn="orders" id="tab-btn-orders">1. Orders &amp; Manual Shipping</button></li>
               <li><button type="button" data-admin-tab-btn="vault" id="tab-btn-vault">2. API &amp; Razorpay Key Vault</button></li>
@@ -1828,20 +1837,24 @@ function renderAdminPortalPage({
 
                 return `
                 <div class="sn-card" style="margin-bottom:18px;background-color:var(--sn-bg-parchment);" data-order-card="${escapeHtml(o.order_number)}">
-                  <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--sn-border-warm);">
-                    <div>
-                      <strong style="font-family:var(--sn-font-mono);font-size:1.05rem;color:var(--sn-bg-forest);">${escapeHtml(o.order_number)}</strong>
-                      <span style="font-family:var(--sn-font-mono);font-size:0.76rem;color:var(--sn-text-muted);margin-left:8px;">Placed: ${escapeHtml((o.created_at || '').slice(0, 16))} • Mode: ${escapeHtml(o.payment_method)}</span>
+                  <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--sn-border-warm);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;flex-wrap:wrap;gap:8px;">
+                      <div>
+                        <strong style="font-family:var(--sn-font-mono);font-size:1.05rem;color:var(--sn-bg-forest);">${escapeHtml(o.order_number)}</strong>
+                        <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);margin-left:6px;">${escapeHtml((o.created_at || '').slice(0, 10))} • ${escapeHtml(o.payment_method)}</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                        <span class="sn-status ${o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(o.payment_status)}</span>
+                        <span class="sn-status sn-status-paid">${escapeHtml(o.fulfilment_status)}</span>
+                        <strong style="font-family:var(--sn-font-mono);font-size:1.02rem;color:var(--sn-bg-forest);">${formatInr(o.total_paise)}</strong>
+                      </div>
                     </div>
-                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                      <span class="sn-status ${o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">Payment: ${escapeHtml(o.payment_status)}</span>
-                      <span class="sn-status sn-status-paid">Fulfilment: ${escapeHtml(o.fulfilment_status)}</span>
-                      <strong style="font-family:var(--sn-font-mono);font-size:1rem;">${formatInr(o.total_paise)}</strong>
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;">
                       <button
                         type="button"
                         class="sn-btn sn-btn-outline sn-btn-sm"
                         data-copy-shipping-label="${escapeHtml(fullAddressSingleLine)}"
-                      >📋 Copy Courier Label</button>
+                      >📋 Copy Label</button>
                       <button
                         type="button"
                         class="sn-btn sn-btn-outline sn-btn-sm"
@@ -2019,18 +2032,21 @@ function renderAdminPortalPage({
                   </p>
                 </div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                  <a href="#sn-admin-create-category-form" class="sn-btn sn-btn-outline sn-btn-sm">+ Category</a>
-                  <a href="#sn-admin-image-upload-form" class="sn-btn sn-btn-outline sn-btn-sm">📸 Upload Media</a>
-                  <a href="#sn-admin-create-product-form" class="sn-btn sn-btn-outline sn-btn-sm">+ New Product</a>
-                  <a href="#sn-admin-edit-product-form" class="sn-btn sn-btn-outline sn-btn-sm">✏️ Edit &amp; Price</a>
+                  <a href="#sn-admin-create-category-form" data-admin-jump-form="sn-admin-create-category-form" class="sn-btn sn-btn-outline sn-btn-sm">+ Category</a>
+                  <a href="#sn-admin-image-upload-form" data-admin-jump-form="sn-admin-image-upload-form" class="sn-btn sn-btn-outline sn-btn-sm">📸 Upload Media</a>
+                  <a href="#sn-admin-create-product-form" data-admin-jump-form="sn-admin-create-product-form" class="sn-btn sn-btn-outline sn-btn-sm">+ New Product</a>
+                  <a href="#sn-admin-edit-product-form" data-admin-jump-form="sn-admin-edit-product-form" class="sn-btn sn-btn-outline sn-btn-sm">✏️ Edit &amp; Price</a>
                   <a href="#sn-admin-products-catalogue-table" class="sn-btn sn-btn-forest sn-btn-sm">📋 Jump to ${products.length}-Product Table &darr;</a>
                 </div>
               </div>
 
               <!-- 3A. Create New Category + Category Image & Status Manager -->
-              <div class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:24px;">
-                <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;color:var(--sn-bg-forest);">1. Add New Product Category (with Category Banner Photo)</h3>
-                <form id="sn-admin-create-category-form" style="margin-bottom:18px;">
+              <div class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:20px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.08rem;color:var(--sn-bg-forest);">1. Product Categories &amp; Category Banner Photos</h3>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-mobile-form-toggle" data-toggle-admin-form="sn-admin-create-category-form">+ New Category Form</button>
+                </div>
+                <form id="sn-admin-create-category-form" class="sn-admin-collapsible-form" style="margin-bottom:18px;">
                   <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
                     <div>
                       <label style="font-size:0.75rem;font-weight:600;">Category Name *</label>
@@ -2056,22 +2072,24 @@ function renderAdminPortalPage({
 
                 <h4 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1rem;color:var(--sn-bg-forest);">Existing Categories, Publish Status &amp; Category Image Updater</h4>
                 <div class="sn-table-wrap">
-                  <table class="sn-table" id="sn-admin-categories-table">
+                  <table class="sn-table sn-table-cards" id="sn-admin-categories-table">
                     <thead>
                       <tr><th>Photo</th><th>Category Name &amp; Slug</th><th>Subtitle</th><th>Status</th><th>Change Category Image</th></tr>
                     </thead>
                     <tbody>
                       ${categories.map(c => `
                         <tr>
-                          <td>
+                          <td data-label="Photo">
                             <img src="${basePath}${escapeHtml(c.image_url)}" alt="${escapeHtml(c.name)}" data-category-img-id="${c.id}" style="width:68px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
                           </td>
-                          <td>
-                            <strong><a href="${basePath}/category/${escapeHtml(c.slug)}">${escapeHtml(c.name)}</a></strong><br/>
-                            <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">/category/${escapeHtml(c.slug)}</span>
+                          <td data-label="Category &amp; Slug">
+                            <div>
+                              <strong><a href="${basePath}/category/${escapeHtml(c.slug)}">${escapeHtml(c.name)}</a></strong><br/>
+                              <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">/category/${escapeHtml(c.slug)}</span>
+                            </div>
                           </td>
-                          <td style="font-size:0.82rem;">${escapeHtml(c.subtitle)}</td>
-                          <td>
+                          <td data-label="Subtitle" style="font-size:0.82rem;"><span>${escapeHtml(c.subtitle)}</span></td>
+                          <td data-label="Status">
                             <button
                               type="button"
                               class="sn-btn ${c.is_active ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
@@ -2079,10 +2097,10 @@ function renderAdminPortalPage({
                               data-toggle-cat-active="${c.is_active ? '1' : '0'}"
                             >${c.is_active ? 'Published (Active)' : 'Deactivated'}</button>
                           </td>
-                          <td>
-                            <form class="sn-admin-cat-img-form" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                          <td data-label="Update Banner Photo">
+                            <form class="sn-admin-cat-img-form" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%;">
                               <input type="hidden" name="categoryId" value="${c.id}" />
-                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:4px;font-size:0.75rem;max-width:210px;" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:4px;font-size:0.75rem;flex:1;min-width:140px;" />
                               <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Update Photo</button>
                             </form>
                           </td>
@@ -2094,157 +2112,172 @@ function renderAdminPortalPage({
               </div>
 
               <!-- 3B. Dedicated Product Image Uploader (Primary Photo or Secondary Gallery) -->
-              <form id="sn-admin-image-upload-form" class="sn-card" style="background-color:var(--sn-bg-mortar);margin-bottom:20px;">
-                <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.05rem;">2. Change Product Photo or Add FSSAI Nutrition Label to Gallery (JPEG/PNG/WebP &le; 5 MB)</h3>
-                <div class="sn-grid-5" style="gap:10px;align-items:end;">
-                  <div>
-                    <label style="font-size:0.75rem;font-weight:600;">Select Product *</label>
-                    <select name="productId" class="sn-select" id="sn-upload-prod-select">
-                      ${products.map(p => `<option value="${p.id}">${escapeHtml(p.sku_base)} - ${escapeHtml(p.name)}</option>`).join('')}
-                    </select>
+              <form id="sn-admin-image-upload-form" class="sn-card" style="background-color:var(--sn-bg-mortar);margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.02rem;">2. Change Product Photo or Add FSSAI Nutrition Label to Gallery</h3>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-mobile-form-toggle" data-toggle-admin-form="sn-admin-image-upload-body">📸 Expand Form</button>
+                </div>
+                <div id="sn-admin-image-upload-body" class="sn-admin-collapsible-form">
+                  <div class="sn-grid-5" style="gap:10px;align-items:end;">
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Select Product *</label>
+                      <select name="productId" class="sn-select" id="sn-upload-prod-select">
+                        ${products.map(p => `<option value="${p.id}">${escapeHtml(p.sku_base)} - ${escapeHtml(p.name)}</option>`).join('')}
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Photo Target Role *</label>
+                      <select name="setAsPrimary" class="sn-select">
+                        <option value="true" selected>Replace Primary Storefront Photo</option>
+                        <option value="false">Add to Secondary Gallery (Back Label)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Image File (Magic-Byte Checked) *</label>
+                      <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:6px;" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Image Caption</label>
+                      <input type="text" name="caption" value="Front Pack / FSSAI Nutrition Label" class="sn-input" />
+                    </div>
+                    <button type="submit" class="sn-btn sn-btn-forest">Save Product Photo</button>
                   </div>
-                  <div>
-                    <label style="font-size:0.75rem;font-weight:600;">Photo Target Role *</label>
-                    <select name="setAsPrimary" class="sn-select">
-                      <option value="true" selected>Replace Primary Storefront Photo</option>
-                      <option value="false">Add to Secondary Gallery (Back Label)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style="font-size:0.75rem;font-weight:600;">Image File (Magic-Byte Checked) *</label>
-                    <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:6px;" />
-                  </div>
-                  <div>
-                    <label style="font-size:0.75rem;font-weight:600;">Image Caption</label>
-                    <input type="text" name="caption" value="Front Pack / FSSAI Nutrition Label" class="sn-input" />
-                  </div>
-                  <button type="submit" class="sn-btn sn-btn-forest">Save Product Photo</button>
                 </div>
               </form>
 
               <!-- 3C. Add New Product (with Initial Product Photo) -->
-              <form id="sn-admin-create-product-form" class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:20px;">
-                <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;">3. Add New Product (with Photo &amp; Auto-Generated 100 g, 250 g, 500 g, 1 kg Variants)</h3>
-                <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
-                  <div>
-                    <label style="font-size:0.75rem;font-weight:600;">Product Name *</label>
-                    <input type="text" name="name" required placeholder="e.g. Guntur Cold-Milled Cumin Powder" class="sn-input" />
-                  </div>
-                  <div>
-                    <label style="font-size:0.75rem;font-weight:600;">SKU Prefix *</label>
-                    <input type="text" name="skuBase" required placeholder="e.g. SN-SP-CMN" class="sn-input" />
-                  </div>
-                  <div>
-                    <label style="font-size:0.75rem;font-weight:600;">Category *</label>
-                    <select name="categoryId" class="sn-select" id="sn-create-prod-cat-select">
-                      ${categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
-                    </select>
-                  </div>
+              <form id="sn-admin-create-product-form" class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.05rem;">3. Add New Product (with Auto-Generated 100g, 250g, 500g, 1kg Variants)</h3>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-mobile-form-toggle" data-toggle-admin-form="sn-admin-create-product-body">+ Expand Form</button>
                 </div>
-                <div class="sn-grid-4" style="gap:12px;margin-bottom:12px;">
-                  <div>
-                    <label style="font-size:0.75rem;font-weight:600;">100g Base Selling Price (INR) *</label>
-                    <input type="number" name="base100gInr" required value="140" class="sn-input" />
+                <div id="sn-admin-create-product-body" class="sn-admin-collapsible-form">
+                  <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Product Name *</label>
+                      <input type="text" name="name" required placeholder="e.g. Guntur Cold-Milled Cumin Powder" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">SKU Prefix *</label>
+                      <input type="text" name="skuBase" required placeholder="e.g. SN-SP-CMN" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Category *</label>
+                      <select name="categoryId" class="sn-select" id="sn-create-prod-cat-select">
+                        ${categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label style="font-size:0.75rem;font-weight:600;">GST Slab (%) *</label>
-                    <select name="gstPercent" class="sn-select">
-                      <option value="5">5% GST (Natural Staples)</option>
-                      <option value="12">12% GST (Processed / Blended)</option>
-                    </select>
+                  <div class="sn-grid-4" style="gap:12px;margin-bottom:12px;">
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">100g Base Selling Price (INR) *</label>
+                      <input type="number" name="base100gInr" required value="140" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">GST Slab (%) *</label>
+                      <select name="gstPercent" class="sn-select">
+                        <option value="5">5% GST (Natural Staples)</option>
+                        <option value="12">12% GST (Processed / Blended)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Growing Region *</label>
+                      <input type="text" name="originRegion" required value="Unjha &amp; Guntur Belt" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.75rem;font-weight:600;">Product Photo (JPEG/PNG/WebP)</label>
+                      <input type="file" name="productImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input" style="padding:6px;" />
+                    </div>
                   </div>
-                  <div>
-                    <label style="font-size:0.75rem;font-weight:600;">Growing Region *</label>
-                    <input type="text" name="originRegion" required value="Unjha &amp; Guntur Belt" class="sn-input" />
+                  <div style="margin-bottom:12px;">
+                    <label style="font-size:0.75rem;font-weight:600;">Short Description (Humanizer-Checked) *</label>
+                    <input type="text" name="shortDescription" required value="Aromatic whole cumin seeds stone-ground in small batches without filler husk." class="sn-input" />
                   </div>
-                  <div>
-                    <label style="font-size:0.75rem;font-weight:600;">Product Photo (JPEG/PNG/WebP)</label>
-                    <input type="file" name="productImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input" style="padding:6px;" />
-                  </div>
+                  <button type="submit" class="sn-btn sn-btn-primary">Create Product &amp; 4 Pack Variants</button>
                 </div>
-                <div style="margin-bottom:12px;">
-                  <label style="font-size:0.75rem;font-weight:600;">Short Description (Humanizer-Checked) *</label>
-                  <input type="text" name="shortDescription" required value="Aromatic whole cumin seeds stone-ground in small batches without filler husk." class="sn-input" />
-                </div>
-                <button type="submit" class="sn-btn sn-btn-primary">Create Product &amp; 4 Pack Variants</button>
               </form>
 
               <!-- 3D. Edit Existing Product, Prices, Flags & Publish/Deactivate (Section 3.2, 5.1 & 14) -->
               <form id="sn-admin-edit-product-form" class="sn-card" style="background-color:var(--sn-bg-mortar);margin-bottom:24px;">
-                <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.05rem;">4. Edit Existing Product Details, Pack Prices, Flags &amp; Publish / Deactivate Status</h3>
-                <div class="sn-grid-5" style="gap:10px;margin-bottom:10px;">
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">Select Product to Edit *</label>
-                    <select name="productId" class="sn-select" id="sn-edit-prod-select">
-                      ${products.map(p => `<option value="${p.id}">${escapeHtml(p.sku_base)} - ${escapeHtml(p.name)} (${p.is_active ? 'Active' : 'Inactive'})</option>`).join('')}
-                    </select>
-                  </div>
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">New Product Title (Optional)</label>
-                    <input type="text" name="name" placeholder="Leave blank to keep current title" class="sn-input" />
-                  </div>
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">100g Selling Price (₹)</label>
-                    <input type="number" name="base100gSellInr" min="10" placeholder="e.g. 310" class="sn-input" />
-                  </div>
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">100g MRP (₹)</label>
-                    <input type="number" name="base100gMrpInr" min="10" placeholder="e.g. 360" class="sn-input" />
-                  </div>
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">GST % / HSN</label>
-                    <div style="display:flex;gap:4px;">
-                      <select name="gstPercent" class="sn-select" style="width:72px;">
-                        <option value="">Keep</option>
-                        <option value="5">5%</option>
-                        <option value="12">12%</option>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.05rem;">4. Edit Existing Product Details, Pack Prices, Flags &amp; Publish Status</h3>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-mobile-form-toggle" data-toggle-admin-form="sn-admin-edit-product-body">✏️ Expand Form</button>
+                </div>
+                <div id="sn-admin-edit-product-body" class="sn-admin-collapsible-form">
+                  <div class="sn-grid-5" style="gap:10px;margin-bottom:10px;">
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">Select Product to Edit *</label>
+                      <select name="productId" class="sn-select" id="sn-edit-prod-select">
+                        ${products.map(p => `<option value="${p.id}">${escapeHtml(p.sku_base)} - ${escapeHtml(p.name)} (${p.is_active ? 'Active' : 'Inactive'})</option>`).join('')}
                       </select>
-                      <input type="text" name="hsnCode" placeholder="HSN" class="sn-input" style="width:82px;" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">New Product Title (Optional)</label>
+                      <input type="text" name="name" placeholder="Leave blank to keep current title" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">100g Selling Price (₹)</label>
+                      <input type="number" name="base100gSellInr" min="10" placeholder="e.g. 310" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">100g MRP (₹)</label>
+                      <input type="number" name="base100gMrpInr" min="10" placeholder="e.g. 360" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">GST % / HSN</label>
+                      <div style="display:flex;gap:4px;">
+                        <select name="gstPercent" class="sn-select" style="width:72px;">
+                          <option value="">Keep</option>
+                          <option value="5">5%</option>
+                          <option value="12">12%</option>
+                        </select>
+                        <input type="text" name="hsnCode" placeholder="HSN" class="sn-input" style="width:82px;" />
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div class="sn-grid-6" style="gap:10px;align-items:end;">
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">Updated Short Description (Optional)</label>
-                    <input type="text" name="shortDescription" placeholder="Leave blank to keep current description" class="sn-input" />
+                  <div class="sn-grid-6" style="gap:10px;align-items:end;">
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">Updated Short Description (Optional)</label>
+                      <input type="text" name="shortDescription" placeholder="Leave blank to keep current description" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">Featured Flag</label>
+                      <select name="isFeatured" class="sn-select">
+                        <option value="">Keep Current</option>
+                        <option value="1">Featured: Yes</option>
+                        <option value="0">Featured: No</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">Bestseller Flag</label>
+                      <select name="isBestseller" class="sn-select">
+                        <option value="">Keep Current</option>
+                        <option value="1">Bestseller: Yes</option>
+                        <option value="0">Bestseller: No</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">New Harvest Flag</label>
+                      <select name="isNewArrival" class="sn-select">
+                        <option value="">Keep Current</option>
+                        <option value="1">New Harvest: Yes</option>
+                        <option value="0">New Harvest: No</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">Storefront Status</label>
+                      <select name="isActive" class="sn-select">
+                        <option value="1">Published (Active)</option>
+                        <option value="0">Deactivated (Hidden)</option>
+                      </select>
+                    </div>
+                    <button type="submit" class="sn-btn sn-btn-forest">Save Product Edits</button>
                   </div>
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">Featured Flag</label>
-                    <select name="isFeatured" class="sn-select">
-                      <option value="">Keep Current</option>
-                      <option value="1">Featured: Yes</option>
-                      <option value="0">Featured: No</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">Bestseller Flag</label>
-                    <select name="isBestseller" class="sn-select">
-                      <option value="">Keep Current</option>
-                      <option value="1">Bestseller: Yes</option>
-                      <option value="0">Bestseller: No</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">New Harvest Flag</label>
-                    <select name="isNewArrival" class="sn-select">
-                      <option value="">Keep Current</option>
-                      <option value="1">New Harvest: Yes</option>
-                      <option value="0">New Harvest: No</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">Storefront Status</label>
-                    <select name="isActive" class="sn-select">
-                      <option value="1">Published (Active)</option>
-                      <option value="0">Deactivated (Hidden)</option>
-                    </select>
-                  </div>
-                  <button type="submit" class="sn-btn sn-btn-forest">Save Product Edits</button>
                 </div>
               </form>
 
               <div class="sn-table-wrap sn-table-scroll-y" id="sn-admin-products-catalogue-table">
-                <table class="sn-table">
+                <table class="sn-table sn-table-cards">
                   <thead>
                     <tr><th>Photo</th><th>SKU, HSN &amp; Flags</th><th>Product Name &amp; Origin</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th><th>Status</th><th>Quick Change Photo</th></tr>
                   </thead>
@@ -2253,24 +2286,27 @@ function renderAdminPortalPage({
                       const pVars = variants.filter(v => v.product_id === p.id);
                       return `
                         <tr data-admin-prod-row="${p.id}">
-                          <td>
+                          <td data-label="Photo">
                             <img src="${basePath}${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" data-product-img-id="${p.id}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
                           </td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">
-                            <strong>${escapeHtml(p.sku_base)}</strong><br/>
-                            HSN: ${escapeHtml(p.hsn_code || '080290')} (${p.gst_percent}% GST)<br/>
-                            ${p.is_featured ? '<span class="sn-status sn-status-paid" style="font-size:0.65rem;padding:1px 5px;">Featured</span> ' : ''}
-                            ${p.is_bestseller ? '<span class="sn-status sn-status-warn" style="font-size:0.65rem;padding:1px 5px;">Bestseller</span> ' : ''}
-                            ${p.is_new_arrival ? '<span class="sn-status sn-status-paid" style="font-size:0.65rem;padding:1px 5px;">New</span>' : ''}
+                          <td data-label="SKU, HSN &amp; Flags" style="font-family:var(--sn-font-mono);font-size:0.75rem;">
+                            <div>
+                              <strong>${escapeHtml(p.sku_base)}</strong> • HSN: ${escapeHtml(p.hsn_code || '080290')} (${p.gst_percent}% GST)<br/>
+                              ${p.is_featured ? '<span class="sn-status sn-status-paid" style="font-size:0.65rem;padding:1px 5px;">Featured</span> ' : ''}
+                              ${p.is_bestseller ? '<span class="sn-status sn-status-warn" style="font-size:0.65rem;padding:1px 5px;">Bestseller</span> ' : ''}
+                              ${p.is_new_arrival ? '<span class="sn-status sn-status-paid" style="font-size:0.65rem;padding:1px 5px;">New</span>' : ''}
+                            </div>
                           </td>
-                          <td>
-                            <strong><a href="${basePath}/product/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a></strong><br/>
-                            <span style="font-size:0.76rem;color:var(--sn-text-muted);">${escapeHtml(p.origin_region)} • ${escapeHtml(p.harvest_batch)}</span>
+                          <td data-label="Product &amp; Origin">
+                            <div>
+                              <strong><a href="${basePath}/product/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a></strong><br/>
+                              <span style="font-size:0.76rem;color:var(--sn-text-muted);">${escapeHtml(p.origin_region)} • ${escapeHtml(p.harvest_batch)}</span>
+                            </div>
                           </td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;">
-                            ${pVars.map(v => `${escapeHtml(v.pack_label)}: ${formatInr(v.selling_price_paise)} (${v.stock_qty})`).join(' | ')}
+                          <td data-label="Pack Variants" style="font-family:var(--sn-font-mono);font-size:0.73rem;">
+                            <span>${pVars.map(v => `${escapeHtml(v.pack_label)}: ${formatInr(v.selling_price_paise)} (${v.stock_qty})`).join(' | ')}</span>
                           </td>
-                          <td>
+                          <td data-label="Storefront Status">
                             <button
                               type="button"
                               class="sn-btn ${p.is_active ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
@@ -2278,10 +2314,10 @@ function renderAdminPortalPage({
                               data-toggle-prod-active="${p.is_active ? '1' : '0'}"
                             >${p.is_active ? 'Active' : 'Inactive'}</button>
                           </td>
-                          <td>
-                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;">
+                          <td data-label="Quick Change Photo">
+                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;">
                               <input type="hidden" name="productId" value="${p.id}" />
-                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;max-width:165px;" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;flex:1;min-width:130px;" />
                               <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
                             </form>
                           </td>
@@ -2302,34 +2338,34 @@ function renderAdminPortalPage({
                     Stock is automatically decremented on order confirmation and restored on order cancellation or refund.
                   </p>
                 </div>
-                <div style="display:flex;gap:8px;align-items:center;">
-                  <input type="search" id="sn-admin-inv-search" placeholder="Search SKU or pack size..." class="sn-input" style="width:220px;" />
-                  <label style="font-size:0.78rem;display:flex;align-items:center;gap:4px;cursor:pointer;">
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%;max-width:420px;">
+                  <input type="search" id="sn-admin-inv-search" placeholder="Search SKU or pack size..." class="sn-input" style="flex:1;min-width:170px;" />
+                  <label style="font-size:0.78rem;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;font-weight:600;">
                     <input type="checkbox" id="sn-admin-inv-low-only" /> Low-Stock Only
                   </label>
                 </div>
               </div>
 
               <div class="sn-table-wrap" style="margin-bottom:24px;max-height:540px;overflow-y:auto;">
-                <table class="sn-table" id="sn-admin-inventory-table">
+                <table class="sn-table sn-table-cards" id="sn-admin-inventory-table">
                   <thead>
                     <tr><th>Variant SKU</th><th>Pack Size</th><th>Selling Price</th><th>MRP</th><th>Current Stock</th><th>Alert Threshold</th><th>Update Stock &amp; Threshold</th></tr>
                   </thead>
                   <tbody>
                     ${variants.map(v => `
                       <tr data-inv-sku="${escapeHtml(v.sku.toLowerCase())}" data-inv-low="${v.stock_qty <= v.low_stock_threshold ? '1' : '0'}">
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">${escapeHtml(v.sku)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${escapeHtml(v.pack_label)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(v.selling_price_paise)}</td>
-                        <td style="font-family:var(--sn-font-mono);color:var(--sn-text-muted);">${formatInr(v.mrp_paise)}</td>
-                        <td><span class="sn-status ${v.stock_qty <= v.low_stock_threshold ? 'sn-status-danger' : 'sn-status-paid'}">${v.stock_qty} packs</span></td>
-                        <td style="font-family:var(--sn-font-mono);">&le; ${v.low_stock_threshold} packs</td>
-                        <td>
-                          <form class="sn-admin-stock-form" style="display:flex;gap:6px;align-items:center;">
+                        <td data-label="Variant SKU" style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-bg-forest);">${escapeHtml(v.sku)}</td>
+                        <td data-label="Pack Size" style="font-family:var(--sn-font-mono);">${escapeHtml(v.pack_label)}</td>
+                        <td data-label="Selling Price" style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(v.selling_price_paise)}</td>
+                        <td data-label="MRP" style="font-family:var(--sn-font-mono);color:var(--sn-text-muted);">${formatInr(v.mrp_paise)}</td>
+                        <td data-label="Current Stock"><span class="sn-status ${v.stock_qty <= v.low_stock_threshold ? 'sn-status-danger' : 'sn-status-paid'}">${v.stock_qty} packs</span></td>
+                        <td data-label="Alert Threshold" style="font-family:var(--sn-font-mono);">&le; ${v.low_stock_threshold} packs</td>
+                        <td data-label="Update Stock &amp; Min Alert">
+                          <form class="sn-admin-stock-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                             <input type="hidden" name="variantId" value="${v.id}" />
-                            <input type="number" name="newStockQty" value="${v.stock_qty}" min="0" title="New Stock Quantity" class="sn-input" style="width:74px;padding:6px;" />
-                            <input type="number" name="lowStockThreshold" value="${v.low_stock_threshold}" min="1" title="Low-Stock Alert Threshold" class="sn-input" style="width:64px;padding:6px;" />
-                            <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Update</button>
+                            <input type="number" name="newStockQty" value="${v.stock_qty}" min="0" title="New Stock Quantity" class="sn-input" style="width:78px;padding:6px;" />
+                            <input type="number" name="lowStockThreshold" value="${v.low_stock_threshold}" min="1" title="Low-Stock Alert Threshold" class="sn-input" style="width:68px;padding:6px;" />
+                            <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Update</button>
                           </form>
                         </td>
                       </tr>
@@ -2368,23 +2404,25 @@ function renderAdminPortalPage({
               </p>
 
               <div class="sn-table-wrap" style="margin-bottom:26px;">
-                <table class="sn-table">
+                <table class="sn-table sn-table-cards">
                   <thead>
                     <tr><th>Order No.</th><th>Provider &amp; Method</th><th>Gateway Order / Payment ID</th><th>Amount</th><th>Status</th><th>Server Verified</th><th>Accounts Manager Actions</th></tr>
                   </thead>
                   <tbody>
                     ${payments.map(pay => `
                       <tr>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">${escapeHtml(pay.order_number)}</td>
-                        <td>${escapeHtml(pay.gateway_provider)} (${escapeHtml(pay.method)})</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">
-                          Ord: ${escapeHtml(pay.gateway_order_id)}<br/>
-                          Pay: ${escapeHtml(pay.gateway_payment_id || 'COD / Pending')}
+                        <td data-label="Order No." style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-bg-forest);">${escapeHtml(pay.order_number)}</td>
+                        <td data-label="Provider &amp; Method"><span>${escapeHtml(pay.gateway_provider)} (${escapeHtml(pay.method)})</span></td>
+                        <td data-label="Gateway Reference" style="font-family:var(--sn-font-mono);font-size:0.74rem;">
+                          <div>
+                            Ord: ${escapeHtml(pay.gateway_order_id)}<br/>
+                            Pay: ${escapeHtml(pay.gateway_payment_id || 'COD / Pending')}
+                          </div>
                         </td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(pay.amount_paise)}</td>
-                        <td><span class="sn-status ${pay.status === 'PAID' || pay.status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(pay.status)}</span></td>
-                        <td style="font-family:var(--sn-font-mono);">${pay.verified_on_server ? '✓ Verified' : 'Pending'}</td>
-                        <td>
+                        <td data-label="Amount" style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(pay.amount_paise)}</td>
+                        <td data-label="Status"><span class="sn-status ${pay.status === 'PAID' || pay.status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(pay.status)}</span></td>
+                        <td data-label="Server Verified" style="font-family:var(--sn-font-mono);">${pay.verified_on_server ? '✓ Verified' : 'Pending'}</td>
+                        <td data-label="Actions">
                           <div style="display:flex;gap:6px;flex-wrap:wrap;">
                             ${pay.status === 'COD_PENDING' ? `
                               <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-payment-action="MARK_COD_COLLECTED" data-order-number="${escapeHtml(pay.order_number)}">Mark COD Collected</button>
@@ -2693,26 +2731,30 @@ function renderAdminPortalPage({
                 Authorized for <strong>SUPER_ADMIN</strong> and <strong>ORDER_MANAGER</strong>. View registered customer accounts and guest buyers with their order history.
               </p>
               <div class="sn-table-wrap">
-                <table class="sn-table">
+                <table class="sn-table sn-table-cards">
                   <thead>
                     <tr><th>Customer Name</th><th>Email &amp; Phone</th><th>Account Type</th><th>Saved Addresses</th><th>Order History</th><th>Lifetime Spend</th></tr>
                   </thead>
                   <tbody>
                     ${customerDirectoryRows.map(c => `
                       <tr>
-                        <td><strong>${escapeHtml(c.fullName)}</strong></td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
-                          ${escapeHtml(c.email)}<br/>
-                          ${escapeHtml(c.phone)}
+                        <td data-label="Customer Name"><strong>${escapeHtml(c.fullName)}</strong></td>
+                        <td data-label="Email &amp; Phone" style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                          <div>
+                            ${escapeHtml(c.email)}<br/>
+                            ${escapeHtml(c.phone)}
+                          </div>
                         </td>
-                        <td><span class="sn-status sn-status-paid">${escapeHtml(c.accountType)}</span></td>
-                        <td style="font-family:var(--sn-font-mono);">${c.addressCount} saved</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.78rem;">
-                          ${c.orderNumbers.length > 0
-                            ? c.orderNumbers.map(on => `<a href="${basePath}/track-order?order=${encodeURIComponent(on)}" style="color:var(--sn-accent-terracotta);font-weight:600;">${escapeHtml(on)}</a>`).join(', ')
-                            : 'No orders yet'}
+                        <td data-label="Account Type"><span class="sn-status sn-status-paid">${escapeHtml(c.accountType)}</span></td>
+                        <td data-label="Saved Addresses" style="font-family:var(--sn-font-mono);">${c.addressCount} saved</td>
+                        <td data-label="Order History" style="font-family:var(--sn-font-mono);font-size:0.78rem;">
+                          <span>
+                            ${c.orderNumbers.length > 0
+                              ? c.orderNumbers.map(on => `<a href="${basePath}/track-order?order=${encodeURIComponent(on)}" style="color:var(--sn-accent-terracotta);font-weight:600;">${escapeHtml(on)}</a>`).join(', ')
+                              : 'No orders yet'}
+                          </span>
                         </td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(c.totalSpendPaise)}</td>
+                        <td data-label="Lifetime Spend" style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-bg-forest);">${formatInr(c.totalSpendPaise)}</td>
                       </tr>
                     `).join('')}
                   </tbody>
@@ -2767,34 +2809,36 @@ function renderAdminPortalPage({
               </form>
 
               <div class="sn-table-wrap" style="margin-bottom:24px;">
-                <table class="sn-table" id="sn-admin-staff-table">
+                <table class="sn-table sn-table-cards" id="sn-admin-staff-table">
                   <thead>
                     <tr><th>Staff Name &amp; Email</th><th>Current Role</th><th>Permitted Actions</th><th>Status</th><th>Update Role, Permissions &amp; Access</th></tr>
                   </thead>
                   <tbody>
                     ${staffUsers.map(u => `
                       <tr>
-                        <td>
-                          <strong>${escapeHtml(u.full_name)}</strong><br/>
-                          <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);">${escapeHtml(u.email)}</span>
+                        <td data-label="Staff Name &amp; Email">
+                          <div>
+                            <strong>${escapeHtml(u.full_name)}</strong><br/>
+                            <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);">${escapeHtml(u.email)}</span>
+                          </div>
                         </td>
-                        <td><span class="sn-status sn-status-paid">${escapeHtml(u.role)}</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;max-width:240px;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(u.permissions_json)}</td>
-                        <td><span class="sn-status ${u.is_active ? 'sn-status-paid' : 'sn-status-danger'}">${u.is_active ? 'Active' : 'Deactivated'}</span></td>
-                        <td>
-                          <form class="sn-admin-staff-update-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                        <td data-label="Current Role"><span class="sn-status sn-status-paid">${escapeHtml(u.role)}</span></td>
+                        <td data-label="Permitted Actions" style="font-family:var(--sn-font-mono);font-size:0.74rem;overflow-wrap:anywhere;word-break:break-word;"><span>${escapeHtml(u.permissions_json)}</span></td>
+                        <td data-label="Access Status"><span class="sn-status ${u.is_active ? 'sn-status-paid' : 'sn-status-danger'}">${u.is_active ? 'Active' : 'Deactivated'}</span></td>
+                        <td data-label="Update Role &amp; Permissions">
+                          <form class="sn-admin-staff-update-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;">
                             <input type="hidden" name="userId" value="${u.id}" />
-                            <select name="role" class="sn-select" style="width:155px;padding:6px 8px;font-size:0.75rem;">
+                            <select name="role" class="sn-select" style="flex:1;min-width:135px;padding:6px 8px;font-size:0.75rem;">
                               ${['SUPER_ADMIN', 'PRODUCT_MANAGER', 'ORDER_MANAGER', 'ACCOUNTS_MANAGER', 'STAFF'].map(r => `
                                 <option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>
                               `).join('')}
                             </select>
-                            <input type="text" name="permissionsJson" value="${escapeHtml(u.permissions_json)}" class="sn-input" style="width:160px;padding:6px 8px;font-family:var(--sn-font-mono);font-size:0.73rem;" />
+                            <input type="text" name="permissionsJson" value="${escapeHtml(u.permissions_json)}" class="sn-input" style="flex:1.2;min-width:140px;padding:6px 8px;font-family:var(--sn-font-mono);font-size:0.73rem;" />
                             <select name="isActive" class="sn-select" style="width:105px;padding:6px 8px;font-size:0.75rem;">
                               <option value="1" ${u.is_active ? 'selected' : ''}>Active</option>
                               <option value="0" ${!u.is_active ? 'selected' : ''}>Deactivate</option>
                             </select>
-                            <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Save</button>
+                            <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Save</button>
                           </form>
                         </td>
                       </tr>
