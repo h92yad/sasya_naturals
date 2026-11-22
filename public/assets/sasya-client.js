@@ -387,6 +387,20 @@
         if (navEl) {
           const isOpen = navEl.classList.toggle('sn-nav-open');
           mobileMenuBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+          mobileMenuBtn.textContent = isOpen ? '✕' : '☰';
+          mobileMenuBtn.classList.toggle('sn-btn-forest', isOpen);
+          mobileMenuBtn.classList.toggle('sn-btn-outline', !isOpen);
+        }
+        return;
+      }
+
+      const toggleAddAddrBtn = e.target.closest('[data-toggle-add-address]');
+      if (toggleAddAddrBtn) {
+        const addrForm = document.getElementById('sn-customer-add-address-form');
+        if (addrForm) {
+          const isHidden = addrForm.style.display === 'none';
+          addrForm.style.display = isHidden ? 'block' : 'none';
+          toggleAddAddrBtn.textContent = isHidden ? '− Hide Form' : '+ Add Address';
         }
         return;
       }

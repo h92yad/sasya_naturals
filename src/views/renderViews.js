@@ -189,7 +189,11 @@ function renderShell({
         <span class="sn-brand-title">Sasya Naturals</span>
         <span class="sn-brand-sub">Pure Indian Pantry</span>
       </a>
-      <nav class="sn-nav" aria-label="Main Navigation">
+      <nav class="sn-nav" id="sn-main-nav" aria-label="Main Navigation">
+        <form action="${basePath}/shop" method="GET" class="sn-mobile-nav-search">
+          <input type="search" name="q" placeholder="Search almonds, ragi, spices..." class="sn-input" aria-label="Search products on mobile" />
+          <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Search</button>
+        </form>
         <a href="${basePath}/" class="${activeNav === 'home' ? 'sn-active' : ''}" id="nav-home">Home</a>
         <a href="${basePath}/shop" class="${activeNav === 'shop' ? 'sn-active' : ''}" id="nav-shop">All Catalogue</a>
         <a href="${basePath}/category/dry-fruits" class="${activeNav === 'dry-fruits' ? 'sn-active' : ''}" id="nav-dry-fruits">Dry Fruits</a>
@@ -1480,9 +1484,12 @@ function renderCustomerAccountPage({
                 `).join('')}
               </div>
 
-              <details class="sn-faq-item" style="background-color:var(--sn-bg-parchment);padding:12px 16px;margin-bottom:0;">
-                <summary style="font-size:0.95rem;">+ Add New Delivery Address</summary>
-                <form id="sn-customer-add-address-form" style="padding-top:12px;margin-top:10px;border-top:1px dashed var(--sn-border-warm);">
+              <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:12px 16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                  <strong style="font-family:var(--sn-font-serif);font-size:0.95rem;color:var(--sn-bg-forest);">Add New Delivery Address</strong>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-toggle-add-address-btn" data-toggle-add-address>+ Add Address</button>
+                </div>
+                <form id="sn-customer-add-address-form" style="display:none;padding-top:12px;margin-top:10px;border-top:1px dashed var(--sn-border-warm);">
                   <input type="hidden" name="userId" value="${activeCustomer.id}" />
                   <div class="sn-grid-3" style="gap:8px;margin-bottom:8px;">
                     <div>
@@ -1524,7 +1531,7 @@ function renderCustomerAccountPage({
                     <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Save Address</button>
                   </div>
                 </form>
-              </details>
+              </div>
             </div>
           </div>
 
