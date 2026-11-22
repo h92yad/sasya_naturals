@@ -323,9 +323,9 @@
             <strong style="font-family:var(--sn-font-mono);">${formatInr(p.totalPaise)}</strong>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1.35fr;gap:10px;">
-          <button type="button" class="sn-btn sn-btn-outline" id="sn-clear-cart-btn">Clear</button>
-          <a href="${BASE_PATH}/checkout" class="sn-btn sn-btn-primary">Proceed to Checkout &rarr;</a>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="sn-btn sn-btn-outline" id="sn-clear-cart-btn" style="flex:1;">Clear</button>
+          <a href="${BASE_PATH}/checkout" class="sn-btn sn-btn-primary" style="flex:1.4;">Proceed to Checkout &rarr;</a>
         </div>
       `;
     } catch (err) {
@@ -335,6 +335,16 @@
 
   function bindGlobalListeners() {
     document.addEventListener('click', async (e) => {
+      const mobileMenuBtn = e.target.closest('[data-mobile-menu]');
+      if (mobileMenuBtn) {
+        const navEl = document.querySelector('.sn-nav');
+        if (navEl) {
+          const isOpen = navEl.classList.toggle('sn-nav-open');
+          mobileMenuBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+        return;
+      }
+
       const packPill = e.target.closest('[data-variant-pill]');
       if (packPill) {
         const container = packPill.closest('[data-product-container]');
@@ -441,6 +451,8 @@
       const openCartBtn = e.target.closest('[data-open-cart]');
       if (openCartBtn) {
         e.preventDefault();
+        const toast = document.getElementById('sn-toast');
+        if (toast) toast.classList.remove('sn-show');
         const drawer = document.getElementById('sn-cart-backdrop');
         if (drawer) {
           drawer.classList.add('sn-open');
