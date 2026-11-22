@@ -1467,9 +1467,28 @@
       });
     }
 
+    const editCatModal = document.getElementById('sn-admin-edit-category-modal');
+
+    function closeEditCategoryModal() {
+      if (editCatModal) {
+        editCatModal.style.display = 'none';
+      }
+    }
+
+    document.querySelectorAll('[data-close-cat-modal]').forEach(btn => {
+      btn.addEventListener('click', closeEditCategoryModal);
+    });
+
+    if (editCatModal) {
+      editCatModal.addEventListener('click', (e) => {
+        if (e.target === editCatModal) closeEditCategoryModal();
+      });
+    }
+
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && editProdModal && editProdModal.style.display !== 'none') {
-        closeEditProductModal();
+      if (e.key === 'Escape') {
+        if (editProdModal && editProdModal.style.display !== 'none') closeEditProductModal();
+        if (editCatModal && editCatModal.style.display !== 'none') closeEditCategoryModal();
       }
     });
 
@@ -1486,6 +1505,8 @@
         if (tr) {
           const sku = tr.getAttribute('data-prod-sku') || '';
           const name = tr.getAttribute('data-prod-name') || '';
+          const catId = tr.getAttribute('data-prod-cat-id') || '1';
+          const origin = tr.getAttribute('data-prod-origin') || '';
           const sell100 = tr.getAttribute('data-prod-100g-sell') || '140';
           const mrp100 = tr.getAttribute('data-prod-100g-mrp') || '170';
           const gst = tr.getAttribute('data-prod-gst') || '5';
@@ -1501,6 +1522,8 @@
           const skuEl = document.getElementById('sn-edit-modal-sku');
           const headingEl = document.getElementById('sn-edit-modal-heading');
           const nameInput = document.getElementById('sn-edit-prod-name');
+          const catSelect = document.getElementById('sn-edit-prod-cat');
+          const originInput = document.getElementById('sn-edit-prod-origin');
           const gstSelect = document.getElementById('sn-edit-prod-gst');
           const hsnInput = document.getElementById('sn-edit-prod-hsn');
           const descInput = document.getElementById('sn-edit-prod-desc');
@@ -1513,6 +1536,8 @@
           if (skuEl) skuEl.textContent = `${sku} • Product #${prodId} • HSN ${hsn}`;
           if (headingEl) headingEl.textContent = `Edit ${name}`;
           if (nameInput) nameInput.value = name;
+          if (catSelect) catSelect.value = catId;
+          if (originInput) originInput.value = origin;
           if (editSellInput) editSellInput.value = sell100;
           if (editMrpInput) editMrpInput.value = mrp100;
           if (gstSelect) gstSelect.value = gst;
@@ -1527,6 +1552,47 @@
 
         if (editProdModal) {
           editProdModal.style.display = 'flex';
+        }
+      });
+    });
+
+    // 4D-2. Contextual Category Edit Modal Controller (Opens on "✏️ Edit" in Tab 3.2 Categories Table)
+    document.querySelectorAll('[data-load-cat-editor]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const catId = btn.getAttribute('data-load-cat-editor');
+        const tr = document.querySelector(`[data-admin-cat-row="${catId}"]`);
+        const idInput = document.getElementById('sn-edit-cat-id');
+        if (idInput && catId) idInput.value = catId;
+
+        if (tr) {
+          const slug = tr.getAttribute('data-cat-slug') || '';
+          const name = tr.getAttribute('data-cat-name') || '';
+          const subtitle = tr.getAttribute('data-cat-subtitle') || '';
+          const desc = tr.getAttribute('data-cat-desc') || '';
+          const img = tr.getAttribute('data-cat-img') || '';
+          const isActive = tr.getAttribute('data-cat-active') || '1';
+
+          const thumbEl = document.getElementById('sn-edit-cat-modal-thumb');
+          const slugEl = document.getElementById('sn-edit-cat-modal-slug');
+          const headingEl = document.getElementById('sn-edit-cat-modal-heading');
+          const nameInput = document.getElementById('sn-edit-cat-name');
+          const subtitleInput = document.getElementById('sn-edit-cat-subtitle');
+          const descInput = document.getElementById('sn-edit-cat-desc');
+          const activeSelect = document.getElementById('sn-edit-cat-active');
+          const fileInput = document.getElementById('sn-edit-cat-file');
+
+          if (thumbEl && img) thumbEl.src = img;
+          if (slugEl) slugEl.textContent = `/category/${slug} • Category #${catId}`;
+          if (headingEl) headingEl.textContent = `Edit Category: ${name}`;
+          if (nameInput) nameInput.value = name;
+          if (subtitleInput) subtitleInput.value = subtitle;
+          if (descInput) descInput.value = desc;
+          if (activeSelect) activeSelect.value = isActive;
+          if (fileInput) fileInput.value = '';
+        }
+
+        if (editCatModal) {
+          editCatModal.style.display = 'flex';
         }
       });
     });
@@ -1822,7 +1888,7 @@
       });
     }
 
-    // 6. Edit Existing Product, Pack Prices, Flags & Publish/Deactivate
+    // 6. Edit Existing Product, Category Assignment, Pack Prices, Flags & Publish/Deactivate
     const editProdForm = document.getElementById('sn-admin-edit-product-form');
     if (editProdForm) {
       editProdForm.addEventListener('submit', async (e) => {
@@ -1835,8 +1901,21 @@
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can edit products.');
             return;
           }
+          const tr = document.querySelector(`[data-admin-prod-row="${payload.productId}"]`);
+          if (tr) {
+            if (payload.name) tr.setAttribute('data-prod-name', payload.name);
+            if (payload.categoryId) tr.setAttribute('data-prod-cat-id', payload.categoryId);
+            if (payload.originRegion) tr.setAttribute('data-prod-origin', payload.originRegion);
+            const nameEl = tr.querySelector(`[data-prod-name-display="${payload.productId}"]`);
+            if (nameEl && payload.name) nameEl.textContent = payload.name;
+            const catBadge = tr.querySelector(`[data-prod-cat-badge="${payload.productId}"]`);
+            const catSelect = document.getElementById('sn-edit-prod-cat');
+            if (catBadge && catSelect && catSelect.selectedIndex >= 0) {
+              catBadge.textContent = catSelect.options[catSelect.selectedIndex].text;
+            }
+          }
           closeEditProductModal();
-          showToast(`[Showcase Verified] Updated product #${payload.productId} ("${payload.name}") & pack prices!`);
+          showToast(`[Showcase Verified] Updated product #${payload.productId} ("${payload.name}") & category!`);
           return;
         }
         const res = await fetch('/api/admin/products/update', {
@@ -1855,6 +1934,75 @@
         closeEditProductModal();
         showToast(`Updated product "${data.name}"!`);
         setTimeout(() => window.location.reload(), 600);
+      });
+    }
+
+    // 6B. Edit Existing Category (Name, Subtitle, Description, Status & Optional Banner Photo)
+    const editCatForm = document.getElementById('sn-admin-edit-category-form');
+    if (editCatForm) {
+      editCatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(editCatForm);
+        const categoryId = Number(fd.get('categoryId'));
+        const name = String(fd.get('name') || '').trim();
+        const subtitle = String(fd.get('subtitle') || '').trim();
+        const description = String(fd.get('description') || '').trim();
+        const isActive = Number(fd.get('isActive') || 1);
+        const file = fd.get('categoryImageFile');
+
+        try {
+          const imageBase64 = await readFileAsDataUrl(file);
+          if (IS_STATIC_SHOWCASE) {
+            const email = getActiveAdminEmail();
+            if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+              showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can edit categories.');
+              return;
+            }
+            const tr = document.querySelector(`[data-admin-cat-row="${categoryId}"]`);
+            if (tr) {
+              tr.setAttribute('data-cat-name', name);
+              tr.setAttribute('data-cat-subtitle', subtitle);
+              tr.setAttribute('data-cat-desc', description);
+              tr.setAttribute('data-cat-active', String(isActive));
+              const nameEl = tr.querySelector(`[data-cat-name-display="${categoryId}"]`);
+              const subEl = tr.querySelector(`[data-cat-subtitle-display="${categoryId}"]`);
+              const descEl = tr.querySelector(`[data-cat-desc-display="${categoryId}"]`);
+              if (nameEl) nameEl.textContent = name;
+              if (subEl) subEl.textContent = subtitle;
+              if (descEl) descEl.textContent = description;
+            }
+            if (imageBase64) updateDomCategoryImages(categoryId, imageBase64);
+            closeEditCategoryModal();
+            showToast(`[Showcase Verified] Updated category "${name}"!`);
+            return;
+          }
+
+          const res = await fetch('/api/admin/categories/update', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-admin-email': getActiveAdminEmail()
+            },
+            body: JSON.stringify({
+              categoryId,
+              name,
+              subtitle,
+              description,
+              isActive,
+              imageBase64: imageBase64 || undefined
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            showToast(data.error || 'Failed to update category');
+            return;
+          }
+          closeEditCategoryModal();
+          showToast(`Updated category "${data.category.name}"!`);
+          setTimeout(() => window.location.reload(), 600);
+        } catch (err) {
+          showToast(err.message);
+        }
       });
     }
 

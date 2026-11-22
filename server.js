@@ -779,6 +779,70 @@ function createServerHandler() {
         });
       }
 
+      if (pathname === '/api/admin/categories/update' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'products.write');
+        const body = await readJsonBody(req);
+
+        const catId = Number(body.categoryId);
+        const cat = db.prepare('SELECT * FROM categories WHERE id = ?').get(catId);
+        if (!cat) {
+          return sendJson(res, 404, { error: 'Category not found' });
+        }
+
+        const nextName = body.name && String(body.name).trim() ? String(body.name).trim() : cat.name;
+        const nextSubtitle = body.subtitle && String(body.subtitle).trim() ? String(body.subtitle).trim() : cat.subtitle;
+        const nextDescription = body.description && String(body.description).trim()
+          ? String(body.description).trim()
+          : cat.description;
+        const nextActive = body.isActive !== undefined && body.isActive !== ''
+          ? (Number(body.isActive) ? 1 : 0)
+          : cat.is_active;
+
+        const lintCheck = lintContentText(`${nextName} ${nextSubtitle} ${nextDescription}`, 'edit_category');
+        if (!lintCheck.valid) {
+          return sendJson(res, 400, { error: lintCheck.issues.join(' ') });
+        }
+
+        let nextImageUrl = cat.image_url;
+        if (body.imageBase64) {
+          const savedImg = saveVerifiedImageToUploads(body.imageBase64, `cat-${cat.slug}`);
+          nextImageUrl = savedImg.publicUrl;
+        }
+
+        db.prepare(`
+          UPDATE categories
+          SET name = ?,
+              subtitle = ?,
+              description = ?,
+              image_url = ?,
+              is_active = ?
+          WHERE id = ?
+        `).run(nextName, nextSubtitle, nextDescription, nextImageUrl, nextActive, catId);
+
+        recordAuditLog({
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role,
+          action: 'CATEGORY_UPDATED',
+          entityType: 'CATEGORY',
+          entityId: cat.slug,
+          details: { categoryId: catId, name: nextName, subtitle: nextSubtitle, isActive: nextActive, imageUrl: nextImageUrl }
+        });
+
+        return sendJson(res, 200, {
+          category: {
+            id: catId,
+            slug: cat.slug,
+            name: nextName,
+            subtitle: nextSubtitle,
+            description: nextDescription,
+            imageUrl: nextImageUrl,
+            isActive: nextActive
+          }
+        });
+      }
+
       if (pathname === '/api/admin/categories/toggle-status' && req.method === 'POST') {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'products.write');
@@ -916,6 +980,18 @@ function createServerHandler() {
         const nextShortDesc = body.shortDescription && String(body.shortDescription).trim()
           ? String(body.shortDescription).trim()
           : prod.short_description;
+        const nextOrigin = body.originRegion && String(body.originRegion).trim()
+          ? String(body.originRegion).trim()
+          : prod.origin_region;
+
+        let nextCatId = prod.category_id;
+        if (body.categoryId !== undefined && body.categoryId !== '') {
+          const candidateCat = db.prepare('SELECT id FROM categories WHERE id = ?').get(Number(body.categoryId));
+          if (!candidateCat) {
+            return sendJson(res, 400, { error: 'Selected category does not exist.' });
+          }
+          nextCatId = Number(candidateCat.id);
+        }
 
         const lintCheck = lintContentText(`${nextName} ${nextShortDesc}`, 'edit_product');
         if (!lintCheck.valid) {
@@ -932,6 +1008,8 @@ function createServerHandler() {
         db.prepare(`
           UPDATE products
           SET name = ?,
+              category_id = ?,
+              origin_region = ?,
               short_description = ?,
               gst_percent = ?,
               hsn_code = ?,
@@ -940,7 +1018,7 @@ function createServerHandler() {
               is_new_arrival = ?,
               is_active = ?
           WHERE id = ?
-        `).run(nextName, nextShortDesc, nextGst, nextHsn, nextFeatured, nextBestseller, nextNewArrival, nextActive, productId);
+        `).run(nextName, nextCatId, nextOrigin, nextShortDesc, nextGst, nextHsn, nextFeatured, nextBestseller, nextNewArrival, nextActive, productId);
 
         if (body.base100gSellInr && Number(body.base100gSellInr) >= 10) {
           const baseSellPaise = Math.round(Number(body.base100gSellInr) * 100);
@@ -964,10 +1042,10 @@ function createServerHandler() {
           action: 'PRODUCT_UPDATED',
           entityType: 'PRODUCT',
           entityId: prod.sku_base,
-          details: { productId, name: nextName, isActive: nextActive, isFeatured: nextFeatured, isBestseller: nextBestseller }
+          details: { productId, name: nextName, categoryId: nextCatId, originRegion: nextOrigin, isActive: nextActive, isFeatured: nextFeatured, isBestseller: nextBestseller }
         });
 
-        return sendJson(res, 200, { productId, name: nextName, isActive: nextActive });
+        return sendJson(res, 200, { productId, name: nextName, categoryId: nextCatId, originRegion: nextOrigin, isActive: nextActive });
       }
 
       if (pathname === '/api/admin/staff/create' && req.method === 'POST') {

@@ -2253,8 +2253,9 @@ function renderAdminPortalPage({
                             </td>
                             <td data-label="Product &amp; Origin">
                               <div>
-                                <strong><a href="${basePath}/product/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a></strong><br/>
-                                <span style="font-size:0.76rem;color:var(--sn-text-muted);">${escapeHtml(p.origin_region)} • ${escapeHtml(p.harvest_batch)}</span>
+                                <strong><a href="${basePath}/product/${escapeHtml(p.slug)}" data-prod-name-display="${p.id}">${escapeHtml(p.name)}</a></strong><br/>
+                                <span class="sn-status sn-status-paid" data-prod-cat-badge="${p.id}" style="font-size:0.65rem;padding:1px 6px;margin-top:2px;">${escapeHtml((categories.find(c => Number(c.id) === Number(p.category_id)) || { name: 'Category' }).name)}</span>
+                                <span data-prod-origin-display="${p.id}" style="font-size:0.75rem;color:var(--sn-text-muted);">${escapeHtml(p.origin_region)} • ${escapeHtml(p.harvest_batch)}</span>
                               </div>
                             </td>
                             <td data-label="Pack Variants" style="font-family:var(--sn-font-mono);font-size:0.73rem;">
@@ -2297,7 +2298,7 @@ function renderAdminPortalPage({
                   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
                     <div>
                       <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.08rem;color:var(--sn-bg-forest);">Product Categories &amp; Category Banner Photos (${categories.length})</h3>
-                      <span style="font-size:0.78rem;color:var(--sn-text-secondary);">Manage storefront category status and banner photos, or click <strong>+ New Category</strong> to add a new aisle.</span>
+                      <span style="font-size:0.78rem;color:var(--sn-text-secondary);">Click <strong>✏️ Edit</strong> on any category row to edit its name, subtitle, description, status, or banner image.</span>
                     </div>
                     <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-toggle-admin-form="sn-admin-create-category-form" data-force-subtab="products:categories" data-toggle-open-text="− Hide Category Form" data-toggle-closed-text="+ New Category">+ New Category</button>
                   </div>
@@ -2330,28 +2331,49 @@ function renderAdminPortalPage({
                   <div class="sn-table-wrap">
                     <table class="sn-table sn-table-cards" id="sn-admin-categories-table">
                       <thead>
-                        <tr><th>Photo</th><th>Category Name &amp; Slug</th><th>Subtitle</th><th>Status</th><th>Change Category Image</th></tr>
+                        <tr><th>Photo</th><th>Category Name &amp; Slug</th><th>Subtitle &amp; Description</th><th>Status &amp; Edit</th><th>Change Category Image</th></tr>
                       </thead>
                       <tbody>
                         ${categories.map(c => `
-                          <tr>
+                          <tr
+                            data-admin-cat-row="${c.id}"
+                            data-cat-id="${c.id}"
+                            data-cat-slug="${escapeHtml(c.slug)}"
+                            data-cat-name="${escapeHtml(c.name)}"
+                            data-cat-subtitle="${escapeHtml(c.subtitle || '')}"
+                            data-cat-desc="${escapeHtml(c.description || '')}"
+                            data-cat-img="${basePath}${escapeHtml(c.image_url)}"
+                            data-cat-active="${c.is_active ? '1' : '0'}"
+                          >
                             <td data-label="Photo">
                               <img src="${basePath}${escapeHtml(c.image_url)}" alt="${escapeHtml(c.name)}" data-category-img-id="${c.id}" style="width:68px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
                             </td>
                             <td data-label="Category &amp; Slug">
                               <div>
-                                <strong><a href="${basePath}/category/${escapeHtml(c.slug)}">${escapeHtml(c.name)}</a></strong><br/>
+                                <strong><a href="${basePath}/category/${escapeHtml(c.slug)}" data-cat-name-display="${c.id}">${escapeHtml(c.name)}</a></strong><br/>
                                 <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">/category/${escapeHtml(c.slug)}</span>
                               </div>
                             </td>
-                            <td data-label="Subtitle" style="font-size:0.82rem;"><span>${escapeHtml(c.subtitle)}</span></td>
-                            <td data-label="Status">
-                              <button
-                                type="button"
-                                class="sn-btn ${c.is_active ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
-                                data-toggle-cat-id="${c.id}"
-                                data-toggle-cat-active="${c.is_active ? '1' : '0'}"
-                              >${c.is_active ? 'Published (Active)' : 'Deactivated'}</button>
+                            <td data-label="Subtitle &amp; Description" style="font-size:0.81rem;">
+                              <div>
+                                <strong data-cat-subtitle-display="${c.id}" style="color:var(--sn-bg-forest);">${escapeHtml(c.subtitle)}</strong><br/>
+                                <span data-cat-desc-display="${c.id}" style="font-size:0.75rem;color:var(--sn-text-secondary);">${escapeHtml(c.description || '')}</span>
+                              </div>
+                            </td>
+                            <td data-label="Status &amp; Edit">
+                              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                                <button
+                                  type="button"
+                                  class="sn-btn ${c.is_active ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
+                                  data-toggle-cat-id="${c.id}"
+                                  data-toggle-cat-active="${c.is_active ? '1' : '0'}"
+                                >${c.is_active ? 'Active' : 'Deactivated'}</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-cat-editor="${c.id}"
+                                >✏️ Edit</button>
+                              </div>
                             </td>
                             <td data-label="Update Banner Photo">
                               <form class="sn-admin-cat-img-form sn-admin-file-action-group">
@@ -2368,7 +2390,7 @@ function renderAdminPortalPage({
                 </div>
               </div>
 
-              <!-- Contextual Product Edit, Pack Pricing, Flags & Gallery Media Modal (Opens on ✏️ Edit Click) -->
+              <!-- Contextual Product Edit, Category Assignment, Pack Pricing, Flags & Gallery Media Modal (Opens on Product ✏️ Edit Click) -->
               <div id="sn-admin-edit-product-modal" class="sn-admin-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sn-edit-modal-heading" style="display:none;">
                 <div class="sn-admin-modal-card">
                   <div class="sn-admin-modal-header">
@@ -2376,7 +2398,7 @@ function renderAdminPortalPage({
                       <img id="sn-edit-modal-thumb" src="${basePath}/images/cat-dryfruits.jpg" alt="Product Preview" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
                       <div>
                         <span id="sn-edit-modal-sku" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">SN-DF-ALM</span>
-                        <h3 id="sn-edit-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF6EE;">Edit Product Details, Pack Pricing &amp; Media</h3>
+                        <h3 id="sn-edit-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF6EE;">Edit Product Details, Category, Pack Pricing &amp; Media</h3>
                       </div>
                     </div>
                     <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-prod-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
@@ -2392,6 +2414,19 @@ function renderAdminPortalPage({
                           <input type="text" name="name" id="sn-edit-prod-name" required class="sn-input" />
                         </div>
                         <div>
+                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Storefront Category *</label>
+                          <select name="categoryId" id="sn-edit-prod-cat" class="sn-select">
+                            ${categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+                          </select>
+                        </div>
+                        <div>
+                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Growing Region / Origin *</label>
+                          <input type="text" name="originRegion" id="sn-edit-prod-origin" required class="sn-input" />
+                        </div>
+                      </div>
+
+                      <div class="sn-grid-4" style="gap:12px;margin-bottom:12px;">
+                        <div>
                           <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">100g Base Selling Price (₹) *</label>
                           <input type="number" name="base100gSellInr" id="sn-edit-prod-sell" min="10" required class="sn-input" />
                         </div>
@@ -2399,14 +2434,6 @@ function renderAdminPortalPage({
                           <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">100g Base MRP (₹) *</label>
                           <input type="number" name="base100gMrpInr" id="sn-edit-prod-mrp" min="10" required class="sn-input" />
                         </div>
-                      </div>
-
-                      <!-- Live 4-Pack Variant Price Preview Bar -->
-                      <div id="sn-edit-prod-pack-preview" style="padding:8px 12px;margin-bottom:12px;background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-warm);border-radius:var(--sn-radius-sm);font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-bg-forest);">
-                        Auto-Scaled Pack Variants: 100 g • 250 g (2.35×) • 500 g (4.45×) • 1 kg (8.50×)
-                      </div>
-
-                      <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
                         <div>
                           <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">GST Slab (%)</label>
                           <select name="gstPercent" id="sn-edit-prod-gst" class="sn-select">
@@ -2418,13 +2445,11 @@ function renderAdminPortalPage({
                           <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">HSN Code *</label>
                           <input type="text" name="hsnCode" id="sn-edit-prod-hsn" required class="sn-input" style="font-family:var(--sn-font-mono);" />
                         </div>
-                        <div>
-                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Storefront Status</label>
-                          <select name="isActive" id="sn-edit-prod-active" class="sn-select">
-                            <option value="1">Published (Active)</option>
-                            <option value="0">Deactivated (Hidden)</option>
-                          </select>
-                        </div>
+                      </div>
+
+                      <!-- Live 4-Pack Variant Price Preview Bar -->
+                      <div id="sn-edit-prod-pack-preview" style="padding:8px 12px;margin-bottom:12px;background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-warm);border-radius:var(--sn-radius-sm);font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-bg-forest);">
+                        Auto-Scaled Pack Variants: 100 g • 250 g (2.35×) • 500 g (4.45×) • 1 kg (8.50×)
                       </div>
 
                       <div style="margin-bottom:12px;">
@@ -2432,7 +2457,14 @@ function renderAdminPortalPage({
                         <input type="text" name="shortDescription" id="sn-edit-prod-desc" required class="sn-input" />
                       </div>
 
-                      <div class="sn-grid-3" style="gap:12px;margin-bottom:16px;">
+                      <div class="sn-grid-4" style="gap:12px;margin-bottom:16px;">
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Storefront Status</label>
+                          <select name="isActive" id="sn-edit-prod-active" class="sn-select">
+                            <option value="1">Published (Active)</option>
+                            <option value="0">Deactivated (Hidden)</option>
+                          </select>
+                        </div>
                         <div>
                           <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Featured Flag</label>
                           <select name="isFeatured" id="sn-edit-prod-featured" class="sn-select">
@@ -2487,6 +2519,62 @@ function renderAdminPortalPage({
                             <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Upload</button>
                           </div>
                         </div>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Contextual Category Edit Modal (Opens on Category ✏️ Edit Click) -->
+              <div id="sn-admin-edit-category-modal" class="sn-admin-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sn-edit-cat-modal-heading" style="display:none;">
+                <div class="sn-admin-modal-card" style="max-width:660px;">
+                  <div class="sn-admin-modal-header">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                      <img id="sn-edit-cat-modal-thumb" src="${basePath}/images/cat-dryfruits.jpg" alt="Category Banner Preview" style="width:60px;height:42px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
+                      <div>
+                        <span id="sn-edit-cat-modal-slug" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">/category/dry-fruits</span>
+                        <h3 id="sn-edit-cat-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF6EE;">Edit Category Details &amp; Banner Photo</h3>
+                      </div>
+                    </div>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-cat-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                  </div>
+
+                  <div class="sn-admin-modal-body">
+                    <form id="sn-admin-edit-category-form">
+                      <input type="hidden" name="categoryId" id="sn-edit-cat-id" value="${categories[0] ? categories[0].id : 1}" />
+
+                      <div class="sn-grid-2" style="gap:12px;margin-bottom:12px;">
+                        <div>
+                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Category Name *</label>
+                          <input type="text" name="name" id="sn-edit-cat-name" required class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Storefront Status</label>
+                          <select name="isActive" id="sn-edit-cat-active" class="sn-select">
+                            <option value="1">Published (Active)</option>
+                            <option value="0">Deactivated (Hidden)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style="margin-bottom:12px;">
+                        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Subtitle / Eyebrow *</label>
+                        <input type="text" name="subtitle" id="sn-edit-cat-subtitle" required class="sn-input" />
+                      </div>
+
+                      <div style="margin-bottom:12px;">
+                        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Category Description (Humanizer-Checked) *</label>
+                        <textarea name="description" id="sn-edit-cat-desc" rows="2" required class="sn-textarea"></textarea>
+                      </div>
+
+                      <div style="margin-bottom:16px;">
+                        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Replace Category Banner Image (Optional JPEG/PNG/WebP)</label>
+                        <input type="file" name="categoryImageFile" id="sn-edit-cat-file" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input" />
+                      </div>
+
+                      <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
+                        <button type="button" class="sn-btn sn-btn-outline" data-close-cat-modal>Cancel</button>
+                        <button type="submit" class="sn-btn sn-btn-forest">Save Category Edits</button>
                       </div>
                     </form>
                   </div>
