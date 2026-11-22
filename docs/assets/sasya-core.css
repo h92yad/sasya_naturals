@@ -1448,48 +1448,35 @@ img {
     min-width: 42px !important;
   }
 
-  /* Constrain tables inside viewport on Tablet & Mobile */
-  .sn-table {
-    table-layout: fixed;
+  /* Scoped horizontal scroll for GST invoices & dense Admin ledgers on Tablet & Mobile */
+  .sn-table-wrap {
     width: 100%;
-    font-size: 0.75rem;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--sn-border-warm);
+    border-radius: var(--sn-radius-sm);
+    background-color: var(--sn-bg-surface);
+  }
+
+  .sn-table {
+    table-layout: auto;
+    width: 100%;
+    min-width: 640px;
+    font-size: 0.82rem;
   }
 
   .sn-table th,
   .sn-table td {
-    padding: 6px 4px;
-    word-break: break-word;
-    overflow-wrap: anywhere;
-    white-space: normal !important;
+    padding: 10px 12px;
+    word-break: normal;
+    overflow-wrap: normal;
   }
 
-  .sn-table td button,
-  .sn-table td a.sn-btn,
-  .sn-table td input,
-  .sn-table td select {
-    max-width: 100% !important;
-    min-width: 40px !important;
-    min-height: 40px !important;
-    padding: 4px 4px !important;
-  }
-
-  .sn-admin-staff-update-form,
-  .sn-admin-cat-img-form,
-  .sn-admin-inline-prod-img-form,
-  .sn-admin-stock-form {
-    flex-wrap: wrap !important;
-  }
-
-  .sn-admin-staff-update-form input,
-  .sn-admin-staff-update-form select,
-  .sn-admin-cat-img-form input,
-  .sn-admin-inline-prod-img-form input,
-  .sn-admin-stock-form input,
-  .sn-admin-stock-form button,
-  .sn-admin-inline-prod-img-form button,
-  .sn-admin-cat-img-form button {
-    width: 100% !important;
-    max-width: 100% !important;
+  .sn-table th,
+  .sn-table .sn-status,
+  .sn-table .sn-btn {
+    white-space: nowrap;
   }
 }
 
@@ -1500,7 +1487,7 @@ img {
   }
 
   .sn-card {
-    padding: 12px 10px;
+    padding: 14px;
   }
 
   .sn-section {
@@ -1564,15 +1551,6 @@ img {
     right: 10px;
     bottom: 14px;
     max-width: calc(100vw - 20px);
-  }
-
-  .sn-table {
-    font-size: 0.66rem;
-  }
-
-  .sn-table th,
-  .sn-table td {
-    padding: 4px 1px;
   }
 
   .sn-invoice-meta-right {

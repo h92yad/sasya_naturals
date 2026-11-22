@@ -1113,25 +1113,22 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
             </div>
 
             <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;color:var(--sn-bg-forest);">Ordered Pack Items &amp; HSN Tax Breakdown (${escapeHtml(taxRegimeLabel)})</h3>
-            <div class="sn-table-wrap">
-              <table class="sn-table">
-                <thead>
-                  <tr><th>Product</th><th>SKU</th><th>HSN Code</th><th>Pack Size</th><th>Qty</th><th>Unit Price</th><th>Line Total</th></tr>
-                </thead>
-                <tbody>
-                  ${orderItems.map(item => `
-                    <tr>
-                      <td><strong>${escapeHtml(item.product_name)}</strong></td>
-                      <td style="font-family:var(--sn-font-mono);">${escapeHtml(item.sku)}</td>
-                      <td style="font-family:var(--sn-font-mono);">${escapeHtml(item.hsn_code || '080290')}</td>
-                      <td style="font-family:var(--sn-font-mono);white-space:nowrap;">${escapeHtml(item.pack_label)}</td>
-                      <td style="font-family:var(--sn-font-mono);">${item.quantity}</td>
-                      <td style="font-family:var(--sn-font-mono);">${formatInr(item.unit_price_paise)}</td>
-                      <td style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(item.line_total_paise)}</td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              ${orderItems.map(item => `
+                <div class="sn-card" style="padding:12px 16px;background-color:var(--sn-bg-parchment);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                  <div style="flex:1;min-width:220px;">
+                    <div style="font-weight:700;color:var(--sn-bg-forest);font-size:0.95rem;">
+                      ${escapeHtml(item.product_name)} <span style="font-family:var(--sn-font-mono);font-size:0.84rem;">(${escapeHtml(item.pack_label)} &times; ${item.quantity})</span>
+                    </div>
+                    <div style="font-family:var(--sn-font-mono);font-size:0.76rem;color:var(--sn-text-muted);margin-top:3px;">
+                      SKU: ${escapeHtml(item.sku)} &bull; HSN: ${escapeHtml(item.hsn_code || '080290')} &bull; Unit Price: ${formatInr(item.unit_price_paise)}
+                    </div>
+                  </div>
+                  <div style="font-family:var(--sn-font-mono);font-weight:700;font-size:1rem;color:var(--sn-bg-forest);white-space:nowrap;">
+                    ${formatInr(item.line_total_paise)}
+                  </div>
+                </div>
+              `).join('')}
             </div>
           </div>
         ` : `
@@ -1537,56 +1534,56 @@ function renderCustomerAccountPage({
 
           <!-- Customer Order History & GST Tax Invoices -->
           <div class="sn-card">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
               <div>
                 <h2 style="font-family:var(--sn-font-serif);margin:0;font-size:1.35rem;color:var(--sn-bg-forest);">3. My Order History, Courier Tracking &amp; GST Invoices</h2>
                 <p style="font-size:0.84rem;color:var(--sn-text-secondary);margin:4px 0 0;">View real-time dual payment &amp; fulfilment statuses and manual courier AWB numbers.</p>
               </div>
               <a href="${basePath}/checkout" class="sn-btn sn-btn-forest sn-btn-sm">Checkout with Saved Addresses &rarr;</a>
             </div>
-            <div class="sn-table-wrap">
-              <table class="sn-table" id="sn-customer-orders-table">
-                <thead>
-                  <tr>
-                    <th>Order No.</th>
-                    <th>Date</th>
-                    <th>Ordered Packs</th>
-                    <th>Total (INR)</th>
-                    <th>Payment Status</th>
-                    <th>Fulfilment Status</th>
-                    <th>Courier &amp; AWB</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${orders.map(o => {
-                    const oItems = orderItems.filter(it => Number(it.order_id) === Number(o.id));
-                    return `
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;white-space:nowrap;">${escapeHtml(o.order_number)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.78rem;white-space:nowrap;">${escapeHtml((o.created_at || '').slice(0, 10))}</td>
-                        <td style="font-size:0.82rem;">
+            <div id="sn-customer-orders-list" style="display:flex;flex-direction:column;gap:14px;">
+              ${orders.map(o => {
+                const oItems = orderItems.filter(it => Number(it.order_id) === Number(o.id));
+                return `
+                  <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:14px 16px;" data-customer-order-card="${escapeHtml(o.order_number)}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding-bottom:10px;margin-bottom:12px;border-bottom:1px solid var(--sn-border-warm);">
+                      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <strong style="font-family:var(--sn-font-mono);font-size:1rem;color:var(--sn-bg-forest);white-space:nowrap;">${escapeHtml(o.order_number)}</strong>
+                        <span style="font-family:var(--sn-font-mono);font-size:0.78rem;color:var(--sn-text-muted);white-space:nowrap;">Placed: ${escapeHtml((o.created_at || '').slice(0, 10))}</span>
+                      </div>
+                      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span class="sn-status ${o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(o.payment_status)}</span>
+                        <span class="sn-status sn-status-paid">${escapeHtml(o.fulfilment_status)}</span>
+                        <strong style="font-family:var(--sn-font-mono);font-size:1.02rem;color:var(--sn-bg-forest);white-space:nowrap;">${formatInr(o.total_paise)}</strong>
+                      </div>
+                    </div>
+
+                    <div class="sn-grid-2" style="gap:12px;align-items:center;">
+                      <div>
+                        <div style="font-family:var(--sn-font-mono);font-size:0.71rem;text-transform:uppercase;color:var(--sn-text-muted);margin-bottom:3px;">
+                          Ordered Pantry Packs (${oItems.length || 1})
+                        </div>
+                        <div style="font-size:0.86rem;line-height:1.45;color:var(--sn-text-primary);">
                           ${oItems.length > 0
-                            ? oItems.map(it => `${escapeHtml(it.product_name)} (${escapeHtml(it.pack_label)} × ${it.quantity})`).join(', ')
+                            ? oItems.map(it => `<strong>${escapeHtml(it.product_name)}</strong> (${escapeHtml(it.pack_label)} &times; ${it.quantity})`).join(', ')
                             : 'Pantry Order Packs'}
-                        </td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;white-space:nowrap;">${formatInr(o.total_paise)}</td>
-                        <td><span class="sn-status ${o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(o.payment_status)}</span></td>
-                        <td><span class="sn-status sn-status-paid">${escapeHtml(o.fulfilment_status)}</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
-                          ${o.courier_name ? `${escapeHtml(o.courier_name)}<br/>AWB: ${escapeHtml(o.tracking_number)}` : 'Awaiting Dispatch'}
-                        </td>
-                        <td>
-                          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                            <a href="${basePath}/track-order?order=${encodeURIComponent(o.order_number)}" class="sn-btn sn-btn-forest sn-btn-sm">Track</a>
-                            <a href="${basePath}/orders/${encodeURIComponent(o.order_number)}/invoice" class="sn-btn sn-btn-outline sn-btn-sm">GST Invoice</a>
-                          </div>
-                        </td>
-                      </tr>
-                    `;
-                  }).join('')}
-                </tbody>
-              </table>
+                        </div>
+                      </div>
+
+                      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;border-radius:6px;background-color:var(--sn-bg-surface);border:1px solid var(--sn-border-warm);">
+                        <div style="font-family:var(--sn-font-mono);font-size:0.76rem;line-height:1.4;">
+                          <span style="color:var(--sn-text-muted);display:block;font-size:0.69rem;text-transform:uppercase;">Courier &amp; AWB</span>
+                          ${o.courier_name ? `<strong>${escapeHtml(o.courier_name)}</strong><br/>AWB: ${escapeHtml(o.tracking_number)}` : 'Awaiting Dispatch'}
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                          <a href="${basePath}/track-order?order=${encodeURIComponent(o.order_number)}" class="sn-btn sn-btn-forest sn-btn-sm">Track Order</a>
+                          <a href="${basePath}/orders/${encodeURIComponent(o.order_number)}/invoice" class="sn-btn sn-btn-outline sn-btn-sm">GST Invoice</a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
             </div>
           </div>
         </div>
