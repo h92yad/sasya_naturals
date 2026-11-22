@@ -894,8 +894,73 @@
       });
     }
 
+    function activateAdminModule(target) {
+      document.querySelectorAll('[data-admin-tab-btn]').forEach(b => {
+        const isMatch = b.getAttribute('data-admin-tab-btn') === target;
+        b.classList.toggle('sn-active', isMatch);
+        if (isMatch && typeof b.scrollIntoView === 'function') {
+          b.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      });
+      document.querySelectorAll('[data-admin-submenu-for]').forEach(subUl => {
+        const isMatch = subUl.getAttribute('data-admin-submenu-for') === target;
+        subUl.classList.toggle('sn-submenu-open', isMatch);
+      });
+      let activePanelEl = null;
+      document.querySelectorAll('[data-admin-panel]').forEach(panel => {
+        const isMatch = panel.getAttribute('data-admin-panel') === target;
+        panel.style.display = isMatch ? 'block' : 'none';
+        if (isMatch) activePanelEl = panel;
+      });
+      if (activePanelEl && window.innerWidth <= 960) {
+        const panelTop = activePanelEl.getBoundingClientRect().top + window.scrollY;
+        if (window.scrollY > panelTop - 90) {
+          window.scrollTo({ top: Math.max(0, panelTop - 115), behavior: 'smooth' });
+        }
+      }
+    }
+
+    function activateAdminSubTab(subtabKey) {
+      if (!subtabKey || !subtabKey.includes(':')) return;
+      const [moduleKey] = subtabKey.split(':');
+      activateAdminModule(moduleKey);
+
+      document.querySelectorAll(`[data-admin-subpanel^="${moduleKey}:"]`).forEach(subPanel => {
+        subPanel.style.display = subPanel.getAttribute('data-admin-subpanel') === subtabKey ? 'block' : 'none';
+      });
+      document.querySelectorAll(`[data-admin-subtab-btn^="${moduleKey}:"]`).forEach(pill => {
+        pill.classList.toggle('sn-active', pill.getAttribute('data-admin-subtab-btn') === subtabKey);
+      });
+      document.querySelectorAll(`[data-admin-subtab-link^="${moduleKey}:"]`).forEach(subBtn => {
+        subBtn.classList.toggle('sn-sub-active', subBtn.getAttribute('data-admin-subtab-link') === subtabKey);
+      });
+    }
+
+    document.querySelectorAll('[data-admin-tab-btn]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-admin-tab-btn');
+        activateAdminModule(target);
+      });
+    });
+
+    document.querySelectorAll('[data-admin-subtab-btn]').forEach(pill => {
+      pill.addEventListener('click', () => {
+        activateAdminSubTab(pill.getAttribute('data-admin-subtab-btn'));
+      });
+    });
+
+    document.querySelectorAll('[data-admin-subtab-link]').forEach(subBtn => {
+      subBtn.addEventListener('click', () => {
+        activateAdminSubTab(subBtn.getAttribute('data-admin-subtab-link'));
+      });
+    });
+
     document.querySelectorAll('[data-toggle-admin-form]').forEach(btn => {
       btn.addEventListener('click', () => {
+        const forcedSubtab = btn.getAttribute('data-force-subtab');
+        if (forcedSubtab) {
+          activateAdminSubTab(forcedSubtab);
+        }
         const targetId = btn.getAttribute('data-toggle-admin-form');
         const targetEl = document.getElementById(targetId);
         if (targetEl) {
@@ -908,41 +973,6 @@
           });
           if (isOpen && typeof targetEl.scrollIntoView === 'function') {
             targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
-        }
-      });
-    });
-
-    document.querySelectorAll('[data-admin-jump-form]').forEach(link => {
-      link.addEventListener('click', () => {
-        const formId = link.getAttribute('data-admin-jump-form');
-        const formEl = document.getElementById(formId);
-        if (formEl) {
-          formEl.classList.add('sn-open');
-          const innerBody = formEl.querySelector('.sn-admin-collapsible-form');
-          if (innerBody) innerBody.classList.add('sn-open');
-        }
-      });
-    });
-
-    document.querySelectorAll('[data-admin-tab-btn]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const target = btn.getAttribute('data-admin-tab-btn');
-        document.querySelectorAll('[data-admin-tab-btn]').forEach(b => b.classList.remove('sn-active'));
-        btn.classList.add('sn-active');
-        if (typeof btn.scrollIntoView === 'function') {
-          btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
-        let activePanelEl = null;
-        document.querySelectorAll('[data-admin-panel]').forEach(panel => {
-          const isMatch = panel.getAttribute('data-admin-panel') === target;
-          panel.style.display = isMatch ? 'block' : 'none';
-          if (isMatch) activePanelEl = panel;
-        });
-        if (activePanelEl && window.innerWidth <= 960) {
-          const panelTop = activePanelEl.getBoundingClientRect().top + window.scrollY;
-          if (window.scrollY > panelTop - 90) {
-            window.scrollTo({ top: Math.max(0, panelTop - 115), behavior: 'smooth' });
           }
         }
       });

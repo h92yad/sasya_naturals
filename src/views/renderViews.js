@@ -1813,12 +1813,45 @@ function renderAdminPortalPage({
             <ul class="sn-admin-menu">
               <li><button type="button" class="sn-active" data-admin-tab-btn="orders" id="tab-btn-orders">1. Orders &amp; Manual Shipping</button></li>
               <li><button type="button" data-admin-tab-btn="vault" id="tab-btn-vault">2. API &amp; Razorpay Key Vault</button></li>
-              <li><button type="button" data-admin-tab-btn="products" id="tab-btn-products">3. Categories, Products &amp; Media</button></li>
-              <li><button type="button" data-admin-tab-btn="inventory" id="tab-btn-inventory">4. Inventory &amp; Stock Ledger (${variants.length})</button></li>
-              <li><button type="button" data-admin-tab-btn="payments" id="tab-btn-payments">5. Payments, COD &amp; Reports</button></li>
+              <li>
+                <button type="button" data-admin-tab-btn="products" id="tab-btn-products">3. Categories, Products &amp; Media ▾</button>
+                <ul class="sn-admin-submenu" data-admin-submenu-for="products">
+                  <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="products:catalogue">3.1 Products Catalogue (${products.length})</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="products:categories">3.2 Categories &amp; Banners (${categories.length})</button></li>
+                </ul>
+              </li>
+              <li>
+                <button type="button" data-admin-tab-btn="inventory" id="tab-btn-inventory">4. Inventory &amp; Stock Ledger (${variants.length}) ▾</button>
+                <ul class="sn-admin-submenu" data-admin-submenu-for="inventory">
+                  <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="inventory:variants">4.1 Variant Stock (${variants.length} SKUs)</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="inventory:movements">4.2 Stock Movement Ledger</button></li>
+                </ul>
+              </li>
+              <li>
+                <button type="button" data-admin-tab-btn="payments" id="tab-btn-payments">5. Payments, COD &amp; Reports ▾</button>
+                <ul class="sn-admin-submenu" data-admin-submenu-for="payments">
+                  <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="payments:reconciliation">5.1 Payments, COD &amp; Refunds</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="payments:sales-timeseries">5.2 Daily / Weekly / Monthly Sales</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="payments:product-sales">5.3 Product-Wise Sales (${reports.productSales.length})</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="payments:gst-summaries">5.4 GST Tax &amp; Gateway Summaries</button></li>
+                </ul>
+              </li>
               <li><button type="button" data-admin-tab-btn="customers" id="tab-btn-customers">6. Customers &amp; Order History</button></li>
-              <li><button type="button" data-admin-tab-btn="rbac" id="tab-btn-rbac">7. Staff RBAC &amp; Audit Logs</button></li>
-              <li><button type="button" data-admin-tab-btn="compliance" id="tab-btn-compliance">8. Shipping, GST, FSSAI &amp; Templates</button></li>
+              <li>
+                <button type="button" data-admin-tab-btn="rbac" id="tab-btn-rbac">7. Staff RBAC &amp; Audit Logs ▾</button>
+                <ul class="sn-admin-submenu" data-admin-submenu-for="rbac">
+                  <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="rbac:staff">7.1 Staff Accounts &amp; RBAC (${staffUsers.length})</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="rbac:audit-logs">7.2 Immutable Audit Logs (${auditLogs.length})</button></li>
+                </ul>
+              </li>
+              <li>
+                <button type="button" data-admin-tab-btn="compliance" id="tab-btn-compliance">8. Shipping, GST, FSSAI &amp; Templates ▾</button>
+                <ul class="sn-admin-submenu" data-admin-submenu-for="compliance">
+                  <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="compliance:shipping">8.1 Delivery Pricing (4-Zone)</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="compliance:legal-templates">8.2 GSTIN, FSSAI &amp; Templates</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="compliance:notif-logs">8.3 Notification Logs (${notificationLogs.length})</button></li>
+                </ul>
+              </li>
             </ul>
           </aside>
 
@@ -2079,7 +2112,7 @@ function renderAdminPortalPage({
 
             <!-- Panel 3: Categories, Products, Contextual Edit Modal & Media Manager -->
             <div class="sn-card" data-admin-panel="products" style="display:none;">
-              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
                 <div>
                   <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Categories, Products, Pack Variants &amp; Media Manager</h2>
                   <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0;">
@@ -2087,246 +2120,255 @@ function renderAdminPortalPage({
                   </p>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-toggle-admin-form="sn-admin-create-category-form" data-toggle-open-text="− Hide Category Form" data-toggle-closed-text="+ New Category">+ New Category</button>
-                  <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" data-toggle-admin-form="sn-admin-create-product-body" data-toggle-open-text="− Hide Product Form" data-toggle-closed-text="+ Add New Product">+ Add New Product</button>
-                  <a href="#sn-admin-products-catalogue-table" class="sn-btn sn-btn-forest sn-btn-sm">📋 Jump to ${products.length}-Product Table &darr;</a>
+                  <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" data-toggle-admin-form="sn-admin-create-product-body" data-force-subtab="products:catalogue" data-toggle-open-text="− Hide Product Form" data-toggle-closed-text="+ Add New Product">+ Add New Product</button>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-toggle-admin-form="sn-admin-create-category-form" data-force-subtab="products:categories" data-toggle-open-text="− Hide Category Form" data-toggle-closed-text="+ New Category">+ New Category</button>
                 </div>
               </div>
 
-              <!-- 3A. Product Categories & On-Demand Create Category Form -->
-              <div class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:20px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-                  <div>
-                    <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.08rem;color:var(--sn-bg-forest);">1. Product Categories &amp; Category Banner Photos (${categories.length})</h3>
-                    <span style="font-size:0.78rem;color:var(--sn-text-secondary);">Manage storefront category status and banner photos, or expand <strong>+ New Category</strong> to add a new aisle.</span>
-                  </div>
-                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-toggle-admin-form="sn-admin-create-category-form" data-toggle-open-text="− Hide Category Form" data-toggle-closed-text="+ New Category">+ New Category</button>
+              <!-- In-Panel Segmented Sub-Module Bar (Synced with Desktop Sidebar Accordion) -->
+              <div class="sn-admin-subnav-bar" role="tablist">
+                <button type="button" class="sn-admin-subtab-pill sn-active" data-admin-subtab-btn="products:catalogue">📦 3.1 Products Catalogue (${products.length} Products • ${variants.length} Variants)</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="products:categories">🗂️ 3.2 Categories &amp; Banner Photos (${categories.length})</button>
+              </div>
+
+              <!-- Sub-Panel 3.1 (Default): Products Catalogue + On-Demand Add Product Form -->
+              <div data-admin-subpanel="products:catalogue">
+                <div id="sn-admin-create-product-body" class="sn-admin-collapsible-all" style="margin-bottom:18px;">
+                  <form id="sn-admin-create-product-form" class="sn-card" style="background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-strong);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
+                      <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.05rem;color:var(--sn-bg-forest);">Add New Product (with Auto-Generated 100g, 250g, 500g, 1kg Variants)</h3>
+                      <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-toggle-admin-form="sn-admin-create-product-body" data-toggle-open-text="− Hide Product Form" data-toggle-closed-text="+ Add New Product">✕ Close</button>
+                    </div>
+                    <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
+                      <div>
+                        <label style="font-size:0.75rem;font-weight:600;">Product Name *</label>
+                        <input type="text" name="name" required placeholder="e.g. Guntur Cold-Milled Cumin Powder" class="sn-input" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.75rem;font-weight:600;">SKU Prefix *</label>
+                        <input type="text" name="skuBase" required placeholder="e.g. SN-SP-CMN" class="sn-input" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.75rem;font-weight:600;">Category *</label>
+                        <select name="categoryId" class="sn-select" id="sn-create-prod-cat-select">
+                          ${categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+                        </select>
+                      </div>
+                    </div>
+                    <div class="sn-grid-4" style="gap:12px;margin-bottom:12px;">
+                      <div>
+                        <label style="font-size:0.75rem;font-weight:600;">100g Base Selling Price (INR) *</label>
+                        <input type="number" name="base100gInr" required value="140" class="sn-input" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.75rem;font-weight:600;">GST Slab (%) *</label>
+                        <select name="gstPercent" class="sn-select">
+                          <option value="5">5% GST (Natural Staples)</option>
+                          <option value="12">12% GST (Processed / Blended)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label style="font-size:0.75rem;font-weight:600;">Growing Region *</label>
+                        <input type="text" name="originRegion" required value="Unjha &amp; Guntur Belt" class="sn-input" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.75rem;font-weight:600;">Product Photo (JPEG/PNG/WebP)</label>
+                        <input type="file" name="productImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input" />
+                      </div>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                      <label style="font-size:0.75rem;font-weight:600;">Short Description (Humanizer-Checked) *</label>
+                      <input type="text" name="shortDescription" required value="Aromatic whole cumin seeds stone-ground in small batches without filler husk." class="sn-input" />
+                    </div>
+                    <button type="submit" class="sn-btn sn-btn-primary">Create Product &amp; 4 Pack Variants</button>
+                  </form>
                 </div>
 
-                <form id="sn-admin-create-category-form" class="sn-admin-collapsible-all" style="margin-bottom:18px;padding:14px;background-color:var(--sn-bg-surface);border:1px solid var(--sn-border-warm);border-radius:var(--sn-radius-sm);">
-                  <div style="font-family:var(--sn-font-serif);font-weight:700;font-size:0.95rem;color:var(--sn-bg-forest);margin-bottom:10px;">Create New Storefront Category</div>
-                  <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">Category Name *</label>
-                      <input type="text" name="name" required placeholder="e.g. Cold-Pressed Oils &amp; Ghee" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">Subtitle / Eyebrow *</label>
-                      <input type="text" name="subtitle" required placeholder="e.g. Wood-Pressed Wooden Ghani Oils &amp; A2 Ghee" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">Category Banner Image (JPEG/PNG/WebP)</label>
-                      <input type="file" name="categoryImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input" />
+                <!-- Product Catalogue Filter, Search & Pagination Toolbar -->
+                <div class="sn-card" id="sn-admin-products-filter-bar" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:14px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                    <strong style="font-family:var(--sn-font-serif);font-size:1.05rem;color:var(--sn-bg-forest);">Storefront Product Catalogue (${products.length} Products • ${variants.length} Pack Variants)</strong>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                      <span id="sn-admin-prod-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);">Showing ${products.length} of ${products.length} Products</span>
+                      <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" data-toggle-admin-form="sn-admin-create-product-body" data-force-subtab="products:catalogue" data-toggle-open-text="− Hide Product Form" data-toggle-closed-text="+ Add New Product">+ Add New Product</button>
                     </div>
                   </div>
-                  <div class="sn-form-row-1-action" style="gap:12px;">
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">Category Description (Humanizer-Checked) *</label>
-                      <input type="text" name="description" required placeholder="e.g. Traditional wood-pressed groundnut, sesame, and coconut oils extracted at room temperature." class="sn-input" />
-                    </div>
-                    <button type="submit" class="sn-btn sn-btn-primary">Create Category</button>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                    <input type="search" id="sn-admin-prod-search" placeholder="Search Product Name, SKU (SN-DF/ML/SP), HSN, or Region..." class="sn-input" style="flex:1;min-width:185px;" />
+                    <select id="sn-admin-prod-cat-filter" class="sn-select" style="width:auto;min-width:150px;">
+                      <option value="all">Category: All (${categories.length})</option>
+                      ${categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+                    </select>
+                    <select id="sn-admin-prod-flag-filter" class="sn-select" style="width:auto;min-width:150px;">
+                      <option value="all">Filter: All Statuses</option>
+                      <option value="active">Published (Active)</option>
+                      <option value="inactive">Deactivated</option>
+                      <option value="bestseller">★ Bestsellers</option>
+                      <option value="featured">Featured</option>
+                      <option value="new">New Harvests</option>
+                    </select>
                   </div>
-                </form>
+                </div>
 
-                <div class="sn-table-wrap">
-                  <table class="sn-table sn-table-cards" id="sn-admin-categories-table">
+                <div class="sn-table-wrap" id="sn-admin-products-catalogue-table">
+                  <table class="sn-table sn-table-cards" id="sn-admin-products-table">
                     <thead>
-                      <tr><th>Photo</th><th>Category Name &amp; Slug</th><th>Subtitle</th><th>Status</th><th>Change Category Image</th></tr>
+                      <tr><th>Photo</th><th>SKU, HSN &amp; Flags</th><th>Product Name &amp; Origin</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th><th>Status &amp; Quick Edit</th><th>Quick Change Photo</th></tr>
                     </thead>
                     <tbody>
-                      ${categories.map(c => `
-                        <tr>
-                          <td data-label="Photo">
-                            <img src="${basePath}${escapeHtml(c.image_url)}" alt="${escapeHtml(c.name)}" data-category-img-id="${c.id}" style="width:68px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
-                          </td>
-                          <td data-label="Category &amp; Slug">
-                            <div>
-                              <strong><a href="${basePath}/category/${escapeHtml(c.slug)}">${escapeHtml(c.name)}</a></strong><br/>
-                              <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">/category/${escapeHtml(c.slug)}</span>
-                            </div>
-                          </td>
-                          <td data-label="Subtitle" style="font-size:0.82rem;"><span>${escapeHtml(c.subtitle)}</span></td>
-                          <td data-label="Status">
-                            <button
-                              type="button"
-                              class="sn-btn ${c.is_active ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
-                              data-toggle-cat-id="${c.id}"
-                              data-toggle-cat-active="${c.is_active ? '1' : '0'}"
-                            >${c.is_active ? 'Published (Active)' : 'Deactivated'}</button>
-                          </td>
-                          <td data-label="Update Banner Photo">
-                            <form class="sn-admin-cat-img-form sn-admin-file-action-group">
-                              <input type="hidden" name="categoryId" value="${c.id}" />
-                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input sn-file-input sn-file-input-sm" />
-                              <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Update Photo</button>
-                            </form>
-                          </td>
-                        </tr>
-                      `).join('')}
+                      ${products.map(p => {
+                        const pVars = variants.filter(v => v.product_id === p.id);
+                        const v100 = pVars.find(v => Number(v.weight_grams) === 100) || pVars[0] || { selling_price_paise: 14000, mrp_paise: 17000 };
+                        const base100SellInr = Math.round(Number(v100.selling_price_paise || 14000) / 100);
+                        const base100MrpInr = Math.round(Number(v100.mrp_paise || 17000) / 100);
+                        return `
+                          <tr
+                            data-admin-prod-row="${p.id}"
+                            data-prod-id="${p.id}"
+                            data-prod-sku="${escapeHtml(p.sku_base)}"
+                            data-prod-name="${escapeHtml(p.name)}"
+                            data-prod-cat-id="${p.category_id}"
+                            data-prod-100g-sell="${base100SellInr}"
+                            data-prod-100g-mrp="${base100MrpInr}"
+                            data-prod-gst="${p.gst_percent}"
+                            data-prod-hsn="${escapeHtml(p.hsn_code || '080290')}"
+                            data-prod-origin="${escapeHtml(p.origin_region || '')}"
+                            data-prod-desc="${escapeHtml(p.short_description || '')}"
+                            data-prod-img="${basePath}${escapeHtml(p.image_url)}"
+                            data-prod-active="${p.is_active ? '1' : '0'}"
+                            data-prod-bestseller="${p.is_bestseller ? '1' : '0'}"
+                            data-prod-featured="${p.is_featured ? '1' : '0'}"
+                            data-prod-new="${p.is_new_arrival ? '1' : '0'}"
+                          >
+                            <td data-label="Photo">
+                              <img src="${basePath}${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" data-product-img-id="${p.id}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                            </td>
+                            <td data-label="SKU, HSN &amp; Flags" style="font-family:var(--sn-font-mono);font-size:0.75rem;">
+                              <div>
+                                <strong>${escapeHtml(p.sku_base)}</strong> • HSN: ${escapeHtml(p.hsn_code || '080290')} (${p.gst_percent}% GST)<br/>
+                                ${p.is_featured ? '<span class="sn-status sn-status-paid" style="font-size:0.65rem;padding:1px 5px;">Featured</span> ' : ''}
+                                ${p.is_bestseller ? '<span class="sn-status sn-status-warn" style="font-size:0.65rem;padding:1px 5px;">Bestseller</span> ' : ''}
+                                ${p.is_new_arrival ? '<span class="sn-status sn-status-paid" style="font-size:0.65rem;padding:1px 5px;">New</span>' : ''}
+                              </div>
+                            </td>
+                            <td data-label="Product &amp; Origin">
+                              <div>
+                                <strong><a href="${basePath}/product/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a></strong><br/>
+                                <span style="font-size:0.76rem;color:var(--sn-text-muted);">${escapeHtml(p.origin_region)} • ${escapeHtml(p.harvest_batch)}</span>
+                              </div>
+                            </td>
+                            <td data-label="Pack Variants" style="font-family:var(--sn-font-mono);font-size:0.73rem;">
+                              <span>${pVars.map(v => `${escapeHtml(v.pack_label)}: ${formatInr(v.selling_price_paise)} (${v.stock_qty})`).join(' | ')}</span>
+                            </td>
+                            <td data-label="Status &amp; Edit">
+                              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                                <button
+                                  type="button"
+                                  class="sn-btn ${p.is_active ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
+                                  data-toggle-prod-id="${p.id}"
+                                  data-toggle-prod-active="${p.is_active ? '1' : '0'}"
+                                >${p.is_active ? 'Active' : 'Inactive'}</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="${p.id}"
+                                >✏️ Edit</button>
+                              </div>
+                            </td>
+                            <td data-label="Quick Change Photo">
+                              <form class="sn-admin-inline-prod-img-form sn-admin-file-action-group">
+                                <input type="hidden" name="productId" value="${p.id}" />
+                                <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input sn-file-input sn-file-input-sm" />
+                                <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                              </form>
+                            </td>
+                          </tr>
+                        `;
+                      }).join('')}
                     </tbody>
                   </table>
                 </div>
+                <div id="sn-admin-products-pagination" class="sn-admin-pagination-bar"></div>
               </div>
 
-              <!-- 3B. On-Demand Add New Product Collapsible Card (Collapsed by Default) -->
-              <div id="sn-admin-create-product-body" class="sn-admin-collapsible-all" style="margin-bottom:18px;">
-                <form id="sn-admin-create-product-form" class="sn-card" style="background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-strong);">
-                  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
-                    <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.05rem;color:var(--sn-bg-forest);">Add New Product (with Auto-Generated 100g, 250g, 500g, 1kg Variants)</h3>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-toggle-admin-form="sn-admin-create-product-body" data-toggle-open-text="− Hide Product Form" data-toggle-closed-text="+ Add New Product">✕ Close</button>
+              <!-- Sub-Panel 3.2: Product Categories & Category Banner Photos -->
+              <div data-admin-subpanel="products:categories" style="display:none;">
+                <div class="sn-card" style="background-color:var(--sn-bg-parchment);">
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+                    <div>
+                      <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.08rem;color:var(--sn-bg-forest);">Product Categories &amp; Category Banner Photos (${categories.length})</h3>
+                      <span style="font-size:0.78rem;color:var(--sn-text-secondary);">Manage storefront category status and banner photos, or click <strong>+ New Category</strong> to add a new aisle.</span>
+                    </div>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-toggle-admin-form="sn-admin-create-category-form" data-force-subtab="products:categories" data-toggle-open-text="− Hide Category Form" data-toggle-closed-text="+ New Category">+ New Category</button>
                   </div>
-                  <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">Product Name *</label>
-                      <input type="text" name="name" required placeholder="e.g. Guntur Cold-Milled Cumin Powder" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">SKU Prefix *</label>
-                      <input type="text" name="skuBase" required placeholder="e.g. SN-SP-CMN" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">Category *</label>
-                      <select name="categoryId" class="sn-select" id="sn-create-prod-cat-select">
-                        ${categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
-                      </select>
-                    </div>
-                  </div>
-                  <div class="sn-grid-4" style="gap:12px;margin-bottom:12px;">
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">100g Base Selling Price (INR) *</label>
-                      <input type="number" name="base100gInr" required value="140" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">GST Slab (%) *</label>
-                      <select name="gstPercent" class="sn-select">
-                        <option value="5">5% GST (Natural Staples)</option>
-                        <option value="12">12% GST (Processed / Blended)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">Growing Region *</label>
-                      <input type="text" name="originRegion" required value="Unjha &amp; Guntur Belt" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">Product Photo (JPEG/PNG/WebP)</label>
-                      <input type="file" name="productImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input" />
-                    </div>
-                  </div>
-                  <div style="margin-bottom:12px;">
-                    <label style="font-size:0.75rem;font-weight:600;">Short Description (Humanizer-Checked) *</label>
-                    <input type="text" name="shortDescription" required value="Aromatic whole cumin seeds stone-ground in small batches without filler husk." class="sn-input" />
-                  </div>
-                  <button type="submit" class="sn-btn sn-btn-primary">Create Product &amp; 4 Pack Variants</button>
-                </form>
-              </div>
 
-              <!-- 3C. Product Catalogue Filter, Search & Pagination Toolbar -->
-              <div class="sn-card" id="sn-admin-products-filter-bar" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:14px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
-                  <strong style="font-family:var(--sn-font-serif);font-size:1.05rem;color:var(--sn-bg-forest);">2. Storefront Product Catalogue (${products.length} Products • ${variants.length} Pack Variants)</strong>
-                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                    <span id="sn-admin-prod-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);">Showing ${products.length} of ${products.length} Products</span>
-                    <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" data-toggle-admin-form="sn-admin-create-product-body" data-toggle-open-text="− Hide Product Form" data-toggle-closed-text="+ Add New Product">+ Add New Product</button>
-                  </div>
-                </div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-                  <input type="search" id="sn-admin-prod-search" placeholder="Search Product Name, SKU (SN-DF/ML/SP), HSN, or Region..." class="sn-input" style="flex:1;min-width:185px;" />
-                  <select id="sn-admin-prod-cat-filter" class="sn-select" style="width:auto;min-width:150px;">
-                    <option value="all">Category: All (${categories.length})</option>
-                    ${categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
-                  </select>
-                  <select id="sn-admin-prod-flag-filter" class="sn-select" style="width:auto;min-width:150px;">
-                    <option value="all">Filter: All Statuses</option>
-                    <option value="active">Published (Active)</option>
-                    <option value="inactive">Deactivated</option>
-                    <option value="bestseller">★ Bestsellers</option>
-                    <option value="featured">Featured</option>
-                    <option value="new">New Harvests</option>
-                  </select>
-                </div>
-              </div>
+                  <form id="sn-admin-create-category-form" class="sn-admin-collapsible-all" style="margin-bottom:18px;padding:14px;background-color:var(--sn-bg-surface);border:1px solid var(--sn-border-warm);border-radius:var(--sn-radius-sm);">
+                    <div style="font-family:var(--sn-font-serif);font-weight:700;font-size:0.95rem;color:var(--sn-bg-forest);margin-bottom:10px;">Create New Storefront Category</div>
+                    <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
+                      <div>
+                        <label style="font-size:0.75rem;font-weight:600;">Category Name *</label>
+                        <input type="text" name="name" required placeholder="e.g. Cold-Pressed Oils &amp; Ghee" class="sn-input" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.75rem;font-weight:600;">Subtitle / Eyebrow *</label>
+                        <input type="text" name="subtitle" required placeholder="e.g. Wood-Pressed Wooden Ghani Oils &amp; A2 Ghee" class="sn-input" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.75rem;font-weight:600;">Category Banner Image (JPEG/PNG/WebP)</label>
+                        <input type="file" name="categoryImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input" />
+                      </div>
+                    </div>
+                    <div class="sn-form-row-1-action" style="gap:12px;">
+                      <div>
+                        <label style="font-size:0.75rem;font-weight:600;">Category Description (Humanizer-Checked) *</label>
+                        <input type="text" name="description" required placeholder="e.g. Traditional wood-pressed groundnut, sesame, and coconut oils extracted at room temperature." class="sn-input" />
+                      </div>
+                      <button type="submit" class="sn-btn sn-btn-primary">Create Category</button>
+                    </div>
+                  </form>
 
-              <div class="sn-table-wrap" id="sn-admin-products-catalogue-table">
-                <table class="sn-table sn-table-cards" id="sn-admin-products-table">
-                  <thead>
-                    <tr><th>Photo</th><th>SKU, HSN &amp; Flags</th><th>Product Name &amp; Origin</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th><th>Status &amp; Quick Edit</th><th>Quick Change Photo</th></tr>
-                  </thead>
-                  <tbody>
-                    ${products.map(p => {
-                      const pVars = variants.filter(v => v.product_id === p.id);
-                      const v100 = pVars.find(v => Number(v.weight_grams) === 100) || pVars[0] || { selling_price_paise: 14000, mrp_paise: 17000 };
-                      const base100SellInr = Math.round(Number(v100.selling_price_paise || 14000) / 100);
-                      const base100MrpInr = Math.round(Number(v100.mrp_paise || 17000) / 100);
-                      return `
-                        <tr
-                          data-admin-prod-row="${p.id}"
-                          data-prod-id="${p.id}"
-                          data-prod-sku="${escapeHtml(p.sku_base)}"
-                          data-prod-name="${escapeHtml(p.name)}"
-                          data-prod-cat-id="${p.category_id}"
-                          data-prod-100g-sell="${base100SellInr}"
-                          data-prod-100g-mrp="${base100MrpInr}"
-                          data-prod-gst="${p.gst_percent}"
-                          data-prod-hsn="${escapeHtml(p.hsn_code || '080290')}"
-                          data-prod-origin="${escapeHtml(p.origin_region || '')}"
-                          data-prod-desc="${escapeHtml(p.short_description || '')}"
-                          data-prod-img="${basePath}${escapeHtml(p.image_url)}"
-                          data-prod-active="${p.is_active ? '1' : '0'}"
-                          data-prod-bestseller="${p.is_bestseller ? '1' : '0'}"
-                          data-prod-featured="${p.is_featured ? '1' : '0'}"
-                          data-prod-new="${p.is_new_arrival ? '1' : '0'}"
-                        >
-                          <td data-label="Photo">
-                            <img src="${basePath}${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" data-product-img-id="${p.id}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
-                          </td>
-                          <td data-label="SKU, HSN &amp; Flags" style="font-family:var(--sn-font-mono);font-size:0.75rem;">
-                            <div>
-                              <strong>${escapeHtml(p.sku_base)}</strong> • HSN: ${escapeHtml(p.hsn_code || '080290')} (${p.gst_percent}% GST)<br/>
-                              ${p.is_featured ? '<span class="sn-status sn-status-paid" style="font-size:0.65rem;padding:1px 5px;">Featured</span> ' : ''}
-                              ${p.is_bestseller ? '<span class="sn-status sn-status-warn" style="font-size:0.65rem;padding:1px 5px;">Bestseller</span> ' : ''}
-                              ${p.is_new_arrival ? '<span class="sn-status sn-status-paid" style="font-size:0.65rem;padding:1px 5px;">New</span>' : ''}
-                            </div>
-                          </td>
-                          <td data-label="Product &amp; Origin">
-                            <div>
-                              <strong><a href="${basePath}/product/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a></strong><br/>
-                              <span style="font-size:0.76rem;color:var(--sn-text-muted);">${escapeHtml(p.origin_region)} • ${escapeHtml(p.harvest_batch)}</span>
-                            </div>
-                          </td>
-                          <td data-label="Pack Variants" style="font-family:var(--sn-font-mono);font-size:0.73rem;">
-                            <span>${pVars.map(v => `${escapeHtml(v.pack_label)}: ${formatInr(v.selling_price_paise)} (${v.stock_qty})`).join(' | ')}</span>
-                          </td>
-                          <td data-label="Status &amp; Edit">
-                            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                  <div class="sn-table-wrap">
+                    <table class="sn-table sn-table-cards" id="sn-admin-categories-table">
+                      <thead>
+                        <tr><th>Photo</th><th>Category Name &amp; Slug</th><th>Subtitle</th><th>Status</th><th>Change Category Image</th></tr>
+                      </thead>
+                      <tbody>
+                        ${categories.map(c => `
+                          <tr>
+                            <td data-label="Photo">
+                              <img src="${basePath}${escapeHtml(c.image_url)}" alt="${escapeHtml(c.name)}" data-category-img-id="${c.id}" style="width:68px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                            </td>
+                            <td data-label="Category &amp; Slug">
+                              <div>
+                                <strong><a href="${basePath}/category/${escapeHtml(c.slug)}">${escapeHtml(c.name)}</a></strong><br/>
+                                <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">/category/${escapeHtml(c.slug)}</span>
+                              </div>
+                            </td>
+                            <td data-label="Subtitle" style="font-size:0.82rem;"><span>${escapeHtml(c.subtitle)}</span></td>
+                            <td data-label="Status">
                               <button
                                 type="button"
-                                class="sn-btn ${p.is_active ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
-                                data-toggle-prod-id="${p.id}"
-                                data-toggle-prod-active="${p.is_active ? '1' : '0'}"
-                              >${p.is_active ? 'Active' : 'Inactive'}</button>
-                              <button
-                                type="button"
-                                class="sn-btn sn-btn-outline sn-btn-sm"
-                                data-load-prod-editor="${p.id}"
-                              >✏️ Edit</button>
-                            </div>
-                          </td>
-                          <td data-label="Quick Change Photo">
-                            <form class="sn-admin-inline-prod-img-form sn-admin-file-action-group">
-                              <input type="hidden" name="productId" value="${p.id}" />
-                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input sn-file-input sn-file-input-sm" />
-                              <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
-                            </form>
-                          </td>
-                        </tr>
-                      `;
-                    }).join('')}
-                  </tbody>
-                </table>
+                                class="sn-btn ${c.is_active ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
+                                data-toggle-cat-id="${c.id}"
+                                data-toggle-cat-active="${c.is_active ? '1' : '0'}"
+                              >${c.is_active ? 'Published (Active)' : 'Deactivated'}</button>
+                            </td>
+                            <td data-label="Update Banner Photo">
+                              <form class="sn-admin-cat-img-form sn-admin-file-action-group">
+                                <input type="hidden" name="categoryId" value="${c.id}" />
+                                <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input sn-file-input sn-file-input-sm" />
+                                <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Update Photo</button>
+                              </form>
+                            </td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-              <div id="sn-admin-products-pagination" class="sn-admin-pagination-bar"></div>
 
-              <!-- 3D. Contextual Product Edit, Pack Pricing, Flags & Gallery Media Modal (Opens on ✏️ Edit Click) -->
+              <!-- Contextual Product Edit, Pack Pricing, Flags & Gallery Media Modal (Opens on ✏️ Edit Click) -->
               <div id="sn-admin-edit-product-modal" class="sn-admin-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sn-edit-modal-heading" style="display:none;">
                 <div class="sn-admin-modal-card">
                   <div class="sn-admin-modal-header">
@@ -2464,401 +2506,434 @@ function renderAdminPortalPage({
                 <span id="sn-admin-inv-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);">Showing ${variants.length} of ${variants.length} Variants</span>
               </div>
 
-              <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                <input type="search" id="sn-admin-inv-search" placeholder="Search SKU or pack size..." class="sn-input" style="flex:1;min-width:170px;" />
-                <select id="sn-admin-inv-pack-filter" class="sn-select" style="width:auto;min-width:140px;">
-                  <option value="all">Pack: All Sizes (${variants.length})</option>
-                  <option value="100 g">100 g Packs</option>
-                  <option value="250 g">250 g Packs</option>
-                  <option value="500 g">500 g Packs</option>
-                  <option value="1 kg">1 kg Packs</option>
-                </select>
-                <label style="font-size:0.78rem;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;font-weight:600;">
-                  <input type="checkbox" id="sn-admin-inv-low-only" /> Low-Stock Only
-                </label>
+              <!-- In-Panel Segmented Sub-Module Bar (Synced with Desktop Sidebar Accordion) -->
+              <div class="sn-admin-subnav-bar" role="tablist">
+                <button type="button" class="sn-admin-subtab-pill sn-active" data-admin-subtab-btn="inventory:variants">📊 4.1 Variant Stock Adjuster (${variants.length} SKUs)</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="inventory:movements">📜 4.2 Stock Movement Ledger (${movements.length})</button>
               </div>
 
-              <div class="sn-table-wrap">
-                <table class="sn-table sn-table-cards" id="sn-admin-inventory-table">
-                  <thead>
-                    <tr><th>Variant SKU</th><th>Pack Size</th><th>Selling Price</th><th>MRP</th><th>Current Stock</th><th>Alert Threshold</th><th>Update Stock &amp; Threshold</th></tr>
-                  </thead>
-                  <tbody>
-                    ${variants.map(v => `
-                      <tr
-                        data-inv-sku="${escapeHtml(v.sku.toLowerCase())}"
-                        data-inv-pack="${escapeHtml(v.pack_label)}"
-                        data-inv-low="${v.stock_qty <= v.low_stock_threshold ? '1' : '0'}"
-                      >
-                        <td data-label="Variant SKU" style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-bg-forest);">${escapeHtml(v.sku)}</td>
-                        <td data-label="Pack Size" style="font-family:var(--sn-font-mono);">${escapeHtml(v.pack_label)}</td>
-                        <td data-label="Selling Price" style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(v.selling_price_paise)}</td>
-                        <td data-label="MRP" style="font-family:var(--sn-font-mono);color:var(--sn-text-muted);">${formatInr(v.mrp_paise)}</td>
-                        <td data-label="Current Stock"><span class="sn-status ${v.stock_qty <= v.low_stock_threshold ? 'sn-status-danger' : 'sn-status-paid'}">${v.stock_qty} packs</span></td>
-                        <td data-label="Alert Threshold" style="font-family:var(--sn-font-mono);">&le; ${v.low_stock_threshold} packs</td>
-                        <td data-label="Update Stock &amp; Min Alert">
-                          <form class="sn-admin-stock-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                            <input type="hidden" name="variantId" value="${v.id}" />
-                            <input type="number" name="newStockQty" value="${v.stock_qty}" min="0" title="New Stock Quantity" class="sn-input" style="width:78px;padding:6px;" />
-                            <input type="number" name="lowStockThreshold" value="${v.low_stock_threshold}" min="1" title="Low-Stock Alert Threshold" class="sn-input" style="width:68px;padding:6px;" />
-                            <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Update</button>
-                          </form>
-                        </td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-              <div id="sn-admin-inventory-pagination" class="sn-admin-pagination-bar" style="margin-bottom:24px;"></div>
+              <!-- Sub-Panel 4.1 (Default): 88-Variant Stock Adjuster -->
+              <div data-admin-subpanel="inventory:variants">
+                <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                  <input type="search" id="sn-admin-inv-search" placeholder="Search SKU or pack size..." class="sn-input" style="flex:1;min-width:170px;" />
+                  <select id="sn-admin-inv-pack-filter" class="sn-select" style="width:auto;min-width:140px;">
+                    <option value="all">Pack: All Sizes (${variants.length})</option>
+                    <option value="100 g">100 g Packs</option>
+                    <option value="250 g">250 g Packs</option>
+                    <option value="500 g">500 g Packs</option>
+                    <option value="1 kg">1 kg Packs</option>
+                  </select>
+                  <label style="font-size:0.78rem;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;font-weight:600;">
+                    <input type="checkbox" id="sn-admin-inv-low-only" /> Low-Stock Only
+                  </label>
+                </div>
 
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;">Recent Stock Movements Ledger</h3>
-              <div class="sn-table-wrap">
-                <table class="sn-table" id="sn-admin-movements-table">
-                  <thead>
-                    <tr><th>Timestamp</th><th>Variant ID</th><th>Delta</th><th>Prev -> New</th><th>Reason</th><th>Reference</th></tr>
-                  </thead>
-                  <tbody>
-                    ${movements.map(m => `
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">${escapeHtml(m.created_at)}</td>
-                        <td style="font-family:var(--sn-font-mono);">#${m.variant_id}</td>
-                        <td style="font-family:var(--sn-font-mono);color:${m.delta_qty < 0 ? 'var(--sn-status-danger)' : 'var(--sn-status-paid)'};">${m.delta_qty > 0 ? '+' + m.delta_qty : m.delta_qty}</td>
-                        <td style="font-family:var(--sn-font-mono);">${m.previous_qty} -> ${m.new_qty}</td>
-                        <td>${escapeHtml(m.reason)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${escapeHtml(m.reference_id)}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
+                <div class="sn-table-wrap">
+                  <table class="sn-table sn-table-cards" id="sn-admin-inventory-table">
+                    <thead>
+                      <tr><th>Variant SKU</th><th>Pack Size</th><th>Selling Price</th><th>MRP</th><th>Current Stock</th><th>Alert Threshold</th><th>Update Stock &amp; Threshold</th></tr>
+                    </thead>
+                    <tbody>
+                      ${variants.map(v => `
+                        <tr
+                          data-inv-sku="${escapeHtml(v.sku.toLowerCase())}"
+                          data-inv-pack="${escapeHtml(v.pack_label)}"
+                          data-inv-low="${v.stock_qty <= v.low_stock_threshold ? '1' : '0'}"
+                        >
+                          <td data-label="Variant SKU" style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-bg-forest);">${escapeHtml(v.sku)}</td>
+                          <td data-label="Pack Size" style="font-family:var(--sn-font-mono);">${escapeHtml(v.pack_label)}</td>
+                          <td data-label="Selling Price" style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(v.selling_price_paise)}</td>
+                          <td data-label="MRP" style="font-family:var(--sn-font-mono);color:var(--sn-text-muted);">${formatInr(v.mrp_paise)}</td>
+                          <td data-label="Current Stock"><span class="sn-status ${v.stock_qty <= v.low_stock_threshold ? 'sn-status-danger' : 'sn-status-paid'}">${v.stock_qty} packs</span></td>
+                          <td data-label="Alert Threshold" style="font-family:var(--sn-font-mono);">&le; ${v.low_stock_threshold} packs</td>
+                          <td data-label="Update Stock &amp; Min Alert">
+                            <form class="sn-admin-stock-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                              <input type="hidden" name="variantId" value="${v.id}" />
+                              <input type="number" name="newStockQty" value="${v.stock_qty}" min="0" title="New Stock Quantity" class="sn-input" style="width:78px;padding:6px;" />
+                              <input type="number" name="lowStockThreshold" value="${v.low_stock_threshold}" min="1" title="Low-Stock Alert Threshold" class="sn-input" style="width:68px;padding:6px;" />
+                              <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Update</button>
+                            </form>
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+                <div id="sn-admin-inventory-pagination" class="sn-admin-pagination-bar"></div>
               </div>
-              <div id="sn-admin-movements-pagination" class="sn-admin-pagination-bar"></div>
+
+              <!-- Sub-Panel 4.2: Stock Movement Ledger -->
+              <div data-admin-subpanel="inventory:movements" style="display:none;">
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;">Recent Stock Movements Ledger</h3>
+                <div class="sn-table-wrap">
+                  <table class="sn-table" id="sn-admin-movements-table">
+                    <thead>
+                      <tr><th>Timestamp</th><th>Variant ID</th><th>Delta</th><th>Prev -> New</th><th>Reason</th><th>Reference</th></tr>
+                    </thead>
+                    <tbody>
+                      ${movements.map(m => `
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">${escapeHtml(m.created_at)}</td>
+                          <td style="font-family:var(--sn-font-mono);">#${m.variant_id}</td>
+                          <td style="font-family:var(--sn-font-mono);color:${m.delta_qty < 0 ? 'var(--sn-status-danger)' : 'var(--sn-status-paid)'};">${m.delta_qty > 0 ? '+' + m.delta_qty : m.delta_qty}</td>
+                          <td style="font-family:var(--sn-font-mono);">${m.previous_qty} -> ${m.new_qty}</td>
+                          <td>${escapeHtml(m.reason)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${escapeHtml(m.reference_id)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+                <div id="sn-admin-movements-pagination" class="sn-admin-pagination-bar"></div>
+              </div>
             </div>
 
             <!-- Panel 5: Payments, COD Settlement, Refunds & Sales/Product Reports (Section 5.1 & Section 6) -->
             <div class="sn-card" data-admin-panel="payments" style="display:none;">
               <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Payment Gateway Reconciliation, COD Collections, Refunds &amp; Reports</h2>
-              <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 18px;">
+              <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 14px;">
                 Authorized for <strong>SUPER_ADMIN</strong> and <strong>ACCOUNTS_MANAGER</strong>. Record COD collections, initiate/record refunds (with automatic stock restoration), and review sales reports.
               </p>
 
-              <div class="sn-table-wrap" style="margin-bottom:26px;">
-                <table class="sn-table sn-table-cards">
-                  <thead>
-                    <tr><th>Order No.</th><th>Provider &amp; Method</th><th>Gateway Order / Payment ID</th><th>Amount</th><th>Status</th><th>Server Verified</th><th>Accounts Manager Actions</th></tr>
-                  </thead>
-                  <tbody>
-                    ${payments.map(pay => `
-                      <tr>
-                        <td data-label="Order No." style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-bg-forest);">${escapeHtml(pay.order_number)}</td>
-                        <td data-label="Provider &amp; Method"><span>${escapeHtml(pay.gateway_provider)} (${escapeHtml(pay.method)})</span></td>
-                        <td data-label="Gateway Reference" style="font-family:var(--sn-font-mono);font-size:0.74rem;">
-                          <div>
-                            Ord: ${escapeHtml(pay.gateway_order_id)}<br/>
-                            Pay: ${escapeHtml(pay.gateway_payment_id || 'COD / Pending')}
-                          </div>
-                        </td>
-                        <td data-label="Amount" style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(pay.amount_paise)}</td>
-                        <td data-label="Status"><span class="sn-status ${pay.status === 'PAID' || pay.status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(pay.status)}</span></td>
-                        <td data-label="Server Verified" style="font-family:var(--sn-font-mono);">${pay.verified_on_server ? '✓ Verified' : 'Pending'}</td>
-                        <td data-label="Actions">
-                          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                            ${pay.status === 'COD_PENDING' ? `
-                              <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-payment-action="MARK_COD_COLLECTED" data-order-number="${escapeHtml(pay.order_number)}">Mark COD Collected</button>
-                            ` : ''}
-                            ${pay.status !== 'REFUNDED' ? `
-                              <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-payment-action="RECORD_REFUND" data-order-number="${escapeHtml(pay.order_number)}">Record Refund</button>
-                            ` : `<span style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);">Refunded (${formatInr(pay.refund_amount_paise || pay.amount_paise)})</span>`}
-                          </div>
-                        </td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
+              <!-- In-Panel Segmented Sub-Module Bar (Synced with Desktop Sidebar Accordion) -->
+              <div class="sn-admin-subnav-bar" role="tablist">
+                <button type="button" class="sn-admin-subtab-pill sn-active" data-admin-subtab-btn="payments:reconciliation">💳 5.1 Payments, COD &amp; Refunds (${payments.length})</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="payments:sales-timeseries">📈 5.2 Daily / Weekly / Monthly Sales</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="payments:product-sales">📦 5.3 Product-Wise Sales (${reports.productSales.length})</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="payments:gst-summaries">🧾 5.4 GST Tax &amp; Gateway Summaries</button>
               </div>
 
-              <!-- Section 5.1 Comprehensive Reports Toolbar & CSV Export -->
-              <div class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:20px;padding:14px 18px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+              <!-- Sub-Panel 5.1 (Default): Payments, COD Collections & Refunds -->
+              <div data-admin-subpanel="payments:reconciliation">
+                <div class="sn-table-wrap">
+                  <table class="sn-table sn-table-cards">
+                    <thead>
+                      <tr><th>Order No.</th><th>Provider &amp; Method</th><th>Gateway Order / Payment ID</th><th>Amount</th><th>Status</th><th>Server Verified</th><th>Accounts Manager Actions</th></tr>
+                    </thead>
+                    <tbody>
+                      ${payments.map(pay => `
+                        <tr>
+                          <td data-label="Order No." style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-bg-forest);">${escapeHtml(pay.order_number)}</td>
+                          <td data-label="Provider &amp; Method"><span>${escapeHtml(pay.gateway_provider)} (${escapeHtml(pay.method)})</span></td>
+                          <td data-label="Gateway Reference" style="font-family:var(--sn-font-mono);font-size:0.74rem;">
+                            <div>
+                              Ord: ${escapeHtml(pay.gateway_order_id)}<br/>
+                              Pay: ${escapeHtml(pay.gateway_payment_id || 'COD / Pending')}
+                            </div>
+                          </td>
+                          <td data-label="Amount" style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(pay.amount_paise)}</td>
+                          <td data-label="Status"><span class="sn-status ${pay.status === 'PAID' || pay.status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(pay.status)}</span></td>
+                          <td data-label="Server Verified" style="font-family:var(--sn-font-mono);">${pay.verified_on_server ? '✓ Verified' : 'Pending'}</td>
+                          <td data-label="Actions">
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                              ${pay.status === 'COD_PENDING' ? `
+                                <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-payment-action="MARK_COD_COLLECTED" data-order-number="${escapeHtml(pay.order_number)}">Mark COD Collected</button>
+                              ` : ''}
+                              ${pay.status !== 'REFUNDED' ? `
+                                <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-payment-action="RECORD_REFUND" data-order-number="${escapeHtml(pay.order_number)}">Record Refund</button>
+                              ` : `<span style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);">Refunded (${formatInr(pay.refund_amount_paise || pay.amount_paise)})</span>`}
+                            </div>
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Sub-Panel 5.2: Period Window Rollups & Daily / Weekly / Monthly Sales Time-Series -->
+              <div data-admin-subpanel="payments:sales-timeseries" style="display:none;">
+                <div class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:20px;padding:14px 18px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+                    <div>
+                      <span class="sn-eyebrow" style="margin:0;">Section 5.1 Reports Engine • Real Timestamp Bucketing &amp; Net-of-Refunds Accounting</span>
+                      <h3 style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.15rem;color:var(--sn-bg-forest);">
+                        Daily, Weekly &amp; Monthly Sales Time-Series Ledger
+                      </h3>
+                    </div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                      <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-export-csv="daily" data-export-table="sn-report-daily-table">⬇ Daily CSV</button>
+                      <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="weekly" data-export-table="sn-report-weekly-table">⬇ Weekly CSV</button>
+                      <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="monthly" data-export-table="sn-report-monthly-table">⬇ Monthly CSV</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 1. Period Window Rollups: Today vs. Last 7 Days (Weekly) vs. Current Month (Monthly) vs. All-Time -->
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">1. Period Window Rollups (Today vs. Last 7 Days vs. Current Month MTD)</h3>
+                <div class="sn-table-wrap" style="margin-bottom:24px;">
+                  <table class="sn-table" id="sn-report-period-rollups-table">
+                    <thead>
+                      <tr>
+                        <th>Time Window</th>
+                        <th>Orders (Valid / Total)</th>
+                        <th>Packs Sold</th>
+                        <th>Gross Subtotal</th>
+                        <th>Discounts</th>
+                        <th>Shipping</th>
+                        <th>Included GST (CGST+SGST / IGST)</th>
+                        <th>Settled Revenue</th>
+                        <th>COD Pending</th>
+                        <th>Refunded</th>
+                        <th>Net Order Value</th>
+                        <th>Avg Order Value (AOV)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${reports.periodWindows.map(pw => `
+                        <tr>
+                          <td><strong>${escapeHtml(pw.label)}</strong></td>
+                          <td style="font-family:var(--sn-font-mono);">${pw.validOrdersCount} / ${pw.ordersCount}</td>
+                          <td style="font-family:var(--sn-font-mono);">${pw.unitsSold}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(pw.grossSubtotalPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);color:var(--sn-status-paid);">-${formatInr(pw.discountPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(pw.shippingPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">
+                            <strong>${formatInr(pw.totalGstPaise)}</strong><br/>
+                            <span style="color:var(--sn-text-muted);">C+S: ${formatInr(pw.cgstPaise + pw.sgstPaise)} | I: ${formatInr(pw.igstPaise)}</span>
+                          </td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(pw.settledRevenuePaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);color:var(--sn-status-warn);">${formatInr(pw.codPendingPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);color:var(--sn-status-danger);">${formatInr(pw.refundedPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(pw.netOrderValuePaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(pw.aovPaise)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- 2. Granular Time-Series Breakdowns (Daily by Date | Weekly by ISO Week | Monthly by Month) -->
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">2. Granular Time-Series Sales Breakdown (Daily, Weekly &amp; Monthly Ledger)</h3>
+                  <div style="display:flex;gap:6px;">
+                    <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-report-period-btn="daily">Daily Breakdown (${reports.dailySales.length} Days)</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-report-period-btn="weekly">Weekly Breakdown (${reports.weeklySales.length} Weeks)</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-report-period-btn="monthly">Monthly Breakdown (${reports.monthlySales.length} Months)</button>
+                  </div>
+                </div>
+
+                <!-- 2A. Daily Time-Series Table -->
+                <div class="sn-table-wrap" data-report-period-panel="daily">
+                  <table class="sn-table" id="sn-report-daily-table">
+                    <thead>
+                      <tr><th>Date (YYYY-MM-DD)</th><th>Orders</th><th>Packs Sold</th><th>Gross Subtotal</th><th>Discounts</th><th>Shipping</th><th>Total GST</th><th>Settled Revenue</th><th>COD Pending</th><th>Net Order Value</th><th>AOV</th></tr>
+                    </thead>
+                    <tbody>
+                      ${reports.dailySales.map(r => `
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(r.label)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${r.ordersCount}</td>
+                          <td style="font-family:var(--sn-font-mono);">${r.unitsSold}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.grossSubtotalPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">-${formatInr(r.discountPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.shippingPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.totalGstPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(r.settledRevenuePaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.codPendingPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(r.netOrderValuePaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.aovPaise)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- 2B. Weekly Time-Series Table -->
+                <div class="sn-table-wrap" data-report-period-panel="weekly" style="display:none;">
+                  <table class="sn-table" id="sn-report-weekly-table">
+                    <thead>
+                      <tr><th>ISO Week &amp; Date Range</th><th>Orders</th><th>Packs Sold</th><th>Gross Subtotal</th><th>Discounts</th><th>Shipping</th><th>Total GST</th><th>Settled Revenue</th><th>COD Pending</th><th>Net Order Value</th><th>AOV</th></tr>
+                    </thead>
+                    <tbody>
+                      ${reports.weeklySales.map(r => `
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(r.label)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${r.ordersCount}</td>
+                          <td style="font-family:var(--sn-font-mono);">${r.unitsSold}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.grossSubtotalPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">-${formatInr(r.discountPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.shippingPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.totalGstPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(r.settledRevenuePaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.codPendingPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(r.netOrderValuePaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.aovPaise)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- 2C. Monthly Time-Series Table -->
+                <div class="sn-table-wrap" data-report-period-panel="monthly" style="display:none;">
+                  <table class="sn-table" id="sn-report-monthly-table">
+                    <thead>
+                      <tr><th>Month (YYYY-MM)</th><th>Orders</th><th>Packs Sold</th><th>Gross Subtotal</th><th>Discounts</th><th>Shipping</th><th>Total GST</th><th>Settled Revenue</th><th>COD Pending</th><th>Net Order Value</th><th>AOV</th></tr>
+                    </thead>
+                    <tbody>
+                      ${reports.monthlySales.map(r => `
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(r.label)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${r.ordersCount}</td>
+                          <td style="font-family:var(--sn-font-mono);">${r.unitsSold}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.grossSubtotalPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">-${formatInr(r.discountPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.shippingPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.totalGstPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(r.settledRevenuePaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.codPendingPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(r.netOrderValuePaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.aovPaise)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Sub-Panel 5.3: Product-Wise Sales & Volume Report (All 22 Products) -->
+              <div data-admin-subpanel="payments:product-sales" style="display:none;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">Product-Wise Sales &amp; Volume Report (All ${reports.productSales.length} Products • Net of Cancelled/Refunded Orders)</h3>
+                  <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-export-csv="products" data-export-table="sn-report-products-table">⬇ Export Products Sales CSV</button>
+                </div>
+                <div class="sn-table-wrap" style="max-height:540px;overflow-y:auto;">
+                  <table class="sn-table" id="sn-report-products-table">
+                    <thead>
+                      <tr>
+                        <th>SKU &amp; HSN</th>
+                        <th>Category</th>
+                        <th>Product Name</th>
+                        <th>Pack Variant Breakdown</th>
+                        <th>Net Packs Sold</th>
+                        <th>Net Weight Sold</th>
+                        <th>Refunded Packs</th>
+                        <th>Included GST</th>
+                        <th>Net Revenue</th>
+                        <th>Revenue Share</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${reports.productSales.map(r => `
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">
+                            <strong>${escapeHtml(r.skuBase)}</strong><br/>
+                            HSN: ${escapeHtml(r.hsnCode)}
+                          </td>
+                          <td style="font-size:0.8rem;">${escapeHtml(r.categoryName)}</td>
+                          <td><strong>${escapeHtml(r.name)}</strong></td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">${escapeHtml(r.packBreakdownText)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;">${r.netPacksSold} packs</td>
+                          <td style="font-family:var(--sn-font-mono);">${r.netWeightGrams} g</td>
+                          <td style="font-family:var(--sn-font-mono);color:${r.refundedPacks > 0 ? 'var(--sn-status-danger)' : 'var(--sn-text-muted)'};">${r.refundedPacks}</td>
+                          <td style="font-family:var(--sn-font-mono);">${formatInr(r.netGstPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;color:${r.netRevenuePaise > 0 ? 'var(--sn-status-paid)' : 'var(--sn-text-muted)'};">${formatInr(r.netRevenuePaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${r.revenueSharePercent}%</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Sub-Panel 5.4: Order Summaries, GST Place-of-Supply Tax Summary & Gateway Reconciliation -->
+              <div data-admin-subpanel="payments:gst-summaries" style="display:none;">
+                <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="orders" data-export-table="sn-report-orders-table">⬇ Orders Summary CSV</button>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="payments" data-export-table="sn-report-payments-table">⬇ Payments Summary CSV</button>
+                </div>
+                <div class="sn-pdp-grid" style="margin-bottom:26px;">
                   <div>
-                    <span class="sn-eyebrow" style="margin:0;">Section 5.1 Reports Engine • Real Timestamp Bucketing &amp; Net-of-Refunds Accounting</span>
-                    <h3 style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.15rem;color:var(--sn-bg-forest);">
-                      Daily, Weekly &amp; Monthly Sales • Product-Wise Sales (All ${products.length}) • Order &amp; Payment Summaries
-                    </h3>
+                    <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">4A. Order Fulfilment Status Summary</h3>
+                    <div class="sn-table-wrap">
+                      <table class="sn-table" id="sn-report-orders-table">
+                        <thead>
+                          <tr><th>Fulfilment Status</th><th>Orders</th><th>Share</th><th>Subtotal</th><th>Discounts</th><th>Shipping</th><th>Total Value</th></tr>
+                        </thead>
+                        <tbody>
+                          ${reports.orderStatusSummary.map(os => `
+                            <tr>
+                              <td><strong>${escapeHtml(os.fulfilmentStatus)}</strong></td>
+                              <td style="font-family:var(--sn-font-mono);font-weight:700;">${os.ordersCount}</td>
+                              <td style="font-family:var(--sn-font-mono);">${os.sharePercent}%</td>
+                              <td style="font-family:var(--sn-font-mono);">${formatInr(os.subtotalPaise)}</td>
+                              <td style="font-family:var(--sn-font-mono);">-${formatInr(os.discountPaise)}</td>
+                              <td style="font-family:var(--sn-font-mono);">${formatInr(os.shippingPaise)}</td>
+                              <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(os.totalPaise)}</td>
+                            </tr>
+                          `).join('')}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                  <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                    <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-export-csv="daily" data-export-table="sn-report-daily-table">⬇ Daily CSV</button>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="weekly" data-export-table="sn-report-weekly-table">⬇ Weekly CSV</button>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="monthly" data-export-table="sn-report-monthly-table">⬇ Monthly CSV</button>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="products" data-export-table="sn-report-products-table">⬇ Products CSV</button>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="orders" data-export-table="sn-report-orders-table">⬇ Orders CSV</button>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-export-csv="payments" data-export-table="sn-report-payments-table">⬇ Payments CSV</button>
-                  </div>
-                </div>
-              </div>
 
-              <!-- 1. Period Window Rollups: Today vs. Last 7 Days (Weekly) vs. Current Month (Monthly) vs. All-Time -->
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">1. Period Window Rollups (Today vs. Last 7 Days vs. Current Month MTD)</h3>
-              <div class="sn-table-wrap" style="margin-bottom:24px;">
-                <table class="sn-table" id="sn-report-period-rollups-table">
-                  <thead>
-                    <tr>
-                      <th>Time Window</th>
-                      <th>Orders (Valid / Total)</th>
-                      <th>Packs Sold</th>
-                      <th>Gross Subtotal</th>
-                      <th>Discounts</th>
-                      <th>Shipping</th>
-                      <th>Included GST (CGST+SGST / IGST)</th>
-                      <th>Settled Revenue</th>
-                      <th>COD Pending</th>
-                      <th>Refunded</th>
-                      <th>Net Order Value</th>
-                      <th>Avg Order Value (AOV)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${reports.periodWindows.map(pw => `
-                      <tr>
-                        <td><strong>${escapeHtml(pw.label)}</strong></td>
-                        <td style="font-family:var(--sn-font-mono);">${pw.validOrdersCount} / ${pw.ordersCount}</td>
-                        <td style="font-family:var(--sn-font-mono);">${pw.unitsSold}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(pw.grossSubtotalPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-paid);">-${formatInr(pw.discountPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(pw.shippingPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">
-                          <strong>${formatInr(pw.totalGstPaise)}</strong><br/>
-                          <span style="color:var(--sn-text-muted);">C+S: ${formatInr(pw.cgstPaise + pw.sgstPaise)} | I: ${formatInr(pw.igstPaise)}</span>
-                        </td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(pw.settledRevenuePaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-warn);">${formatInr(pw.codPendingPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-danger);">${formatInr(pw.refundedPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(pw.netOrderValuePaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(pw.aovPaise)}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
+                  <div>
+                    <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">4B. GST Place-of-Supply Tax Summary</h3>
+                    <div class="sn-table-wrap" style="margin-bottom:18px;">
+                      <table class="sn-table">
+                        <thead>
+                          <tr><th>Tax Regime</th><th>Valid Orders</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total GST</th><th>Invoice Total</th></tr>
+                        </thead>
+                        <tbody>
+                          ${reports.orderTaxSummary.map(tr => `
+                            <tr>
+                              <td><strong>${escapeHtml(tr.regime)}</strong></td>
+                              <td style="font-family:var(--sn-font-mono);">${tr.ordersCount}</td>
+                              <td style="font-family:var(--sn-font-mono);">${formatInr(tr.cgstPaise)}</td>
+                              <td style="font-family:var(--sn-font-mono);">${formatInr(tr.sgstPaise)}</td>
+                              <td style="font-family:var(--sn-font-mono);">${formatInr(tr.igstPaise)}</td>
+                              <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(tr.totalGstPaise)}</td>
+                              <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(tr.totalOrderPaise)}</td>
+                            </tr>
+                          `).join('')}
+                        </tbody>
+                      </table>
+                    </div>
 
-              <!-- 2. Granular Time-Series Breakdowns (Daily by Date | Weekly by ISO Week | Monthly by Month) -->
-              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
-                <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">2. Granular Time-Series Sales Breakdown (Daily, Weekly &amp; Monthly Ledger)</h3>
-                <div style="display:flex;gap:6px;">
-                  <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-report-period-btn="daily">Daily Breakdown (${reports.dailySales.length} Days)</button>
-                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-report-period-btn="weekly">Weekly Breakdown (${reports.weeklySales.length} Weeks)</button>
-                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-report-period-btn="monthly">Monthly Breakdown (${reports.monthlySales.length} Months)</button>
-                </div>
-              </div>
-
-              <!-- 2A. Daily Time-Series Table -->
-              <div class="sn-table-wrap" data-report-period-panel="daily" style="margin-bottom:26px;">
-                <table class="sn-table" id="sn-report-daily-table">
-                  <thead>
-                    <tr><th>Date (YYYY-MM-DD)</th><th>Orders</th><th>Packs Sold</th><th>Gross Subtotal</th><th>Discounts</th><th>Shipping</th><th>Total GST</th><th>Settled Revenue</th><th>COD Pending</th><th>Net Order Value</th><th>AOV</th></tr>
-                  </thead>
-                  <tbody>
-                    ${reports.dailySales.map(r => `
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(r.label)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${r.ordersCount}</td>
-                        <td style="font-family:var(--sn-font-mono);">${r.unitsSold}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.grossSubtotalPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">-${formatInr(r.discountPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.shippingPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.totalGstPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(r.settledRevenuePaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.codPendingPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(r.netOrderValuePaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.aovPaise)}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-
-              <!-- 2B. Weekly Time-Series Table -->
-              <div class="sn-table-wrap" data-report-period-panel="weekly" style="display:none;margin-bottom:26px;">
-                <table class="sn-table" id="sn-report-weekly-table">
-                  <thead>
-                    <tr><th>ISO Week &amp; Date Range</th><th>Orders</th><th>Packs Sold</th><th>Gross Subtotal</th><th>Discounts</th><th>Shipping</th><th>Total GST</th><th>Settled Revenue</th><th>COD Pending</th><th>Net Order Value</th><th>AOV</th></tr>
-                  </thead>
-                  <tbody>
-                    ${reports.weeklySales.map(r => `
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(r.label)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${r.ordersCount}</td>
-                        <td style="font-family:var(--sn-font-mono);">${r.unitsSold}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.grossSubtotalPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">-${formatInr(r.discountPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.shippingPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.totalGstPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(r.settledRevenuePaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.codPendingPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(r.netOrderValuePaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.aovPaise)}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-
-              <!-- 2C. Monthly Time-Series Table -->
-              <div class="sn-table-wrap" data-report-period-panel="monthly" style="display:none;margin-bottom:26px;">
-                <table class="sn-table" id="sn-report-monthly-table">
-                  <thead>
-                    <tr><th>Month (YYYY-MM)</th><th>Orders</th><th>Packs Sold</th><th>Gross Subtotal</th><th>Discounts</th><th>Shipping</th><th>Total GST</th><th>Settled Revenue</th><th>COD Pending</th><th>Net Order Value</th><th>AOV</th></tr>
-                  </thead>
-                  <tbody>
-                    ${reports.monthlySales.map(r => `
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(r.label)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${r.ordersCount}</td>
-                        <td style="font-family:var(--sn-font-mono);">${r.unitsSold}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.grossSubtotalPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">-${formatInr(r.discountPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.shippingPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.totalGstPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-status-paid);">${formatInr(r.settledRevenuePaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.codPendingPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(r.netOrderValuePaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.aovPaise)}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-
-              <!-- 3. Complete Product-Wise Sales & Volume Report (All 22 Products — Net of Cancellations/Refunds) -->
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">3. Product-Wise Sales &amp; Volume Report (All ${reports.productSales.length} Products • Net of Cancelled/Refunded Orders)</h3>
-              <div class="sn-table-wrap" style="margin-bottom:26px;max-height:480px;overflow-y:auto;">
-                <table class="sn-table" id="sn-report-products-table">
-                  <thead>
-                    <tr>
-                      <th>SKU &amp; HSN</th>
-                      <th>Category</th>
-                      <th>Product Name</th>
-                      <th>Pack Variant Breakdown</th>
-                      <th>Net Packs Sold</th>
-                      <th>Net Weight Sold</th>
-                      <th>Refunded Packs</th>
-                      <th>Included GST</th>
-                      <th>Net Revenue</th>
-                      <th>Revenue Share</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${reports.productSales.map(r => `
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">
-                          <strong>${escapeHtml(r.skuBase)}</strong><br/>
-                          HSN: ${escapeHtml(r.hsnCode)}
-                        </td>
-                        <td style="font-size:0.8rem;">${escapeHtml(r.categoryName)}</td>
-                        <td><strong>${escapeHtml(r.name)}</strong></td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">${escapeHtml(r.packBreakdownText)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${r.netPacksSold} packs</td>
-                        <td style="font-family:var(--sn-font-mono);">${r.netWeightGrams} g</td>
-                        <td style="font-family:var(--sn-font-mono);color:${r.refundedPacks > 0 ? 'var(--sn-status-danger)' : 'var(--sn-text-muted)'};">${r.refundedPacks}</td>
-                        <td style="font-family:var(--sn-font-mono);">${formatInr(r.netGstPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;color:${r.netRevenuePaise > 0 ? 'var(--sn-status-paid)' : 'var(--sn-text-muted)'};">${formatInr(r.netRevenuePaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${r.revenueSharePercent}%</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-
-              <!-- 4. Order Summaries (by Fulfilment Status + Intra-State CGST/SGST vs. Inter-State IGST) -->
-              <div class="sn-pdp-grid" style="margin-bottom:26px;">
-                <div>
-                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">4A. Order Fulfilment Status Summary</h3>
-                  <div class="sn-table-wrap">
-                    <table class="sn-table" id="sn-report-orders-table">
-                      <thead>
-                        <tr><th>Fulfilment Status</th><th>Orders</th><th>Share</th><th>Subtotal</th><th>Discounts</th><th>Shipping</th><th>Total Value</th></tr>
-                      </thead>
-                      <tbody>
-                        ${reports.orderStatusSummary.map(os => `
-                          <tr>
-                            <td><strong>${escapeHtml(os.fulfilmentStatus)}</strong></td>
-                            <td style="font-family:var(--sn-font-mono);font-weight:700;">${os.ordersCount}</td>
-                            <td style="font-family:var(--sn-font-mono);">${os.sharePercent}%</td>
-                            <td style="font-family:var(--sn-font-mono);">${formatInr(os.subtotalPaise)}</td>
-                            <td style="font-family:var(--sn-font-mono);">-${formatInr(os.discountPaise)}</td>
-                            <td style="font-family:var(--sn-font-mono);">${formatInr(os.shippingPaise)}</td>
-                            <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(os.totalPaise)}</td>
-                          </tr>
-                        `).join('')}
-                      </tbody>
-                    </table>
+                    <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">5B. Payment Settlement Status Summary</h3>
+                    <div class="sn-table-wrap">
+                      <table class="sn-table">
+                        <thead>
+                          <tr><th>Payment Status</th><th>Transactions Count</th><th>Total Amount (INR)</th></tr>
+                        </thead>
+                        <tbody>
+                          ${reports.paymentStatusSummary.map(ps => `
+                            <tr>
+                              <td><span class="sn-status ${ps.status === 'PAID' || ps.status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(ps.status)}</span></td>
+                              <td style="font-family:var(--sn-font-mono);font-weight:700;">${ps.transactionsCount}</td>
+                              <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(ps.totalPaise)}</td>
+                            </tr>
+                          `).join('')}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">4B. GST Place-of-Supply Tax Summary</h3>
-                  <div class="sn-table-wrap" style="margin-bottom:18px;">
-                    <table class="sn-table">
-                      <thead>
-                        <tr><th>Tax Regime</th><th>Valid Orders</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total GST</th><th>Invoice Total</th></tr>
-                      </thead>
-                      <tbody>
-                        ${reports.orderTaxSummary.map(tr => `
-                          <tr>
-                            <td><strong>${escapeHtml(tr.regime)}</strong></td>
-                            <td style="font-family:var(--sn-font-mono);">${tr.ordersCount}</td>
-                            <td style="font-family:var(--sn-font-mono);">${formatInr(tr.cgstPaise)}</td>
-                            <td style="font-family:var(--sn-font-mono);">${formatInr(tr.sgstPaise)}</td>
-                            <td style="font-family:var(--sn-font-mono);">${formatInr(tr.igstPaise)}</td>
-                            <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(tr.totalGstPaise)}</td>
-                            <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(tr.totalOrderPaise)}</td>
-                          </tr>
-                        `).join('')}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">5B. Payment Settlement Status Summary</h3>
-                  <div class="sn-table-wrap">
-                    <table class="sn-table">
-                      <thead>
-                        <tr><th>Payment Status</th><th>Transactions Count</th><th>Total Amount (INR)</th></tr>
-                      </thead>
-                      <tbody>
-                        ${reports.paymentStatusSummary.map(ps => `
-                          <tr>
-                            <td><span class="sn-status ${ps.status === 'PAID' || ps.status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(ps.status)}</span></td>
-                            <td style="font-family:var(--sn-font-mono);font-weight:700;">${ps.transactionsCount}</td>
-                            <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(ps.totalPaise)}</td>
-                          </tr>
-                        `).join('')}
-                      </tbody>
-                    </table>
-                  </div>
+                <!-- 5A. Payment Method Summary (UPI, Cards, NetBanking, COD) -->
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">5A. Payment Method &amp; Gateway Reconciliation Summary</h3>
+                <div class="sn-table-wrap">
+                  <table class="sn-table" id="sn-report-payments-table">
+                    <thead>
+                      <tr><th>Payment Mode</th><th>Description</th><th>Transactions</th><th>Gross Volume</th><th>Settled / Verified</th><th>Pending Collection</th><th>Refunded</th><th>Volume Share</th></tr>
+                    </thead>
+                    <tbody>
+                      ${reports.paymentMethodSummary.map(pm => `
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(pm.method)}</td>
+                          <td>${escapeHtml(pm.label)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${pm.transactionsCount}</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(pm.grossPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);color:var(--sn-status-paid);font-weight:700;">${formatInr(pm.settledPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);color:var(--sn-status-warn);">${formatInr(pm.pendingPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);color:var(--sn-status-danger);">${formatInr(pm.refundedPaise)}</td>
+                          <td style="font-family:var(--sn-font-mono);">${pm.sharePercent}%</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-
-              <!-- 5A. Payment Method Summary (UPI, Cards, NetBanking, COD) -->
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">5A. Payment Method &amp; Gateway Reconciliation Summary</h3>
-              <div class="sn-table-wrap">
-                <table class="sn-table" id="sn-report-payments-table">
-                  <thead>
-                    <tr><th>Payment Mode</th><th>Description</th><th>Transactions</th><th>Gross Volume</th><th>Settled / Verified</th><th>Pending Collection</th><th>Refunded</th><th>Volume Share</th></tr>
-                  </thead>
-                  <tbody>
-                    ${reports.paymentMethodSummary.map(pm => `
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(pm.method)}</td>
-                        <td>${escapeHtml(pm.label)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${pm.transactionsCount}</td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(pm.grossPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-paid);font-weight:700;">${formatInr(pm.settledPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-warn);">${formatInr(pm.pendingPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);color:var(--sn-status-danger);">${formatInr(pm.refundedPaise)}</td>
-                        <td style="font-family:var(--sn-font-mono);">${pm.sharePercent}%</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
               </div>
             </div>
 
@@ -2903,123 +2978,142 @@ function renderAdminPortalPage({
             <!-- Panel 7: Staff RBAC Management (Invite/Create, Assign Roles/Permissions, Deactivate) & Audit Logs -->
             <div class="sn-card" data-admin-panel="rbac" style="display:none;">
               <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">5-Role Staff RBAC Management &amp; Immutable Audit Logs</h2>
-              <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 18px;">
+              <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 14px;">
                 Restricted to <strong>SUPER_ADMIN</strong>. Invite new staff accounts, assign roles or granular <strong>STAFF</strong> action permissions, and deactivate/reactivate access.
               </p>
 
-              <form id="sn-admin-create-staff-form" class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:24px;">
-                <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.05rem;color:var(--sn-bg-forest);">Invite / Create Individual Staff Account (Section 5 &amp; 5.1)</h3>
-                <div class="sn-grid-5" style="gap:10px;margin-bottom:10px;">
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">Full Name *</label>
-                    <input type="text" name="fullName" required placeholder="e.g. Deepak Hegde" class="sn-input" />
-                  </div>
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">Staff Email *</label>
-                    <input type="email" name="email" required placeholder="deepak@sasynaturals.com" class="sn-input" />
-                  </div>
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">Phone *</label>
-                    <input type="tel" name="phone" required placeholder="+91 98100 10009" class="sn-input" />
-                  </div>
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">Temporary Password *</label>
-                    <input type="password" name="password" required value="Sasya@2026" class="sn-input" />
-                  </div>
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">Assigned Role *</label>
-                    <select name="role" class="sn-select">
-                      <option value="STAFF">STAFF (Custom Assigned Permissions)</option>
-                      <option value="PRODUCT_MANAGER">PRODUCT_MANAGER</option>
-                      <option value="ORDER_MANAGER">ORDER_MANAGER</option>
-                      <option value="ACCOUNTS_MANAGER">ACCOUNTS_MANAGER</option>
-                      <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-                    </select>
-                  </div>
-                </div>
-                <div class="sn-form-row-1-action" style="gap:12px;">
-                  <div>
-                    <label style="font-size:0.74rem;font-weight:600;">Explicit Action Permissions (Comma-separated for STAFF role)</label>
-                    <input type="text" name="permissionsCsv" value="orders.view, shipping.update, inventory.view" class="sn-input" style="font-family:var(--sn-font-mono);font-size:0.78rem;" />
-                  </div>
-                  <button type="submit" class="sn-btn sn-btn-primary">Create Staff User</button>
-                </div>
-              </form>
-
-              <div class="sn-table-wrap" style="margin-bottom:24px;">
-                <table class="sn-table sn-table-cards" id="sn-admin-staff-table">
-                  <thead>
-                    <tr><th>Staff Name &amp; Email</th><th>Current Role</th><th>Permitted Actions</th><th>Status</th><th>Update Role, Permissions &amp; Access</th></tr>
-                  </thead>
-                  <tbody>
-                    ${staffUsers.map(u => `
-                      <tr>
-                        <td data-label="Staff Name &amp; Email">
-                          <div>
-                            <strong>${escapeHtml(u.full_name)}</strong><br/>
-                            <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);">${escapeHtml(u.email)}</span>
-                          </div>
-                        </td>
-                        <td data-label="Current Role"><span class="sn-status sn-status-paid">${escapeHtml(u.role)}</span></td>
-                        <td data-label="Permitted Actions" style="font-family:var(--sn-font-mono);font-size:0.74rem;overflow-wrap:anywhere;word-break:break-word;"><span>${escapeHtml(u.permissions_json)}</span></td>
-                        <td data-label="Access Status"><span class="sn-status ${u.is_active ? 'sn-status-paid' : 'sn-status-danger'}">${u.is_active ? 'Active' : 'Deactivated'}</span></td>
-                        <td data-label="Update Role &amp; Permissions">
-                          <form class="sn-admin-staff-update-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;">
-                            <input type="hidden" name="userId" value="${u.id}" />
-                            <select name="role" class="sn-select" style="flex:1;min-width:135px;padding:6px 8px;font-size:0.75rem;">
-                              ${['SUPER_ADMIN', 'PRODUCT_MANAGER', 'ORDER_MANAGER', 'ACCOUNTS_MANAGER', 'STAFF'].map(r => `
-                                <option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>
-                              `).join('')}
-                            </select>
-                            <input type="text" name="permissionsJson" value="${escapeHtml(u.permissions_json)}" class="sn-input" style="flex:1.2;min-width:140px;padding:6px 8px;font-family:var(--sn-font-mono);font-size:0.73rem;" />
-                            <select name="isActive" class="sn-select" style="width:105px;padding:6px 8px;font-size:0.75rem;">
-                              <option value="1" ${u.is_active ? 'selected' : ''}>Active</option>
-                              <option value="0" ${!u.is_active ? 'selected' : ''}>Deactivate</option>
-                            </select>
-                            <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Save</button>
-                          </form>
-                        </td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
+              <!-- In-Panel Segmented Sub-Module Bar (Synced with Desktop Sidebar Accordion) -->
+              <div class="sn-admin-subnav-bar" role="tablist">
+                <button type="button" class="sn-admin-subtab-pill sn-active" data-admin-subtab-btn="rbac:staff">👥 7.1 Staff Accounts &amp; RBAC Roles (${staffUsers.length})</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="rbac:audit-logs">🛡️ 7.2 Immutable Admin Audit Logs (${auditLogs.length})</button>
               </div>
 
-              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 10px;">
-                <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;">Immutable Admin Audit Logs (Section 10)</h3>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                  <input type="search" id="sn-admin-audit-search" placeholder="Search actor email, role, action, or entity..." class="sn-input" style="max-width:260px;padding:6px 10px;font-size:0.78rem;" />
-                  <span id="sn-admin-audit-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">Showing ${auditLogs.length} of ${auditLogs.length}</span>
+              <!-- Sub-Panel 7.1 (Default): Staff Accounts & RBAC Role Manager -->
+              <div data-admin-subpanel="rbac:staff">
+                <form id="sn-admin-create-staff-form" class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:24px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.05rem;color:var(--sn-bg-forest);">Invite / Create Individual Staff Account (Section 5 &amp; 5.1)</h3>
+                  <div class="sn-grid-5" style="gap:10px;margin-bottom:10px;">
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">Full Name *</label>
+                      <input type="text" name="fullName" required placeholder="e.g. Deepak Hegde" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">Staff Email *</label>
+                      <input type="email" name="email" required placeholder="deepak@sasynaturals.com" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">Phone *</label>
+                      <input type="tel" name="phone" required placeholder="+91 98100 10009" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">Temporary Password *</label>
+                      <input type="password" name="password" required value="Sasya@2026" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">Assigned Role *</label>
+                      <select name="role" class="sn-select">
+                        <option value="STAFF">STAFF (Custom Assigned Permissions)</option>
+                        <option value="PRODUCT_MANAGER">PRODUCT_MANAGER</option>
+                        <option value="ORDER_MANAGER">ORDER_MANAGER</option>
+                        <option value="ACCOUNTS_MANAGER">ACCOUNTS_MANAGER</option>
+                        <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="sn-form-row-1-action" style="gap:12px;">
+                    <div>
+                      <label style="font-size:0.74rem;font-weight:600;">Explicit Action Permissions (Comma-separated for STAFF role)</label>
+                      <input type="text" name="permissionsCsv" value="orders.view, shipping.update, inventory.view" class="sn-input" style="font-family:var(--sn-font-mono);font-size:0.78rem;" />
+                    </div>
+                    <button type="submit" class="sn-btn sn-btn-primary">Create Staff User</button>
+                  </div>
+                </form>
+
+                <div class="sn-table-wrap">
+                  <table class="sn-table sn-table-cards" id="sn-admin-staff-table">
+                    <thead>
+                      <tr><th>Staff Name &amp; Email</th><th>Current Role</th><th>Permitted Actions</th><th>Status</th><th>Update Role, Permissions &amp; Access</th></tr>
+                    </thead>
+                    <tbody>
+                      ${staffUsers.map(u => `
+                        <tr>
+                          <td data-label="Staff Name &amp; Email">
+                            <div>
+                              <strong>${escapeHtml(u.full_name)}</strong><br/>
+                              <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);">${escapeHtml(u.email)}</span>
+                            </div>
+                          </td>
+                          <td data-label="Current Role"><span class="sn-status sn-status-paid">${escapeHtml(u.role)}</span></td>
+                          <td data-label="Permitted Actions" style="font-family:var(--sn-font-mono);font-size:0.74rem;overflow-wrap:anywhere;word-break:break-word;"><span>${escapeHtml(u.permissions_json)}</span></td>
+                          <td data-label="Access Status"><span class="sn-status ${u.is_active ? 'sn-status-paid' : 'sn-status-danger'}">${u.is_active ? 'Active' : 'Deactivated'}</span></td>
+                          <td data-label="Update Role &amp; Permissions">
+                            <form class="sn-admin-staff-update-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;">
+                              <input type="hidden" name="userId" value="${u.id}" />
+                              <select name="role" class="sn-select" style="flex:1;min-width:135px;padding:6px 8px;font-size:0.75rem;">
+                                ${['SUPER_ADMIN', 'PRODUCT_MANAGER', 'ORDER_MANAGER', 'ACCOUNTS_MANAGER', 'STAFF'].map(r => `
+                                  <option value="${r}" ${u.role === r ? 'selected' : ''}>${r}</option>
+                                `).join('')}
+                              </select>
+                              <input type="text" name="permissionsJson" value="${escapeHtml(u.permissions_json)}" class="sn-input" style="flex:1.2;min-width:140px;padding:6px 8px;font-family:var(--sn-font-mono);font-size:0.73rem;" />
+                              <select name="isActive" class="sn-select" style="width:105px;padding:6px 8px;font-size:0.75rem;">
+                                <option value="1" ${u.is_active ? 'selected' : ''}>Active</option>
+                                <option value="0" ${!u.is_active ? 'selected' : ''}>Deactivate</option>
+                              </select>
+                              <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Save</button>
+                            </form>
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-              <div class="sn-table-wrap">
-                <table class="sn-table" id="sn-admin-audit-logs-table">
-                  <thead>
-                    <tr><th>Timestamp</th><th>Actor Email</th><th>Role</th><th>Action</th><th>Entity</th><th>Details</th></tr>
-                  </thead>
-                  <tbody>
-                    ${auditLogs.map(log => `
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">${escapeHtml(log.created_at)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">${escapeHtml(log.actor_email)}</td>
-                        <td><span class="sn-status sn-status-warn">${escapeHtml(log.actor_role)}</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">${escapeHtml(log.action)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">${escapeHtml(log.entity_type)}:${escapeHtml(log.entity_id)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(log.details_json)}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
+
+              <!-- Sub-Panel 7.2: Immutable Admin Audit Logs -->
+              <div data-admin-subpanel="rbac:audit-logs" style="display:none;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 10px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;">Immutable Admin Audit Logs (Section 10)</h3>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <input type="search" id="sn-admin-audit-search" placeholder="Search actor email, role, action, or entity..." class="sn-input" style="max-width:260px;padding:6px 10px;font-size:0.78rem;" />
+                    <span id="sn-admin-audit-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">Showing ${auditLogs.length} of ${auditLogs.length}</span>
+                  </div>
+                </div>
+                <div class="sn-table-wrap">
+                  <table class="sn-table" id="sn-admin-audit-logs-table">
+                    <thead>
+                      <tr><th>Timestamp</th><th>Actor Email</th><th>Role</th><th>Action</th><th>Entity</th><th>Details</th></tr>
+                    </thead>
+                    <tbody>
+                      ${auditLogs.map(log => `
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">${escapeHtml(log.created_at)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">${escapeHtml(log.actor_email)}</td>
+                          <td><span class="sn-status sn-status-warn">${escapeHtml(log.actor_role)}</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">${escapeHtml(log.action)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">${escapeHtml(log.entity_type)}:${escapeHtml(log.entity_id)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(log.details_json)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+                <div id="sn-admin-audit-pagination" class="sn-admin-pagination-bar"></div>
               </div>
-              <div id="sn-admin-audit-pagination" class="sn-admin-pagination-bar"></div>
             </div>
 
             <!-- Panel 8: Delivery Pricing, Editable GST/FSSAI Business Compliance & Editable Notification Templates -->
             <div class="sn-card" data-admin-panel="compliance" style="display:none;">
               <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Delivery Pricing Engine, GST/FSSAI Compliance &amp; Notification Templates</h2>
-              <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 18px;">
+              <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 14px;">
                 Restricted to <strong>SUPER_ADMIN</strong>. Configure 4-Zone + 500g Weight-Slab shipping rules, update legal GSTIN/FSSAI business details (Section 11), and edit email/SMS notification templates (Section 8).
               </p>
+
+              <!-- In-Panel Segmented Sub-Module Bar (Synced with Desktop Sidebar Accordion) -->
+              <div class="sn-admin-subnav-bar" role="tablist">
+                <button type="button" class="sn-admin-subtab-pill sn-active" data-admin-subtab-btn="compliance:shipping">🚚 8.1 Delivery Pricing Engine (4-Zone)</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="compliance:legal-templates">🏛️ 8.2 GSTIN, FSSAI &amp; Email/SMS Templates</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="compliance:notif-logs">📨 8.3 Notification Dispatch Logs (${notificationLogs.length})</button>
+              </div>
 
               ${(() => {
                 const sMap = Object.fromEntries(settings.map(s => [s.key, s.value]));
@@ -3040,154 +3134,162 @@ function renderAdminPortalPage({
                   : sMap.registered_address;
 
                 return `
-                  <form id="sn-admin-shipping-policy-form" class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:24px;">
-                    <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.05rem;color:var(--sn-bg-forest);">1. Delivery Pricing Engine (4-Zone + 500g Weight Slabs + Free-Delivery Control)</h3>
-                    <div class="sn-grid-3" style="gap:12px;margin-bottom:14px;">
-                      <div>
-                        <label style="font-size:0.76rem;font-weight:700;display:block;margin-bottom:4px;">Free-Delivery Policy Mode *</label>
-                        <select name="shipping_free_mode" class="sn-select" style="font-weight:600;">
-                          <option value="DISABLED" ${curMode === 'DISABLED' ? 'selected' : ''}>DISABLED (Always Charge Zone Freight)</option>
-                          <option value="THRESHOLD_WITH_WEIGHT_CAP" ${curMode === 'THRESHOLD_WITH_WEIGHT_CAP' ? 'selected' : ''}>THRESHOLD + CAP (Free &ge; ₹${escapeHtml(threshVal)}, &le; ${escapeHtml(maxWeightVal)}g)</option>
-                          <option value="UNCONDITIONAL_THRESHOLD" ${curMode === 'UNCONDITIONAL_THRESHOLD' ? 'selected' : ''}>UNCONDITIONAL (Free &ge; ₹${escapeHtml(threshVal)}, Any Weight)</option>
-                        </select>
+                  <!-- Sub-Panel 8.1 (Default): Delivery Pricing Engine -->
+                  <div data-admin-subpanel="compliance:shipping">
+                    <form id="sn-admin-shipping-policy-form" class="sn-card" style="background-color:var(--sn-bg-parchment);">
+                      <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.05rem;color:var(--sn-bg-forest);">1. Delivery Pricing Engine (4-Zone + 500g Weight Slabs + Free-Delivery Control)</h3>
+                      <div class="sn-grid-3" style="gap:12px;margin-bottom:14px;">
+                        <div>
+                          <label style="font-size:0.76rem;font-weight:700;display:block;margin-bottom:4px;">Free-Delivery Policy Mode *</label>
+                          <select name="shipping_free_mode" class="sn-select" style="font-weight:600;">
+                            <option value="DISABLED" ${curMode === 'DISABLED' ? 'selected' : ''}>DISABLED (Always Charge Zone Freight)</option>
+                            <option value="THRESHOLD_WITH_WEIGHT_CAP" ${curMode === 'THRESHOLD_WITH_WEIGHT_CAP' ? 'selected' : ''}>THRESHOLD + CAP (Free &ge; ₹${escapeHtml(threshVal)}, &le; ${escapeHtml(maxWeightVal)}g)</option>
+                            <option value="UNCONDITIONAL_THRESHOLD" ${curMode === 'UNCONDITIONAL_THRESHOLD' ? 'selected' : ''}>UNCONDITIONAL (Free &ge; ₹${escapeHtml(threshVal)}, Any Weight)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style="font-size:0.76rem;font-weight:700;display:block;margin-bottom:4px;">Free Delivery Above (INR ₹)</label>
+                          <input type="number" name="free_shipping_threshold_inr" value="${escapeHtml(threshVal)}" min="0" class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.76rem;font-weight:700;display:block;margin-bottom:4px;">Free-Delivery Max Weight Cap (g)</label>
+                          <input type="number" name="free_shipping_max_weight_grams" value="${escapeHtml(maxWeightVal)}" min="100" class="sn-input" />
+                        </div>
                       </div>
-                      <div>
-                        <label style="font-size:0.76rem;font-weight:700;display:block;margin-bottom:4px;">Free Delivery Above (INR ₹)</label>
-                        <input type="number" name="free_shipping_threshold_inr" value="${escapeHtml(threshVal)}" min="0" class="sn-input" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.76rem;font-weight:700;display:block;margin-bottom:4px;">Free-Delivery Max Weight Cap (g)</label>
-                        <input type="number" name="free_shipping_max_weight_grams" value="${escapeHtml(maxWeightVal)}" min="100" class="sn-input" />
-                      </div>
-                    </div>
 
-                    <div class="sn-grid-4" style="gap:12px;margin-bottom:14px;">
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">Box Tare Weight (g)</label>
-                        <input type="number" name="shipping_packaging_tare_grams" value="${escapeHtml(sMap.shipping_packaging_tare_grams || '150')}" min="0" class="sn-input" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">COD Collection Fee (₹)</label>
-                        <input type="number" name="shipping_cod_fee_inr" value="${escapeHtml(sMap.shipping_cod_fee_inr || '40')}" min="0" class="sn-input" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">Zone A (Local BLR) 500g / +500g (₹)</label>
-                        <div style="display:flex;gap:6px;">
-                          <input type="number" name="zone_a_base_inr" value="${escapeHtml(sMap.zone_a_base_inr || '40')}" class="sn-input" />
-                          <input type="number" name="zone_a_extra_inr" value="${escapeHtml(sMap.zone_a_extra_inr || '15')}" class="sn-input" />
+                      <div class="sn-grid-4" style="gap:12px;margin-bottom:14px;">
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;">Box Tare Weight (g)</label>
+                          <input type="number" name="shipping_packaging_tare_grams" value="${escapeHtml(sMap.shipping_packaging_tare_grams || '150')}" min="0" class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;">COD Collection Fee (₹)</label>
+                          <input type="number" name="shipping_cod_fee_inr" value="${escapeHtml(sMap.shipping_cod_fee_inr || '40')}" min="0" class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;">Zone A (Local BLR) 500g / +500g (₹)</label>
+                          <div style="display:flex;gap:6px;">
+                            <input type="number" name="zone_a_base_inr" value="${escapeHtml(sMap.zone_a_base_inr || '40')}" class="sn-input" />
+                            <input type="number" name="zone_a_extra_inr" value="${escapeHtml(sMap.zone_a_extra_inr || '15')}" class="sn-input" />
+                          </div>
+                        </div>
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;">Zone B (South) 500g / +500g (₹)</label>
+                          <div style="display:flex;gap:6px;">
+                            <input type="number" name="zone_b_base_inr" value="${escapeHtml(sMap.zone_b_base_inr || '55')}" class="sn-input" />
+                            <input type="number" name="zone_b_extra_inr" value="${escapeHtml(sMap.zone_b_extra_inr || '25')}" class="sn-input" />
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">Zone B (South) 500g / +500g (₹)</label>
-                        <div style="display:flex;gap:6px;">
-                          <input type="number" name="zone_b_base_inr" value="${escapeHtml(sMap.zone_b_base_inr || '55')}" class="sn-input" />
-                          <input type="number" name="zone_b_extra_inr" value="${escapeHtml(sMap.zone_b_extra_inr || '25')}" class="sn-input" />
-                        </div>
-                      </div>
-                    </div>
 
-                    <div class="sn-form-row-2-action" style="gap:12px;">
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">Zone C (Rest of India) Base 500g / +500g (₹)</label>
-                        <div style="display:flex;gap:6px;">
-                          <input type="number" name="zone_c_base_inr" value="${escapeHtml(sMap.zone_c_base_inr || '75')}" class="sn-input" />
-                          <input type="number" name="zone_c_extra_inr" value="${escapeHtml(sMap.zone_c_extra_inr || '35')}" class="sn-input" />
+                      <div class="sn-form-row-2-action" style="gap:12px;">
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;">Zone C (Rest of India) Base 500g / +500g (₹)</label>
+                          <div style="display:flex;gap:6px;">
+                            <input type="number" name="zone_c_base_inr" value="${escapeHtml(sMap.zone_c_base_inr || '75')}" class="sn-input" />
+                            <input type="number" name="zone_c_extra_inr" value="${escapeHtml(sMap.zone_c_extra_inr || '35')}" class="sn-input" />
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">Zone D (NE / J&amp;K / Remote) Base 500g / +500g (₹)</label>
-                        <div style="display:flex;gap:6px;">
-                          <input type="number" name="zone_d_base_inr" value="${escapeHtml(sMap.zone_d_base_inr || '110')}" class="sn-input" />
-                          <input type="number" name="zone_d_extra_inr" value="${escapeHtml(sMap.zone_d_extra_inr || '55')}" class="sn-input" />
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;">Zone D (NE / J&amp;K / Remote) Base 500g / +500g (₹)</label>
+                          <div style="display:flex;gap:6px;">
+                            <input type="number" name="zone_d_base_inr" value="${escapeHtml(sMap.zone_d_base_inr || '110')}" class="sn-input" />
+                            <input type="number" name="zone_d_extra_inr" value="${escapeHtml(sMap.zone_d_extra_inr || '55')}" class="sn-input" />
+                          </div>
                         </div>
+                        <button type="submit" class="sn-btn sn-btn-primary">Save Delivery Policy</button>
                       </div>
-                      <button type="submit" class="sn-btn sn-btn-primary">Save Delivery Policy</button>
-                    </div>
-                  </form>
+                    </form>
+                  </div>
 
-                  <!-- 2. Editable Business Legal, GSTIN, FSSAI & Notification Templates Form (Section 8 & Section 11) -->
-                  <form id="sn-admin-compliance-form" class="sn-card" style="background-color:var(--sn-bg-mortar);margin-bottom:24px;">
-                    <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.05rem;color:var(--sn-bg-forest);">2. Business Legal, GSTIN, FSSAI &amp; Customer Notification Templates Editor (Sections 8 &amp; 11)</h3>
-                    <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">Business Legal Name *</label>
-                        <input type="text" name="business_legal_name" required value="${escapeHtml(legalNameVal)}" class="sn-input" />
+                  <!-- Sub-Panel 8.2: Editable Business Legal, GSTIN, FSSAI & Notification Templates Form -->
+                  <div data-admin-subpanel="compliance:legal-templates" style="display:none;">
+                    <form id="sn-admin-compliance-form" class="sn-card" style="background-color:var(--sn-bg-mortar);">
+                      <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.05rem;color:var(--sn-bg-forest);">2. Business Legal, GSTIN, FSSAI &amp; Customer Notification Templates Editor (Sections 8 &amp; 11)</h3>
+                      <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;">Business Legal Name *</label>
+                          <input type="text" name="business_legal_name" required value="${escapeHtml(legalNameVal)}" class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;">GSTIN Registration *</label>
+                          <input type="text" name="gstin" required value="${escapeHtml(gstinVal)}" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;">FSSAI Licence / Registration *</label>
+                          <input type="text" name="fssai_license" required value="${escapeHtml(fssaiVal)}" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                        </div>
                       </div>
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">GSTIN Registration *</label>
-                        <input type="text" name="gstin" required value="${escapeHtml(gstinVal)}" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                      <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;">Customer Support Email *</label>
+                          <input type="email" name="support_email" required value="${escapeHtml(sMap.support_email || 'care@sasynaturals.com')}" class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;">Support Phone *</label>
+                          <input type="text" name="support_phone" required value="${escapeHtml(sMap.support_phone || '+91 80 4568 2200')}" class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;">Registered Office &amp; Dispatch Address *</label>
+                          <input type="text" name="registered_address" required value="${escapeHtml(regAddrVal)}" class="sn-input" />
+                        </div>
                       </div>
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">FSSAI Licence / Registration *</label>
-                        <input type="text" name="fssai_license" required value="${escapeHtml(fssaiVal)}" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                      <div class="sn-grid-2" style="gap:12px;margin-bottom:12px;">
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Order Confirmation Notification Template</label>
+                          <textarea name="email_template_order_confirmed" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_confirmed || '')}</textarea>
+                        </div>
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Order Shipped / Dispatch Notification Template</label>
+                          <textarea name="email_template_order_shipped" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_shipped || '')}</textarea>
+                        </div>
                       </div>
-                    </div>
-                    <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">Customer Support Email *</label>
-                        <input type="email" name="support_email" required value="${escapeHtml(sMap.support_email || 'care@sasynaturals.com')}" class="sn-input" />
+                      <div class="sn-form-row-2-action" style="gap:12px;">
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Order Delivered Notification Template</label>
+                          <textarea name="email_template_order_delivered" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_delivered || '')}</textarea>
+                        </div>
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Cancellation / Refund Notification Template</label>
+                          <textarea name="email_template_order_cancelled" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_cancelled || '')}</textarea>
+                        </div>
+                        <button type="submit" class="sn-btn sn-btn-forest">Save Compliance &amp; Templates</button>
                       </div>
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">Support Phone *</label>
-                        <input type="text" name="support_phone" required value="${escapeHtml(sMap.support_phone || '+91 80 4568 2200')}" class="sn-input" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;">Registered Office &amp; Dispatch Address *</label>
-                        <input type="text" name="registered_address" required value="${escapeHtml(regAddrVal)}" class="sn-input" />
-                      </div>
-                    </div>
-                    <div class="sn-grid-2" style="gap:12px;margin-bottom:12px;">
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Order Confirmation Notification Template</label>
-                        <textarea name="email_template_order_confirmed" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_confirmed || '')}</textarea>
-                      </div>
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Order Shipped / Dispatch Notification Template</label>
-                        <textarea name="email_template_order_shipped" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_shipped || '')}</textarea>
-                      </div>
-                    </div>
-                    <div class="sn-form-row-2-action" style="gap:12px;">
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Order Delivered Notification Template</label>
-                        <textarea name="email_template_order_delivered" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_delivered || '')}</textarea>
-                      </div>
-                      <div>
-                        <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Cancellation / Refund Notification Template</label>
-                        <textarea name="email_template_order_cancelled" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_cancelled || '')}</textarea>
-                      </div>
-                      <button type="submit" class="sn-btn sn-btn-forest">Save Compliance &amp; Templates</button>
-                    </div>
-                  </form>
+                    </form>
+                  </div>
                 `;
               })()}
 
-              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 10px;">
-                <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">Recent Customer Notification Dispatch Logs (Section 8)</h3>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                  <input type="search" id="sn-admin-notif-search" placeholder="Search order no., recipient, event, or subject..." class="sn-input" style="max-width:260px;padding:6px 10px;font-size:0.78rem;" />
-                  <span id="sn-admin-notif-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">Showing ${notificationLogs.length} of ${notificationLogs.length}</span>
+              <!-- Sub-Panel 8.3: Recent Customer Notification Dispatch Logs -->
+              <div data-admin-subpanel="compliance:notif-logs" style="display:none;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 10px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">Recent Customer Notification Dispatch Logs (Section 8)</h3>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <input type="search" id="sn-admin-notif-search" placeholder="Search order no., recipient, event, or subject..." class="sn-input" style="max-width:260px;padding:6px 10px;font-size:0.78rem;" />
+                    <span id="sn-admin-notif-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">Showing ${notificationLogs.length} of ${notificationLogs.length}</span>
+                  </div>
                 </div>
+                <div class="sn-table-wrap">
+                  <table class="sn-table" id="sn-admin-notif-logs-table">
+                    <thead>
+                      <tr><th>Timestamp</th><th>Order No.</th><th>Channel</th><th>Recipient</th><th>Event</th><th>Subject &amp; Preview</th></tr>
+                    </thead>
+                    <tbody>
+                      ${notificationLogs.map(nl => `
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">${escapeHtml(nl.created_at)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;">${escapeHtml(nl.order_number)}</td>
+                          <td><span class="sn-status sn-status-paid">${escapeHtml(nl.channel)}</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">${escapeHtml(nl.recipient)}</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">${escapeHtml(nl.event_type)}</td>
+                          <td style="font-size:0.8rem;"><strong>${escapeHtml(nl.subject)}</strong> - ${escapeHtml(nl.body_preview)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+                <div id="sn-admin-notif-pagination" class="sn-admin-pagination-bar"></div>
               </div>
-              <div class="sn-table-wrap">
-                <table class="sn-table" id="sn-admin-notif-logs-table">
-                  <thead>
-                    <tr><th>Timestamp</th><th>Order No.</th><th>Channel</th><th>Recipient</th><th>Event</th><th>Subject &amp; Preview</th></tr>
-                  </thead>
-                  <tbody>
-                    ${notificationLogs.map(nl => `
-                      <tr>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">${escapeHtml(nl.created_at)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:600;">${escapeHtml(nl.order_number)}</td>
-                        <td><span class="sn-status sn-status-paid">${escapeHtml(nl.channel)}</span></td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">${escapeHtml(nl.recipient)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">${escapeHtml(nl.event_type)}</td>
-                        <td style="font-size:0.8rem;"><strong>${escapeHtml(nl.subject)}</strong> - ${escapeHtml(nl.body_preview)}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-              <div id="sn-admin-notif-pagination" class="sn-admin-pagination-bar"></div>
             </div>
           </div>
         </div>
