@@ -670,6 +670,254 @@ function createOrder({
   }
 }
 
+function createAdminOrder({
+  userId = null,
+  customerName,
+  customerEmail,
+  customerPhone,
+  shippingLine1,
+  shippingLine2 = '',
+  shippingCity,
+  shippingState,
+  shippingPincode,
+  deliveryInstructions = '',
+  items,
+  couponCode = '',
+  paymentMethod = 'ONLINE_UPI',
+  paymentStatus = null,
+  gatewayPaymentId = '',
+  actorId = null,
+  actorEmail = 'superadmin@sasynaturals.com',
+  actorRole = 'SUPER_ADMIN'
+}) {
+  if (!customerName || !customerEmail || !customerPhone || !shippingLine1 || !shippingCity || !shippingState || !shippingPincode) {
+    throw new Error('Please complete all required customer contact and Indian delivery address fields.');
+  }
+
+  validatePincodeServiceability(shippingPincode, paymentMethod);
+
+  const validMethods = ['ONLINE_UPI', 'ONLINE_CARD', 'ONLINE_NETBANKING', 'COD'];
+  if (!validMethods.includes(paymentMethod)) {
+    throw new Error(`Unsupported payment method: ${paymentMethod}`);
+  }
+
+  const pricing = calculateCartPricing(items, couponCode, paymentMethod, shippingState, shippingPincode);
+  const db = getDb();
+
+  let resolvedUserId = userId ? Number(userId) : null;
+  if (!resolvedUserId && customerEmail) {
+    const existingCustomer = db
+      .prepare("SELECT id FROM users WHERE lower(email) = lower(?) AND role = 'CUSTOMER' LIMIT 1")
+      .get(String(customerEmail).trim());
+    if (existingCustomer) {
+      resolvedUserId = existingCustomer.id;
+    }
+  }
+
+  const isCod = paymentMethod === 'COD';
+  let finalPaymentStatus;
+  let fulfilmentStatus;
+  let shouldDeductStock = false;
+
+  if (isCod) {
+    finalPaymentStatus = paymentStatus === 'COD_COLLECTED' ? 'COD_COLLECTED' : 'COD_PENDING';
+    fulfilmentStatus = 'Confirmed';
+    shouldDeductStock = true;
+  } else {
+    finalPaymentStatus = paymentStatus === 'PENDING_PAYMENT' ? 'PENDING_PAYMENT' : 'PAID';
+    fulfilmentStatus = finalPaymentStatus === 'PAID' ? 'Confirmed' : 'Pending Payment';
+    shouldDeductStock = finalPaymentStatus === 'PAID';
+  }
+
+  const seqRow = db.prepare('SELECT COUNT(*) AS cnt FROM orders').get();
+  const nextSeq = 1001 + Number(seqRow ? seqRow.cnt : 0);
+  const orderNumber = `SN-2026-${nextSeq}`;
+  const gatewayOrderId = isCod
+    ? `cod_admin_${orderNumber.replace(/-/g, '')}`
+    : `order_admin_${orderNumber.replace(/-/g, '')}_${crypto.randomBytes(2).toString('hex')}`;
+  const cleanRef = String(gatewayPaymentId || '').trim();
+  const finalGatewayPaymentId = cleanRef || (finalPaymentStatus === 'PAID' ? `utr_admin_${orderNumber.replace(/-/g, '')}` : '');
+
+  db.exec('BEGIN IMMEDIATE TRANSACTION;');
+  try {
+    const insertOrderStmt = db.prepare(`
+      INSERT INTO orders (
+        order_number, user_id, customer_name, customer_email, customer_phone,
+        shipping_line1, shipping_line2, shipping_city, shipping_state, shipping_pincode,
+        delivery_instructions, subtotal_paise, discount_paise, gst_paise,
+        tax_supply_type, cgst_paise, sgst_paise, igst_paise,
+        shipping_paise, total_paise, coupon_code, payment_method, payment_status, fulfilment_status,
+        gateway_order_id, gateway_payment_id, stock_deducted, cod_otp_verified
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const ordResult = insertOrderStmt.run(
+      orderNumber,
+      resolvedUserId,
+      String(customerName).trim(),
+      String(customerEmail).trim(),
+      String(customerPhone).trim(),
+      String(shippingLine1).trim(),
+      String(shippingLine2 || '').trim(),
+      String(shippingCity).trim(),
+      String(shippingState).trim(),
+      String(shippingPincode).trim(),
+      String(deliveryInstructions || '').trim(),
+      pricing.subtotalPaise,
+      pricing.discountPaise,
+      pricing.gstPaise,
+      pricing.taxSupplyType,
+      pricing.cgstPaise,
+      pricing.sgstPaise,
+      pricing.igstPaise,
+      pricing.shippingPaise,
+      pricing.totalPaise,
+      pricing.appliedCoupon,
+      paymentMethod,
+      finalPaymentStatus,
+      fulfilmentStatus,
+      gatewayOrderId,
+      finalGatewayPaymentId,
+      shouldDeductStock ? 1 : 0,
+      isCod ? 1 : 0
+    );
+    const orderId = Number(ordResult.lastInsertRowid);
+
+    const insertItemStmt = db.prepare(`
+      INSERT INTO order_items (
+        order_id, product_id, variant_id, product_name, sku, hsn_code, pack_label,
+        weight_grams, unit_price_paise, mrp_paise, gst_percent, quantity, line_total_paise
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const deductStockStmt = db.prepare(`
+      UPDATE product_variants
+      SET stock_qty = stock_qty - ?
+      WHERE id = ? AND stock_qty >= ?
+    `);
+
+    const insertMovementStmt = db.prepare(`
+      INSERT INTO inventory_movements (
+        variant_id, delta_qty, previous_qty, new_qty, reason, reference_id, actor_name
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const item of pricing.lineItems) {
+      insertItemStmt.run(
+        orderId,
+        item.productId,
+        item.variantId,
+        item.productName,
+        item.sku,
+        item.hsnCode,
+        item.packLabel,
+        item.weightGrams,
+        item.unitPricePaise,
+        item.mrpPaise,
+        item.gstPercent,
+        item.quantity,
+        item.lineTotalPaise
+      );
+
+      if (shouldDeductStock) {
+        const res = deductStockStmt.run(item.quantity, item.variantId, item.quantity);
+        if (res.changes !== 1) {
+          throw new Error(`Insufficient stock for ${item.productName} (${item.packLabel}).`);
+        }
+        const remainingStock = item.stockQty - item.quantity;
+        insertMovementStmt.run(
+          item.variantId,
+          -item.quantity,
+          item.stockQty,
+          remainingStock,
+          'ADMIN_MANUAL_ORDER',
+          orderNumber,
+          actorEmail
+        );
+        if (remainingStock <= item.lowStockThreshold) {
+          db.prepare(`
+            INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
+            VALUES (?, 'ADMIN_ALERT', 'catalog@sasynaturals.com', 'LOW_STOCK_ALERT', ?, ?)
+          `).run(
+            orderNumber,
+            `Low Stock Alert: ${item.sku} (${remainingStock} remaining)`,
+            `${item.productName} (${item.packLabel}) dropped to ${remainingStock} units.`
+          );
+        }
+      }
+    }
+
+    db.prepare(`
+      INSERT INTO payments (
+        order_id, order_number, gateway_provider, gateway_order_id, gateway_payment_id, method, amount_paise, status, verified_on_server, cod_collected_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      orderId,
+      orderNumber,
+      isCod ? 'cod_manual' : 'admin_manual_verified',
+      gatewayOrderId,
+      finalGatewayPaymentId,
+      paymentMethod,
+      pricing.totalPaise,
+      finalPaymentStatus,
+      (finalPaymentStatus === 'PAID' || finalPaymentStatus === 'COD_COLLECTED' || isCod) ? 1 : 0,
+      finalPaymentStatus === 'COD_COLLECTED' ? new Date().toISOString() : ''
+    );
+
+    const invoiceUrl = `/orders/${orderNumber}/invoice`;
+
+    db.prepare(`
+      INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
+      VALUES (?, 'EMAIL', ?, 'ADMIN_ORDER_CREATED_WITH_INVOICE', ?, ?)
+    `).run(
+      orderNumber,
+      String(customerEmail).trim(),
+      `Sasya Naturals Order ${orderNumber} & GST Tax Invoice (${fulfilmentStatus})`,
+      `Manual order created by ${actorEmail}. Total Rs. ${(pricing.totalPaise / 100).toFixed(2)} (${finalPaymentStatus}). GST Invoice: ${invoiceUrl}`
+    );
+
+    db.prepare(`
+      INSERT INTO audit_logs (actor_id, actor_email, actor_role, action, entity_type, entity_id, details_json)
+      VALUES (?, ?, ?, 'ADMIN_ORDER_CREATED', 'ORDER', ?, ?)
+    `).run(
+      actorId,
+      actorEmail,
+      actorRole,
+      orderNumber,
+      JSON.stringify({
+        customerName: String(customerName).trim(),
+        customerEmail: String(customerEmail).trim(),
+        shippingState: String(shippingState).trim(),
+        shippingPincode: String(shippingPincode).trim(),
+        itemCount: pricing.lineItems.length,
+        totalPaise: pricing.totalPaise,
+        taxSupplyType: pricing.taxSupplyType,
+        paymentMethod,
+        paymentStatus: finalPaymentStatus,
+        fulfilmentStatus,
+        invoiceUrl
+      })
+    );
+
+    db.exec('COMMIT;');
+
+    return {
+      orderId,
+      orderNumber,
+      paymentMethod,
+      paymentStatus: finalPaymentStatus,
+      fulfilmentStatus,
+      gatewayOrderId,
+      gatewayPaymentId: finalGatewayPaymentId,
+      invoiceUrl,
+      pricing
+    };
+  } catch (err) {
+    db.exec('ROLLBACK;');
+    throw err;
+  }
+}
+
 function verifyAndCaptureOnlinePayment({
   orderNumber,
   gatewayOrderId,
@@ -1108,6 +1356,7 @@ module.exports = {
   computeStateGstSplit,
   calculateCartPricing,
   createOrder,
+  createAdminOrder,
   verifyAndCaptureOnlinePayment,
   updateOrderFulfilmentAndShipping,
   recordPaymentAdminAction,

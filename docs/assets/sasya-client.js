@@ -1455,6 +1455,343 @@
       });
     }
 
+    // 4C-2. Admin Manual Order Creation & Automatic GST Tax Invoice Generator Modal
+    const createOrderModal = document.getElementById('sn-admin-create-order-modal');
+    const createOrderForm = document.getElementById('sn-admin-create-order-form');
+    const createOrderItemsList = document.getElementById('sn-admin-order-items-list');
+    const createOrderLivePreview = document.getElementById('sn-admin-order-live-preview');
+    const createOrderResultBox = document.getElementById('sn-admin-create-order-result');
+    const createdOrderSummaryEl = document.getElementById('sn-admin-created-order-summary');
+    const createdInvoiceLinkEl = document.getElementById('sn-admin-created-invoice-link');
+    const createdReloadBtn = document.getElementById('sn-admin-created-reload-btn');
+    const variantOptionsTpl = document.getElementById('sn-admin-order-variant-options-tpl');
+
+    function closeCreateOrderModal() {
+      if (createOrderModal) {
+        createOrderModal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    }
+
+    function collectAdminOrderLineItems() {
+      if (!createOrderItemsList) return [];
+      const rows = Array.from(createOrderItemsList.querySelectorAll('.sn-admin-order-item-row'));
+      const items = [];
+      rows.forEach(row => {
+        const sel = row.querySelector('.sn-admin-order-variant-select');
+        const qtyInp = row.querySelector('.sn-admin-order-qty-input');
+        const subEl = row.querySelector('.sn-admin-order-row-subtotal');
+        if (!sel || !qtyInp) return;
+        const opt = sel.options[sel.selectedIndex];
+        const variantId = Number(sel.value);
+        const qty = Math.max(1, Math.min(50, Math.floor(Number(qtyInp.value || 1))));
+        const unitPaise = opt ? Number(opt.getAttribute('data-unit-price-paise') || 0) : 0;
+        const gstPercent = opt ? Number(opt.getAttribute('data-gst-percent') || 5) : 5;
+        const weightGrams = opt ? Number(opt.getAttribute('data-weight-grams') || 250) : 250;
+        const productName = opt ? (opt.getAttribute('data-product-name') || 'Pantry Pack') : 'Pantry Pack';
+        const packLabel = opt ? (opt.getAttribute('data-pack-label') || '250 g') : '250 g';
+        const sku = opt ? (opt.getAttribute('data-sku') || 'SN-SKU') : 'SN-SKU';
+        const linePaise = unitPaise * qty;
+        if (subEl) {
+          subEl.textContent = formatInr(linePaise);
+        }
+        if (variantId > 0) {
+          items.push({
+            variantId,
+            quantity: qty,
+            unitPricePaise: unitPaise,
+            gstPercent,
+            weightGrams,
+            productName,
+            packLabel,
+            sku,
+            lineTotalPaise: linePaise
+          });
+        }
+      });
+      return items;
+    }
+
+    async function recalculateAdminManualOrderPreview() {
+      if (!createOrderLivePreview) return;
+      const items = collectAdminOrderLineItems();
+      if (items.length === 0) {
+        createOrderLivePreview.textContent = 'Please add at least one product pack.';
+        return;
+      }
+      const stateVal = (document.getElementById('sn-admin-ord-state')?.value || 'Karnataka').trim();
+      const pinVal = (document.getElementById('sn-admin-ord-pincode')?.value || '560038').trim();
+      const payMethod = document.getElementById('sn-admin-ord-payment-method')?.value || 'ONLINE_UPI';
+      const couponVal = (document.getElementById('sn-admin-ord-coupon')?.value || '').trim();
+
+      if (!IS_STATIC_SHOWCASE) {
+        try {
+          const res = await fetch('/api/cart/calculate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items: items.map(it => ({ variantId: it.variantId, quantity: it.quantity })),
+              couponCode: couponVal,
+              paymentMethod: payMethod,
+              shippingState: stateVal,
+              shippingPincode: pinVal
+            })
+          });
+          const data = await res.json();
+          if (res.ok && data.pricing) {
+            const p = data.pricing;
+            const taxLabel = p.taxSupplyType === 'IGST'
+              ? `Inter-State IGST: ${formatInr(p.igstPaise)}`
+              : `Intra-State CGST: ${formatInr(p.cgstPaise)} + SGST: ${formatInr(p.sgstPaise)}`;
+            createOrderLivePreview.innerHTML = `
+              <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                <div>
+                  <strong>Live GST Tax Invoice Preview (${p.shippingZoneLabel || p.shippingZone})</strong><br/>
+                  <span>Subtotal: ${formatInr(p.subtotalPaise)}${p.discountPaise > 0 ? ` • Discount (${p.appliedCoupon}): -${formatInr(p.discountPaise)}` : ''}</span><br/>
+                  <span>Inclusive GST: ${formatInr(p.gstPaise)} (${taxLabel})</span><br/>
+                  <span>Shipping (${p.grossWeightGrams}g / ${p.billable500gSlabs} slabs${p.codFeePaise > 0 ? ' + COD Fee' : ''}): ${formatInr(p.shippingPaise)}</span>
+                </div>
+                <div style="text-align:right;align-self:center;">
+                  <span style="font-size:0.72rem;color:var(--sn-text-muted);display:block;">INVOICE GRAND TOTAL</span>
+                  <strong style="font-size:1.18rem;color:var(--sn-bg-forest);">${formatInr(p.totalPaise)}</strong>
+                </div>
+              </div>
+            `;
+            return;
+          }
+        } catch {
+          // Fallback to local calculation below
+        }
+      }
+
+      const subtotalPaise = items.reduce((acc, it) => acc + it.lineTotalPaise, 0);
+      const gstPaise = items.reduce((acc, it) => acc + Math.round((it.lineTotalPaise * it.gstPercent) / (100 + it.gstPercent)), 0);
+      const isIntra = stateVal.toLowerCase() === 'karnataka' || /^5[6-9]/.test(pinVal);
+      const shippingPaise = (subtotalPaise >= 79900 ? 0 : 5500) + (payMethod === 'COD' ? 4000 : 0);
+      const totalPaise = subtotalPaise + shippingPaise;
+      createOrderLivePreview.innerHTML = `
+        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <strong>Live GST Tax Invoice Preview</strong><br/>
+            <span>Subtotal: ${formatInr(subtotalPaise)} • Inclusive GST: ${formatInr(gstPaise)} (${isIntra ? 'Intra-State CGST + SGST' : 'Inter-State IGST'})</span><br/>
+            <span>Shipping${payMethod === 'COD' ? ' + COD Fee' : ''}: ${formatInr(shippingPaise)}</span>
+          </div>
+          <div style="text-align:right;align-self:center;">
+            <span style="font-size:0.72rem;color:var(--sn-text-muted);display:block;">INVOICE GRAND TOTAL</span>
+            <strong style="font-size:1.18rem;color:var(--sn-bg-forest);">${formatInr(totalPaise)}</strong>
+          </div>
+        </div>
+      `;
+    }
+
+    function wireOrderItemRowEvents(row) {
+      const sel = row.querySelector('.sn-admin-order-variant-select');
+      const qtyInp = row.querySelector('.sn-admin-order-qty-input');
+      const remBtn = row.querySelector('.sn-admin-remove-order-item-btn');
+      if (sel) sel.addEventListener('change', recalculateAdminManualOrderPreview);
+      if (qtyInp) qtyInp.addEventListener('input', recalculateAdminManualOrderPreview);
+      if (remBtn) {
+        remBtn.addEventListener('click', () => {
+          const allRows = createOrderItemsList ? createOrderItemsList.querySelectorAll('.sn-admin-order-item-row') : [];
+          if (allRows.length > 1) {
+            row.remove();
+          } else if (qtyInp) {
+            qtyInp.value = '1';
+          }
+          recalculateAdminManualOrderPreview();
+        });
+      }
+    }
+
+    if (createOrderItemsList) {
+      createOrderItemsList.querySelectorAll('.sn-admin-order-item-row').forEach(wireOrderItemRowEvents);
+    }
+
+    const addOrderItemBtn = document.getElementById('sn-admin-add-order-item-btn');
+    if (addOrderItemBtn && createOrderItemsList && variantOptionsTpl) {
+      addOrderItemBtn.addEventListener('click', () => {
+        const existingCount = createOrderItemsList.querySelectorAll('.sn-admin-order-item-row').length;
+        const row = document.createElement('div');
+        row.className = 'sn-admin-order-item-row';
+        row.style.cssText = 'display:grid;grid-template-columns:1fr 95px 115px 40px;gap:8px;align-items:center;';
+        row.innerHTML = `
+          <select class="sn-select sn-admin-order-variant-select" required aria-label="Product Pack Variant">
+            ${variantOptionsTpl.innerHTML}
+          </select>
+          <input type="number" class="sn-input sn-admin-order-qty-input" value="1" min="1" max="50" required aria-label="Pack Quantity" style="text-align:center;font-family:var(--sn-font-mono);" />
+          <span class="sn-admin-order-row-subtotal" style="font-family:var(--sn-font-mono);font-size:0.84rem;font-weight:700;color:var(--sn-bg-forest);text-align:right;">₹0.00</span>
+          <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-admin-remove-order-item-btn" title="Remove Line Item" style="padding:0 8px;">✕</button>
+        `;
+        const sel = row.querySelector('.sn-admin-order-variant-select');
+        if (sel && sel.options.length > existingCount) {
+          sel.selectedIndex = existingCount;
+        }
+        createOrderItemsList.appendChild(row);
+        wireOrderItemRowEvents(row);
+        recalculateAdminManualOrderPreview();
+      });
+    }
+
+    const customerPresetSelect = document.getElementById('sn-admin-order-customer-preset');
+    if (customerPresetSelect) {
+      customerPresetSelect.addEventListener('change', () => {
+        const opt = customerPresetSelect.options[customerPresetSelect.selectedIndex];
+        if (!opt || !opt.value) return;
+        const setVal = (id, attr) => {
+          const el = document.getElementById(id);
+          if (el) el.value = opt.getAttribute(attr) || '';
+        };
+        setVal('sn-admin-ord-user-id', 'data-user-id');
+        setVal('sn-admin-ord-name', 'data-name');
+        setVal('sn-admin-ord-email', 'data-email');
+        setVal('sn-admin-ord-phone', 'data-phone');
+        setVal('sn-admin-ord-line1', 'data-line1');
+        setVal('sn-admin-ord-line2', 'data-line2');
+        setVal('sn-admin-ord-city', 'data-city');
+        setVal('sn-admin-ord-state', 'data-state');
+        setVal('sn-admin-ord-pincode', 'data-pincode');
+        recalculateAdminManualOrderPreview();
+      });
+    }
+
+    const ordPayMethodSelect = document.getElementById('sn-admin-ord-payment-method');
+    const ordPayStatusSelect = document.getElementById('sn-admin-ord-payment-status');
+    if (ordPayMethodSelect && ordPayStatusSelect) {
+      ordPayMethodSelect.addEventListener('change', () => {
+        if (ordPayMethodSelect.value === 'COD' && ordPayStatusSelect.value === 'PAID') {
+          ordPayStatusSelect.value = 'COD_PENDING';
+        } else if (ordPayMethodSelect.value !== 'COD' && ordPayStatusSelect.value === 'COD_PENDING') {
+          ordPayStatusSelect.value = 'PAID';
+        }
+        recalculateAdminManualOrderPreview();
+      });
+    }
+
+    ['sn-admin-ord-state', 'sn-admin-ord-pincode', 'sn-admin-ord-coupon'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('input', recalculateAdminManualOrderPreview);
+    });
+
+    document.querySelectorAll('[data-open-create-order-modal]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!createOrderModal) return;
+        if (createOrderResultBox) createOrderResultBox.style.display = 'none';
+        createOrderModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        recalculateAdminManualOrderPreview();
+      });
+    });
+
+    document.querySelectorAll('[data-close-create-order-modal]').forEach(btn => {
+      btn.addEventListener('click', closeCreateOrderModal);
+    });
+    if (createOrderModal) {
+      createOrderModal.addEventListener('click', (e) => {
+        if (e.target === createOrderModal) closeCreateOrderModal();
+      });
+    }
+    if (createdReloadBtn) {
+      createdReloadBtn.addEventListener('click', () => window.location.reload());
+    }
+
+    if (createOrderForm) {
+      createOrderForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = getActiveAdminEmail();
+        const items = collectAdminOrderLineItems();
+        if (items.length === 0) {
+          showToast('Please select at least one product pack.');
+          return;
+        }
+        const fd = new FormData(createOrderForm);
+        const payload = {
+          userId: fd.get('userId') ? Number(fd.get('userId')) : null,
+          customerName: String(fd.get('customerName') || '').trim(),
+          customerEmail: String(fd.get('customerEmail') || '').trim(),
+          customerPhone: String(fd.get('customerPhone') || '').trim(),
+          shippingLine1: String(fd.get('shippingLine1') || '').trim(),
+          shippingLine2: String(fd.get('shippingLine2') || '').trim(),
+          shippingCity: String(fd.get('shippingCity') || '').trim(),
+          shippingState: String(fd.get('shippingState') || '').trim(),
+          shippingPincode: String(fd.get('shippingPincode') || '').trim(),
+          deliveryInstructions: String(fd.get('deliveryInstructions') || '').trim(),
+          paymentMethod: String(fd.get('paymentMethod') || 'ONLINE_UPI'),
+          paymentStatus: String(fd.get('paymentStatus') || 'PAID'),
+          gatewayPaymentId: String(fd.get('gatewayPaymentId') || '').trim(),
+          couponCode: String(fd.get('couponCode') || '').trim(),
+          items: items.map(it => ({ variantId: it.variantId, quantity: it.quantity }))
+        };
+
+        if (IS_STATIC_SHOWCASE) {
+          if (email !== 'superadmin@sasynaturals.com' && email !== 'orders@sasynaturals.com') {
+            showToast(`403 RBAC Permission Denied: ${email} is not authorized for orders.write.`);
+            return;
+          }
+          const mockOrderNum = 'SN-2026-1001';
+          const mockInvoiceHref = `${BASE_PATH}/orders/${mockOrderNum}/invoice`;
+          if (createOrderResultBox && createdOrderSummaryEl && createdInvoiceLinkEl) {
+            createdOrderSummaryEl.textContent = `Order ${mockOrderNum} (${payload.paymentStatus} • Confirmed) created for ${payload.customerName}.`;
+            createdInvoiceLinkEl.setAttribute('href', mockInvoiceHref);
+            createOrderResultBox.style.display = 'block';
+          }
+          showToast(`Created Order ${mockOrderNum} & Generated GST Tax Invoice!`);
+          return;
+        }
+
+        const res = await fetch('/api/admin/orders/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': email
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to create order');
+          return;
+        }
+
+        const invoiceHref = `${BASE_PATH}${data.invoiceUrl}`;
+        if (createOrderResultBox && createdOrderSummaryEl && createdInvoiceLinkEl) {
+          createdOrderSummaryEl.textContent = `Order ${data.orderNumber} (${data.paymentStatus} • ${data.fulfilmentStatus} • ${formatInr(data.pricing.totalPaise)}) created for ${payload.customerName}.`;
+          createdInvoiceLinkEl.setAttribute('href', invoiceHref);
+          createOrderResultBox.style.display = 'block';
+        }
+
+        // Prepend the new order card to the live Orders Management list immediately
+        const cardsContainer = document.getElementById('sn-admin-orders-cards-container');
+        if (cardsContainer) {
+          const newCard = document.createElement('div');
+          newCard.className = 'sn-card';
+          newCard.style.cssText = 'margin-bottom:12px;background-color:var(--sn-bg-parchment);padding:12px 14px;border:2px solid var(--sn-bg-forest);';
+          newCard.setAttribute('data-order-card', data.orderNumber);
+          newCard.setAttribute('data-order-fulfilment', data.fulfilmentStatus);
+          newCard.setAttribute('data-order-payment', data.paymentStatus);
+          newCard.setAttribute('data-order-needs-dispatch', '1');
+          newCard.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:210px;">
+                <strong style="font-family:var(--sn-font-mono);font-size:1rem;color:var(--sn-bg-forest);">${data.orderNumber}</strong>
+                <span style="font-size:0.84rem;font-weight:600;color:var(--sn-text-primary);">${payload.customerName}</span>
+                <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-secondary);">(${payload.shippingCity} - ${payload.shippingPincode})</span>
+                <span class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.7rem;">NEW MANUAL ORDER</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <span class="sn-status ${data.paymentStatus === 'PAID' || data.paymentStatus === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${data.paymentStatus}</span>
+                <span class="sn-status sn-status-warn">${data.fulfilmentStatus}</span>
+                <strong style="font-family:var(--sn-font-mono);font-size:0.98rem;color:var(--sn-bg-forest);">${formatInr(data.pricing.totalPaise)}</strong>
+                <a href="${invoiceHref}" target="_blank" rel="noopener" class="sn-btn sn-btn-forest sn-btn-sm">🧾 GST Invoice</a>
+              </div>
+            </div>
+          `;
+          cardsContainer.prepend(newCard);
+        }
+
+        showToast(`Created Order ${data.orderNumber} — GST Tax Invoice ready!`);
+      });
+    }
+
     // 4D. Contextual Product Edit & Media Modal Controller (Opens on "✏️ Edit" in Tab 3 Table)
     const editProdModal = document.getElementById('sn-admin-edit-product-modal');
     const editSellInput = document.getElementById('sn-edit-prod-sell');
@@ -1513,6 +1850,7 @@
       if (e.key === 'Escape') {
         if (editProdModal && editProdModal.style.display !== 'none') closeEditProductModal();
         if (editCatModal && editCatModal.style.display !== 'none') closeEditCategoryModal();
+        if (createOrderModal && createOrderModal.style.display !== 'none') closeCreateOrderModal();
       }
     });
 

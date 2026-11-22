@@ -1737,6 +1737,64 @@ function renderAdminPortalPage({
   }
   const customerDirectoryRows = Array.from(customerDirectoryMap.values());
 
+  // Build Customer Quick-Fill Presets for Admin Manual Order Creation
+  const customerQuickFillMap = new Map();
+  for (const cu of customerUsers) {
+    const addr = customerAddresses.find(a => Number(a.user_id) === Number(cu.id) && Number(a.is_default) === 1)
+      || customerAddresses.find(a => Number(a.user_id) === Number(cu.id));
+    const latestOrd = orders.find(o => Number(o.user_id) === Number(cu.id) || (o.customer_email || '').toLowerCase() === cu.email.toLowerCase());
+    customerQuickFillMap.set(cu.email.toLowerCase(), {
+      userId: cu.id,
+      customerName: (addr && addr.recipient_name) || cu.full_name,
+      customerEmail: cu.email,
+      customerPhone: (addr && addr.phone) || cu.phone || (latestOrd ? latestOrd.customer_phone : '9845011223'),
+      shippingLine1: (addr && addr.line1) || (latestOrd ? latestOrd.shipping_line1 : 'No. 48, 100 Feet Road, Indiranagar'),
+      shippingLine2: (addr && addr.line2) || (latestOrd ? latestOrd.shipping_line2 : ''),
+      shippingCity: (addr && addr.city) || (latestOrd ? latestOrd.shipping_city : 'Bengaluru'),
+      shippingState: (addr && addr.state) || (latestOrd ? latestOrd.shipping_state : 'Karnataka'),
+      shippingPincode: (addr && addr.pincode) || (latestOrd ? latestOrd.shipping_pincode : '560038')
+    });
+  }
+  for (const ord of orders) {
+    const em = (ord.customer_email || '').toLowerCase();
+    if (em && !customerQuickFillMap.has(em)) {
+      customerQuickFillMap.set(em, {
+        userId: ord.user_id || '',
+        customerName: ord.customer_name,
+        customerEmail: ord.customer_email,
+        customerPhone: ord.customer_phone,
+        shippingLine1: ord.shipping_line1,
+        shippingLine2: ord.shipping_line2 || '',
+        shippingCity: ord.shipping_city,
+        shippingState: ord.shipping_state,
+        shippingPincode: ord.shipping_pincode
+      });
+    }
+  }
+  const customerQuickFillPresets = Array.from(customerQuickFillMap.values());
+
+  const activeVariantsForOrderOptionsHtml = variants
+    .filter(v => Number(v.is_active) !== 0 && Number(v.stock_qty) > 0)
+    .map(v => {
+      const prod = products.find(p => Number(p.id) === Number(v.product_id));
+      if (!prod || Number(prod.is_active) === 0) return '';
+      const unitPricePaise = v.promo_price_paise && Number(v.promo_price_paise) > 0
+        ? Number(v.promo_price_paise)
+        : Number(v.selling_price_paise);
+      return `<option
+        value="${v.id}"
+        data-unit-price-paise="${unitPricePaise}"
+        data-gst-percent="${prod.gst_percent || 5}"
+        data-weight-grams="${v.weight_grams || 250}"
+        data-stock-qty="${v.stock_qty}"
+        data-product-name="${escapeHtml(prod.name)}"
+        data-pack-label="${escapeHtml(v.pack_label)}"
+        data-sku="${escapeHtml(v.sku)}"
+      >${escapeHtml(prod.name)} — ${escapeHtml(v.pack_label)} (${escapeHtml(v.sku)}) • ${formatInr(unitPricePaise)} • Stock: ${v.stock_qty}</option>`;
+    })
+    .filter(Boolean)
+    .join('');
+
   const bodyHtml = `
     <section class="sn-section" id="sn-admin-portal">
       <div class="sn-container">
@@ -1865,7 +1923,10 @@ function renderAdminPortalPage({
                     Authorized for <strong>SUPER_ADMIN</strong>, <strong>ORDER_MANAGER</strong>, and permitted <strong>STAFF</strong>. Actionable unshipped orders expand automatically; completed/shipped orders collapse into 1-line summary cards.
                   </p>
                 </div>
-                <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-admin-orders-expand-all-btn">▾ Expand All Orders</button>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                  <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" id="sn-admin-open-create-order-btn" data-open-create-order-modal>+ Create Manual Order &amp; GST Invoice</button>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-admin-orders-expand-all-btn">▾ Expand All Orders</button>
+                </div>
               </div>
 
               <!-- 1-Tap Triage Queue Pills + Live Multi-Field Order Search & Payment Filter -->
@@ -2073,6 +2134,173 @@ function renderAdminPortalPage({
               }).join('')}
               </div>
               <div id="sn-admin-orders-pagination" class="sn-admin-pagination-bar"></div>
+
+              <!-- Admin Manual Order Creation & Auto-Generated GST Invoice Modal -->
+              <div id="sn-admin-create-order-modal" class="sn-admin-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sn-create-order-modal-heading" style="display:none;">
+                <div class="sn-admin-modal-card" style="max-width:860px;">
+                  <div class="sn-admin-modal-header">
+                    <div>
+                      <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">RBAC: SUPER_ADMIN &amp; ORDER_MANAGER • RUST WASM GST + 4-ZONE SHIPPING ENGINE</span>
+                      <h3 id="sn-create-order-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.25rem;color:#FAF6EE;">Create Manual Order &amp; Auto-Generate GST Tax Invoice</h3>
+                    </div>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-create-order-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                  </div>
+
+                  <div class="sn-admin-modal-body">
+                    <!-- Instant Post-Creation Banner with 1-Click GST Tax Invoice Link -->
+                    <div id="sn-admin-create-order-result" class="sn-card" style="display:none;background-color:var(--sn-status-paid-bg);border:2px solid var(--sn-bg-forest);padding:14px 16px;margin-bottom:16px;">
+                      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+                        <div>
+                          <div style="font-family:var(--sn-font-mono);font-size:0.74rem;font-weight:700;color:var(--sn-bg-forest);text-transform:uppercase;">✓ Order Created &amp; GST Tax Invoice Generated</div>
+                          <div id="sn-admin-created-order-summary" style="font-size:0.92rem;font-weight:700;color:var(--sn-text-primary);margin-top:2px;">Order SN-2026-1003 confirmed.</div>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                          <a id="sn-admin-created-invoice-link" href="${basePath}/orders/SN-2026-1001/invoice" target="_blank" rel="noopener" class="sn-btn sn-btn-forest sn-btn-sm">🧾 Open &amp; Print GST Invoice &rarr;</a>
+                          <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-admin-created-reload-btn">↻ Refresh Orders List</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <form id="sn-admin-create-order-form">
+                      <!-- 1. Optional Existing Customer Quick-Fill -->
+                      <div class="sn-card" style="background-color:var(--sn-bg-mortar);padding:10px 14px;margin-bottom:14px;">
+                        <label for="sn-admin-order-customer-preset" style="font-size:0.75rem;font-weight:700;color:var(--sn-bg-forest);display:block;margin-bottom:4px;">⚡ Quick-Fill from Existing Customer / Saved Address (Optional)</label>
+                        <select id="sn-admin-order-customer-preset" class="sn-select">
+                          <option value="">— Enter New / Custom Customer Below —</option>
+                          ${customerQuickFillPresets.map(cp => `
+                            <option
+                              value="${escapeHtml(cp.customerEmail)}"
+                              data-user-id="${escapeHtml(String(cp.userId || ''))}"
+                              data-name="${escapeHtml(cp.customerName)}"
+                              data-email="${escapeHtml(cp.customerEmail)}"
+                              data-phone="${escapeHtml(cp.customerPhone)}"
+                              data-line1="${escapeHtml(cp.shippingLine1)}"
+                              data-line2="${escapeHtml(cp.shippingLine2)}"
+                              data-city="${escapeHtml(cp.shippingCity)}"
+                              data-state="${escapeHtml(cp.shippingState)}"
+                              data-pincode="${escapeHtml(cp.shippingPincode)}"
+                            >${escapeHtml(cp.customerName)} (${escapeHtml(cp.customerEmail)} • ${escapeHtml(cp.customerPhone)} — ${escapeHtml(cp.shippingCity)}, ${escapeHtml(cp.shippingState)} - ${escapeHtml(cp.shippingPincode)})</option>
+                          `).join('')}
+                        </select>
+                      </div>
+
+                      <!-- 2. Customer Contact & Delivery Address (Place of Supply for CGST+SGST vs IGST) -->
+                      <div style="font-family:var(--sn-font-serif);font-weight:700;font-size:0.98rem;color:var(--sn-bg-forest);margin-bottom:8px;">
+                        1. Customer Contact &amp; Delivery Address (Determines GST Place of Supply &amp; 4-Zone Slab)
+                      </div>
+                      <input type="hidden" name="userId" id="sn-admin-ord-user-id" value="" />
+                      <div class="sn-grid-3" style="gap:10px;margin-bottom:10px;">
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Customer Full Name *</label>
+                          <input type="text" name="customerName" id="sn-admin-ord-name" required placeholder="e.g. Meera Deshmukh" class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Customer Email *</label>
+                          <input type="email" name="customerEmail" id="sn-admin-ord-email" required placeholder="meera@example.in" class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">10-Digit Mobile Phone *</label>
+                          <input type="tel" name="customerPhone" id="sn-admin-ord-phone" required placeholder="9845012345" class="sn-input" />
+                        </div>
+                      </div>
+
+                      <div class="sn-grid-2" style="gap:10px;margin-bottom:10px;">
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Street Address (Line 1) *</label>
+                          <input type="text" name="shippingLine1" id="sn-admin-ord-line1" required placeholder="House / Flat No., Building, Street" class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Landmark / Area (Line 2)</label>
+                          <input type="text" name="shippingLine2" id="sn-admin-ord-line2" placeholder="Optional Landmark or Locality" class="sn-input" />
+                        </div>
+                      </div>
+
+                      <div class="sn-grid-4" style="gap:10px;margin-bottom:14px;">
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">City *</label>
+                          <input type="text" name="shippingCity" id="sn-admin-ord-city" required value="Bengaluru" class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">State (GST Supply) *</label>
+                          <input type="text" name="shippingState" id="sn-admin-ord-state" required value="Karnataka" class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">6-Digit PIN Code *</label>
+                          <input type="text" name="shippingPincode" id="sn-admin-ord-pincode" required pattern="\\d{6}" value="560038" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Delivery Notes</label>
+                          <input type="text" name="deliveryInstructions" id="sn-admin-ord-notes" placeholder="Optional note" class="sn-input" />
+                        </div>
+                      </div>
+
+                      <!-- 3. Multi-Item Pack Variant Builder -->
+                      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+                        <div style="font-family:var(--sn-font-serif);font-weight:700;font-size:0.98rem;color:var(--sn-bg-forest);">
+                          2. Ordered Product Packs &amp; Quantities
+                        </div>
+                        <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-admin-add-order-item-btn">+ Add Another Product Pack</button>
+                      </div>
+
+                      <template id="sn-admin-order-variant-options-tpl">${activeVariantsForOrderOptionsHtml}</template>
+
+                      <div id="sn-admin-order-items-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+                        <div class="sn-admin-order-item-row" style="display:grid;grid-template-columns:1fr 95px 115px 40px;gap:8px;align-items:center;">
+                          <select class="sn-select sn-admin-order-variant-select" required aria-label="Product Pack Variant">
+                            ${activeVariantsForOrderOptionsHtml}
+                          </select>
+                          <input type="number" class="sn-input sn-admin-order-qty-input" value="1" min="1" max="50" required aria-label="Pack Quantity" style="text-align:center;font-family:var(--sn-font-mono);" />
+                          <span class="sn-admin-order-row-subtotal" style="font-family:var(--sn-font-mono);font-size:0.84rem;font-weight:700;color:var(--sn-bg-forest);text-align:right;">₹0.00</span>
+                          <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-admin-remove-order-item-btn" title="Remove Line Item" style="padding:0 8px;">✕</button>
+                        </div>
+                      </div>
+
+                      <!-- 4. Payment Mode, Initial Payment Status, UTR Reference & Coupon -->
+                      <div style="font-family:var(--sn-font-serif);font-weight:700;font-size:0.98rem;color:var(--sn-bg-forest);margin-bottom:8px;">
+                        3. Payment Mode, Settlement Status &amp; Promotional Coupon
+                      </div>
+                      <div class="sn-grid-4" style="gap:10px;margin-bottom:14px;">
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Payment Method *</label>
+                          <select name="paymentMethod" id="sn-admin-ord-payment-method" class="sn-select">
+                            <option value="ONLINE_UPI" selected>UPI / QR / Bank Transfer</option>
+                            <option value="ONLINE_CARD">Credit / Debit Card</option>
+                            <option value="ONLINE_NETBANKING">Net Banking / NEFT</option>
+                            <option value="COD">Cash on Delivery (COD)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Initial Payment Status *</label>
+                          <select name="paymentStatus" id="sn-admin-ord-payment-status" class="sn-select">
+                            <option value="PAID" selected>PAID (Verified • Deduct Stock)</option>
+                            <option value="COD_PENDING">COD_PENDING (Collect on Delivery)</option>
+                            <option value="COD_COLLECTED">COD_COLLECTED (Cash Received)</option>
+                            <option value="PENDING_PAYMENT">PENDING_PAYMENT (Hold Stock)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">UPI UTR / Payment Ref</label>
+                          <input type="text" name="gatewayPaymentId" id="sn-admin-ord-utr" placeholder="Optional UTR / Ref ID" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Coupon Code</label>
+                          <input type="text" name="couponCode" id="sn-admin-ord-coupon" placeholder="e.g. SASYA10" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                        </div>
+                      </div>
+
+                      <!-- 5. Live Rust WASM GST & 4-Zone Shipping Invoice Preview -->
+                      <div id="sn-admin-order-live-preview" class="sn-card" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:16px;font-family:var(--sn-font-mono);font-size:0.8rem;">
+                        Calculating live GST breakdown &amp; 4-Zone 500g slab shipping...
+                      </div>
+
+                      <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
+                        <button type="button" class="sn-btn sn-btn-outline" data-close-create-order-modal>Cancel</button>
+                        <button type="submit" class="sn-btn sn-btn-forest" id="sn-admin-create-order-submit-btn">🧾 Create Order &amp; Generate GST Invoice</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Panel 2: Write-Only API & Razorpay Credential Vault -->

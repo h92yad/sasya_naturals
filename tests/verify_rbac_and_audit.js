@@ -165,7 +165,51 @@ function runVerifyRbacAndAudit() {
     newPassword: 'Sasya@2026'
   });
 
-  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth, Section 5.1 Reports Engine & immutable audit_logs');
+  // 8. Verify Admin Manual Order Creation & Automatic GST Tax Invoice Generation (v2.3.0)
+  const { createAdminOrder } = require('../src/core/checkout/checkoutEngine');
+  const { renderGstInvoicePage } = require('../src/views/renderViews');
+  const firstVariant = db.prepare('SELECT id, stock_qty FROM product_variants WHERE is_active = 1 AND stock_qty > 5 ORDER BY id LIMIT 1').get();
+  const createdManualOrder = createAdminOrder({
+    customerName: 'Vikramaditya Rao',
+    customerEmail: 'vikram.rao@example.in',
+    customerPhone: '9845098765',
+    shippingLine1: 'No. 19, Lavelle Road',
+    shippingLine2: 'Near Cubbon Park',
+    shippingCity: 'Bengaluru',
+    shippingState: 'Karnataka',
+    shippingPincode: '560001',
+    items: [{ variantId: firstVariant.id, quantity: 2 }],
+    paymentMethod: 'ONLINE_UPI',
+    paymentStatus: 'PAID',
+    gatewayPaymentId: 'UTR9988776655',
+    actorId: superAdmin.id,
+    actorEmail: superAdmin.email,
+    actorRole: superAdmin.role
+  });
+  assert(createdManualOrder.orderNumber.startsWith('SN-2026-'), 'createAdminOrder must assign a sequential SN-2026-XXXX order number');
+  assert.strictEqual(createdManualOrder.invoiceUrl, `/orders/${createdManualOrder.orderNumber}/invoice`, 'createAdminOrder must return the automatic GST Tax Invoice URL');
+  assert.strictEqual(createdManualOrder.paymentStatus, 'PAID', 'createAdminOrder must record PAID status');
+  assert.strictEqual(createdManualOrder.fulfilmentStatus, 'Confirmed', 'createAdminOrder must confirm PAID manual orders');
+
+  const afterVar = db.prepare('SELECT stock_qty FROM product_variants WHERE id = ?').get(firstVariant.id);
+  assert.strictEqual(afterVar.stock_qty, firstVariant.stock_qty - 2, 'createAdminOrder must immediately deduct variant stock for PAID orders');
+
+  const ordRow = db.prepare('SELECT * FROM orders WHERE id = ?').get(createdManualOrder.orderId);
+  const ordItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(createdManualOrder.orderId);
+  const invoiceHtml = renderGstInvoicePage({ order: ordRow, orderItems: ordItems, settingsMap: {} });
+  assert(invoiceHtml.includes(`INV-${createdManualOrder.orderNumber}`), 'Auto-generated GST Tax Invoice must contain the invoice number');
+  assert(invoiceHtml.includes('Vikramaditya Rao'), 'Auto-generated GST Tax Invoice must render the recipient details');
+
+  // Clean up temporary test order & restore stock
+  db.prepare('UPDATE product_variants SET stock_qty = ? WHERE id = ?').run(firstVariant.stock_qty, firstVariant.id);
+  db.prepare('DELETE FROM inventory_movements WHERE reference_id = ?').run(createdManualOrder.orderNumber);
+  db.prepare('DELETE FROM notification_logs WHERE order_number = ?').run(createdManualOrder.orderNumber);
+  db.prepare('DELETE FROM audit_logs WHERE entity_id = ?').run(createdManualOrder.orderNumber);
+  db.prepare('DELETE FROM payments WHERE order_id = ?').run(createdManualOrder.orderId);
+  db.prepare('DELETE FROM order_items WHERE order_id = ?').run(createdManualOrder.orderId);
+  db.prepare('DELETE FROM orders WHERE id = ?').run(createdManualOrder.orderId);
+
+  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice & immutable audit_logs');
 }
 
 if (require.main === module) {

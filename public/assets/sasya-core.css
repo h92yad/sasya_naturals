@@ -2044,6 +2044,15 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
   flex: 1;
 }
 
+@media (max-width: 768px) {
+  .sn-admin-order-item-row {
+    grid-template-columns: 1fr 90px 40px !important;
+  }
+  .sn-admin-order-item-row .sn-admin-order-variant-select {
+    grid-column: 1 / -1;
+  }
+}
+
 @media print {
   body {
     background: #FFFFFF !important;

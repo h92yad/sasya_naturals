@@ -17,6 +17,7 @@ const { getDb, hashPassword } = require('./src/db/database');
 const {
   calculateCartPricing,
   createOrder,
+  createAdminOrder,
   verifyAndCaptureOnlinePayment,
   updateOrderFulfilmentAndShipping,
   recordPaymentAdminAction,
@@ -649,6 +650,19 @@ function createServerHandler() {
         const body = await readJsonBody(req);
         const verifyResult = verifyAndCaptureOnlinePayment(body);
         return sendJson(res, 200, verifyResult);
+      }
+
+      if (pathname === '/api/admin/orders/create' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'orders.write');
+        const body = await readJsonBody(req);
+        const created = createAdminOrder({
+          ...body,
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role
+        });
+        return sendJson(res, 201, created);
       }
 
       if (pathname === '/api/admin/orders/fulfilment' && req.method === 'POST') {
