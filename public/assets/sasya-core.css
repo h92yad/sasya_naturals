@@ -682,6 +682,103 @@ img {
   border-color: transparent;
 }
 
+input[type="file"].sn-input,
+.sn-file-input {
+  padding: 3px 10px 3px 4px;
+  height: 38px;
+  min-height: 38px;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  color: var(--sn-text-secondary);
+  background-color: #FFFFFF;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+input[type="file"].sn-input::file-selector-button,
+.sn-file-input::file-selector-button {
+  font-family: var(--sn-font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--sn-bg-forest);
+  background-color: var(--sn-bg-parchment);
+  border: 1px solid var(--sn-border-strong);
+  border-radius: 4px;
+  padding: 5px 10px;
+  margin-right: 8px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+input[type="file"].sn-input::file-selector-button:hover,
+.sn-file-input::file-selector-button:hover {
+  background-color: var(--sn-bg-mortar);
+  border-color: var(--sn-bg-forest);
+}
+
+input[type="file"].sn-input.sn-file-input-sm {
+  height: 34px;
+  min-height: 34px;
+  padding: 2px 6px 2px 3px;
+  font-size: 0.72rem;
+}
+
+input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
+  padding: 4px 8px;
+  margin-right: 6px;
+  font-size: 0.71rem;
+}
+
+.sn-admin-file-action-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.sn-admin-file-action-group input[type="file"].sn-input {
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+}
+
+.sn-admin-file-action-group .sn-btn {
+  flex-shrink: 0;
+  min-height: 34px;
+  height: 34px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+@media (min-width: 769px) {
+  #sn-admin-categories-table th:nth-child(1),
+  #sn-admin-categories-table td:nth-child(1) { width: 9%; }
+  #sn-admin-categories-table th:nth-child(2),
+  #sn-admin-categories-table td:nth-child(2) { width: 20%; }
+  #sn-admin-categories-table th:nth-child(3),
+  #sn-admin-categories-table td:nth-child(3) { width: 26%; }
+  #sn-admin-categories-table th:nth-child(4),
+  #sn-admin-categories-table td:nth-child(4) { width: 16%; }
+  #sn-admin-categories-table th:nth-child(5),
+  #sn-admin-categories-table td:nth-child(5) { width: 29%; }
+
+  #sn-admin-products-table th:nth-child(1),
+  #sn-admin-products-table td:nth-child(1) { width: 7%; }
+  #sn-admin-products-table th:nth-child(2),
+  #sn-admin-products-table td:nth-child(2) { width: 15%; }
+  #sn-admin-products-table th:nth-child(3),
+  #sn-admin-products-table td:nth-child(3) { width: 21%; }
+  #sn-admin-products-table th:nth-child(4),
+  #sn-admin-products-table td:nth-child(4) { width: 24%; }
+  #sn-admin-products-table th:nth-child(5),
+  #sn-admin-products-table td:nth-child(5) { width: 11%; }
+  #sn-admin-products-table th:nth-child(6),
+  #sn-admin-products-table td:nth-child(6) { width: 22%; }
+}
+
 .sn-pdp-grid {
   display: grid;
   grid-template-columns: 0.95fr 1.05fr;
@@ -1539,6 +1636,19 @@ img {
   .sn-admin-menu button {
     min-height: 42px !important;
     min-width: 42px !important;
+  }
+
+  input[type="file"].sn-input,
+  input[type="file"].sn-input.sn-file-input-sm {
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 5px 8px 5px 5px !important;
+    font-size: 0.76rem !important;
+  }
+
+  .sn-admin-file-action-group .sn-btn {
+    height: 42px !important;
+    min-height: 42px !important;
   }
 
   /* Scoped horizontal scroll for GST invoices & dense Admin ledgers on Tablet & Mobile */

@@ -2113,7 +2113,7 @@ function renderAdminPortalPage({
                     </div>
                     <div>
                       <label style="font-size:0.75rem;font-weight:600;">Category Banner Image (JPEG/PNG/WebP)</label>
-                      <input type="file" name="categoryImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input" style="padding:6px;" />
+                      <input type="file" name="categoryImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input" />
                     </div>
                   </div>
                   <div class="sn-form-row-1-action" style="gap:12px;">
@@ -2153,9 +2153,9 @@ function renderAdminPortalPage({
                             >${c.is_active ? 'Published (Active)' : 'Deactivated'}</button>
                           </td>
                           <td data-label="Update Banner Photo">
-                            <form class="sn-admin-cat-img-form" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;width:100%;">
+                            <form class="sn-admin-cat-img-form sn-admin-file-action-group">
                               <input type="hidden" name="categoryId" value="${c.id}" />
-                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:4px;font-size:0.75rem;flex:1;min-width:140px;" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input sn-file-input sn-file-input-sm" />
                               <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Update Photo</button>
                             </form>
                           </td>
@@ -2189,7 +2189,7 @@ function renderAdminPortalPage({
                     </div>
                     <div>
                       <label style="font-size:0.75rem;font-weight:600;">Image File (Magic-Byte Checked) *</label>
-                      <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:6px;" />
+                      <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input sn-file-input" />
                     </div>
                     <div>
                       <label style="font-size:0.75rem;font-weight:600;">Image Caption</label>
@@ -2241,7 +2241,7 @@ function renderAdminPortalPage({
                     </div>
                     <div>
                       <label style="font-size:0.75rem;font-weight:600;">Product Photo (JPEG/PNG/WebP)</label>
-                      <input type="file" name="productImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input" style="padding:6px;" />
+                      <input type="file" name="productImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input" />
                     </div>
                   </div>
                   <div style="margin-bottom:12px;">
@@ -2407,9 +2407,9 @@ function renderAdminPortalPage({
                             </div>
                           </td>
                           <td data-label="Quick Change Photo">
-                            <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;">
+                            <form class="sn-admin-inline-prod-img-form sn-admin-file-action-group">
                               <input type="hidden" name="productId" value="${p.id}" />
-                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input" style="padding:3px;font-size:0.72rem;flex:1;min-width:130px;" />
+                              <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input sn-file-input sn-file-input-sm" />
                               <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
                             </form>
                           </td>
