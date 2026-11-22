@@ -66,6 +66,9 @@ function renderProductCard(p, variants = [], basePath = '') {
     stock_qty: 20
   };
   const totalStock = prodVariants.reduce((sum, v) => sum + Number(v.stock_qty || 0), 0);
+  const savePct = defVar.mrp_paise > defVar.selling_price_paise
+    ? Math.round(((defVar.mrp_paise - defVar.selling_price_paise) / defVar.mrp_paise) * 100)
+    : 0;
 
   return `
     <article
@@ -83,7 +86,6 @@ function renderProductCard(p, variants = [], basePath = '') {
         <div class="sn-product-badges">
           ${p.is_bestseller ? `<span class="sn-badge sn-badge-bestseller">Bestseller</span>` : ''}
           ${p.is_new_arrival ? `<span class="sn-badge sn-badge-new">New Harvest</span>` : ''}
-          <span class="sn-badge sn-badge-origin">${escapeHtml(p.origin_region)}</span>
         </div>
       </a>
       <div class="sn-product-content">
@@ -91,6 +93,7 @@ function renderProductCard(p, variants = [], basePath = '') {
           <span data-sku-display>${escapeHtml(defVar.sku)}</span>
           <span>★ ${Number(p.rating_value || 4.8).toFixed(1)} (${Number(p.review_count || 24)})</span>
         </div>
+        <div class="sn-product-origin-eyebrow">${escapeHtml(p.origin_region)}</div>
         <h3 class="sn-product-title">
           <a href="${basePath}/product/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a>
         </h3>
@@ -112,8 +115,11 @@ function renderProductCard(p, variants = [], basePath = '') {
         </div>
         <div class="sn-price-row">
           <div class="sn-price-block">
-            <span class="sn-price-current" data-price-display>${formatInr(defVar.selling_price_paise)}</span>
-            <span class="sn-price-mrp" data-mrp-display>MRP ${formatInr(defVar.mrp_paise)}</span>
+            <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;">
+              <span class="sn-price-current" data-price-display>${formatInr(defVar.selling_price_paise)}</span>
+              <span class="sn-price-mrp" data-mrp-display>MRP ${formatInr(defVar.mrp_paise)}</span>
+              <span class="sn-price-save" data-save-display style="${savePct > 0 ? '' : 'display:none;'}">Save ${savePct}%</span>
+            </div>
             <span class="sn-price-tax">Incl. ${p.gst_percent}% GST</span>
           </div>
           <button
@@ -192,6 +198,10 @@ function renderShell({
         <a href="${basePath}/track-order" class="${activeNav === 'track' ? 'sn-active' : ''}" id="nav-track">Track Order</a>
       </nav>
       <div class="sn-header-actions">
+        <form action="${basePath}/shop" method="GET" class="sn-header-search" id="sn-header-search-form">
+          <input type="search" name="q" placeholder="Search almonds, ragi, spices..." class="sn-header-search-input" id="sn-header-search-input" aria-label="Search products" />
+          <button type="submit" class="sn-header-search-btn" aria-label="Search">🔍</button>
+        </form>
         <a href="${basePath}/account" class="sn-btn ${activeNav === 'account' ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm" id="header-account-btn">My Account</a>
         <button type="button" class="sn-btn sn-btn-forest sn-btn-sm sn-cart-trigger" data-open-cart id="header-cart-btn">
           <span>Basket</span>
@@ -470,36 +480,45 @@ function renderCatalogPage({
           </div>
         </div>
 
-        <form class="sn-filter-bar" method="GET" action="${basePath}${canonicalPath}" id="catalog-filter-form">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <a href="${basePath}/shop" class="sn-btn ${!activeCategory ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">All Catalogue</a>
-            ${categories.map(c => `
-              <a href="${basePath}/category/${escapeHtml(c.slug)}" class="sn-btn ${activeCategory && activeCategory.slug === c.slug ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">${escapeHtml(c.name)}</a>
-            `).join('')}
+        <form class="sn-filter-bar" method="GET" action="${basePath}${canonicalPath}" id="catalog-filter-form" style="flex-direction:column;align-items:stretch;gap:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding-bottom:10px;border-bottom:1px dashed var(--sn-border-warm);">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <a href="${basePath}/shop" class="sn-btn ${!activeCategory ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">All Catalogue</a>
+              ${categories.map(c => `
+                <a href="${basePath}/category/${escapeHtml(c.slug)}" class="sn-btn ${activeCategory && activeCategory.slug === c.slug ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">${escapeHtml(c.name)}</a>
+              `).join('')}
+              <span style="color:var(--sn-border-strong);margin:0 2px;">|</span>
+              <a href="${basePath}${canonicalPath}?tag=bestseller" class="sn-btn ${tagFilter === 'bestseller' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">★ Bestsellers</a>
+              <a href="${basePath}${canonicalPath}?tag=new_arrival" class="sn-btn ${tagFilter === 'new_arrival' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">New Harvests</a>
+              <a href="${basePath}${canonicalPath}?maxPrice=250" class="sn-btn ${String(maxPriceInr) === '250' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">Under ₹250</a>
+            </div>
+            <span style="font-family:var(--sn-font-mono);font-size:0.76rem;color:var(--sn-bg-forest);font-weight:600;background-color:var(--sn-bg-parchment);padding:4px 10px;border-radius:999px;border:1px solid var(--sn-border-warm);">
+              Showing ${products.length} of ${totalCount} Harvests
+            </span>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input type="search" name="q" value="${escapeHtml(searchQuery)}" placeholder="Search almonds, ragi, cloves..." class="sn-input" style="width:195px;" id="catalog-search-input" />
-            <select name="tag" class="sn-select" style="width:155px;" id="catalog-tag-select">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%;">
+            <input type="search" name="q" value="${escapeHtml(searchQuery)}" placeholder="Search almonds, ragi, cloves..." class="sn-input" style="flex:1.5 1 200px;" id="catalog-search-input" />
+            <select name="tag" class="sn-select" style="flex:1 1 150px;" id="catalog-tag-select">
               <option value="all" ${tagFilter === 'all' ? 'selected' : ''}>Filter: All Items</option>
               <option value="bestseller" ${tagFilter === 'bestseller' ? 'selected' : ''}>Bestsellers Only</option>
               <option value="featured" ${tagFilter === 'featured' ? 'selected' : ''}>Featured Only</option>
               <option value="new_arrival" ${tagFilter === 'new_arrival' ? 'selected' : ''}>New Harvests</option>
               <option value="in_stock" ${tagFilter === 'in_stock' ? 'selected' : ''}>In Stock Only</option>
             </select>
-            <select name="maxPrice" class="sn-select" style="width:165px;" id="catalog-price-select">
+            <select name="maxPrice" class="sn-select" style="flex:1 1 160px;" id="catalog-price-select">
               <option value="all" ${maxPriceInr === 'all' ? 'selected' : ''}>Starting Price: Any</option>
               <option value="150" ${String(maxPriceInr) === '150' ? 'selected' : ''}>Starts Under ₹150</option>
               <option value="250" ${String(maxPriceInr) === '250' ? 'selected' : ''}>Starts Under ₹250</option>
               <option value="500" ${String(maxPriceInr) === '500' ? 'selected' : ''}>Starts Under ₹500</option>
             </select>
-            <select name="pack" class="sn-select" style="width:140px;" id="catalog-pack-select">
+            <select name="pack" class="sn-select" style="flex:0.9 1 135px;" id="catalog-pack-select">
               <option value="all" ${packFilter === 'all' ? 'selected' : ''}>Pack: All Sizes</option>
               <option value="100 g" ${packFilter === '100 g' ? 'selected' : ''}>100 g Pack</option>
               <option value="250 g" ${packFilter === '250 g' ? 'selected' : ''}>250 g Pack</option>
               <option value="500 g" ${packFilter === '500 g' ? 'selected' : ''}>500 g Pack</option>
               <option value="1 kg" ${packFilter === '1 kg' ? 'selected' : ''}>1 kg Pack</option>
             </select>
-            <select name="sort" class="sn-select" style="width:160px;" id="catalog-sort-select">
+            <select name="sort" class="sn-select" style="flex:1 1 155px;" id="catalog-sort-select">
               <option value="featured" ${sortBy === 'featured' ? 'selected' : ''}>Sort: Featured</option>
               <option value="price_asc" ${sortBy === 'price_asc' ? 'selected' : ''}>Price: Low to High</option>
               <option value="price_desc" ${sortBy === 'price_desc' ? 'selected' : ''}>Price: High to Low</option>
@@ -558,6 +577,9 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
   const activeVariants = variants.filter(v => v.is_active);
   const defVar = activeVariants.find(v => v.pack_label === '250 g') || activeVariants[0];
   const shipCopy = getDynamicShippingCopy();
+  const pdpSavePct = defVar.mrp_paise > defVar.selling_price_paise
+    ? Math.round(((defVar.mrp_paise - defVar.selling_price_paise) / defVar.mrp_paise) * 100)
+    : 0;
 
   let extraGallery = [];
   try {
@@ -567,9 +589,18 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
     extraGallery = [];
   }
   const allGalleryPhotos = [
-    { url: product.image_url, caption: product.image_caption || `${product.name} (Primary Pack View)` },
+    { url: product.image_url, caption: product.image_caption || `${product.name} (Primary Harvest Macro View)` },
     ...extraGallery.filter(g => g.url && g.url !== product.image_url)
   ];
+  if (allGalleryPhotos.length < 2) {
+    const fallbackSecondUrl = (category && category.image_url && category.image_url !== product.image_url)
+      ? category.image_url
+      : '/images/hero-pantry.jpg';
+    allGalleryPhotos.push({
+      url: fallbackSecondUrl,
+      caption: `${category.name} Regional Harvest Spread & Nitrogen-Flushed Pouch Batch ${product.harvest_batch}`
+    });
+  }
 
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'product',
@@ -599,16 +630,20 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
               ${escapeHtml(product.image_caption || product.name)} | Origin: ${escapeHtml(product.origin_region)}
             </div>
             ${allGalleryPhotos.length > 1 ? `
-              <div style="display:flex;gap:10px;padding:12px 18px;background-color:var(--sn-bg-surface);border-top:1px solid var(--sn-border-warm);overflow-x:auto;">
+              <div style="display:flex;gap:10px;padding:12px 18px;background-color:var(--sn-bg-surface);border-top:1px solid var(--sn-border-warm);overflow-x:auto;align-items:center;">
                 ${allGalleryPhotos.map((g, idx) => `
                   <button
                     type="button"
                     class="sn-btn sn-btn-outline sn-btn-sm"
                     data-pdp-thumb-url="${basePath}${escapeHtml(g.url)}"
                     data-pdp-thumb-caption="${escapeHtml(g.caption || product.name)}"
-                    style="padding:3px;border-radius:6px;"
+                    style="padding:3px 8px 3px 3px;border-radius:6px;gap:8px;"
                   >
-                    <img src="${basePath}${escapeHtml(g.url)}" alt="${escapeHtml(g.caption || `View ${idx + 1}`)}" style="width:58px;height:58px;object-fit:cover;border-radius:4px;" />
+                    <img src="${basePath}${escapeHtml(g.url)}" alt="${escapeHtml(g.caption || `View ${idx + 1}`)}" style="width:52px;height:52px;object-fit:cover;border-radius:4px;" />
+                    <span style="font-family:var(--sn-font-mono);font-size:0.72rem;text-align:left;line-height:1.25;">
+                      <strong>View ${idx + 1}</strong><br/>
+                      <span style="color:var(--sn-text-muted);font-weight:400;">${idx === 0 ? 'Harvest Close-Up' : 'Pantry Spread'}</span>
+                    </span>
                   </button>
                 `).join('')}
               </div>
@@ -616,7 +651,7 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
           </div>
 
           <div>
-            <span class="sn-eyebrow">${escapeHtml(category.name)} • Batch ${escapeHtml(product.harvest_batch)}</span>
+            <span class="sn-eyebrow">${escapeHtml(category.name)} • ${escapeHtml(product.origin_region)} • Batch ${escapeHtml(product.harvest_batch)}</span>
             <h1 style="font-family:var(--sn-font-serif);font-size:clamp(1.8rem,2.8vw,2.45rem);color:var(--sn-bg-forest);margin:0 0 10px;">${escapeHtml(product.name)}</h1>
             <div style="display:flex;align-items:center;gap:16px;font-family:var(--sn-font-mono);font-size:0.8rem;color:var(--sn-text-muted);margin-bottom:16px;flex-wrap:wrap;">
               <span>SKU: <strong data-sku-display>${escapeHtml(defVar.sku)}</strong></span>
@@ -652,16 +687,20 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
 
               <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding-top:12px;border-top:1px solid var(--sn-border-warm);">
                 <div>
-                  <div style="display:flex;align-items:baseline;gap:10px;">
+                  <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
                     <span class="sn-price-current" style="font-size:1.65rem;" data-price-display>${formatInr(defVar.selling_price_paise)}</span>
                     <span class="sn-price-mrp" style="font-size:0.9rem;" data-mrp-display>MRP ${formatInr(defVar.mrp_paise)}</span>
+                    <span class="sn-price-save" data-save-display style="${pdpSavePct > 0 ? '' : 'display:none;'}">Save ${pdpSavePct}%</span>
                   </div>
                   <span style="font-size:0.76rem;color:var(--sn-text-muted);">Inclusive of ${product.gst_percent}% GST | ${escapeHtml(shipCopy.pdpShortText)}</span>
                 </div>
 
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                  <label for="sn-pdp-qty" style="font-size:0.8rem;font-weight:600;">Qty:</label>
-                  <input type="number" id="sn-pdp-qty" value="1" min="1" max="20" class="sn-input" style="width:68px;text-align:center;" />
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <div class="sn-qty-stepper" aria-label="Pack Quantity">
+                    <button type="button" class="sn-qty-step-btn" data-pdp-qty-delta="-1" aria-label="Decrease quantity">&minus;</button>
+                    <input type="number" id="sn-pdp-qty" value="1" min="1" max="20" class="sn-input" aria-label="Quantity" />
+                    <button type="button" class="sn-qty-step-btn" data-pdp-qty-delta="1" aria-label="Increase quantity">+</button>
+                  </div>
                   <button
                     type="button"
                     class="sn-btn sn-btn-primary"
@@ -686,12 +725,12 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
               <!-- Instant 6-Digit PIN Delivery & Zone Freight Estimator -->
               <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--sn-border-warm);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
                 <div style="display:flex;align-items:center;gap:8px;">
-                  <label for="sn-pdp-pin-input" style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-secondary);">Check PIN Delivery &amp; Freight:</label>
+                  <label for="sn-pdp-pin-input" style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-secondary);">📍 Delivery PIN:</label>
                   <input type="text" id="sn-pdp-pin-input" maxlength="6" placeholder="560038" value="560038" class="sn-input" style="width:96px;padding:5px 8px;min-height:32px;font-family:var(--sn-font-mono);font-size:0.78rem;" />
                   <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-pdp-pin-check-btn" style="min-height:32px;padding:4px 10px;">Check PIN</button>
                 </div>
-                <span id="sn-pdp-pin-result" style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-status-paid);">
-                  ✓ Zone A (Local Bengaluru) • Prepaid &amp; COD Available • Dispatch in 24 hrs
+                <span id="sn-pdp-pin-result" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">
+                  ✓ Zone A (Local Bengaluru • 1-2 Days) • Prepaid &amp; COD Available
                 </span>
               </div>
             </div>
@@ -858,21 +897,33 @@ function renderCheckoutPage({
 
             <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">2. Select Payment Mode (Razorpay Gateway or COD)</h3>
             <div class="sn-grid-2" style="gap:10px;margin-bottom:22px;">
-              <label class="sn-card" style="padding:12px;cursor:pointer;display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="paymentMethod" value="ONLINE_UPI" checked />
-                <span><strong>UPI Instant Pay</strong> (GPay / PhonePe / BHIM)</span>
+              <label class="sn-card sn-payment-option-card">
+                <input type="radio" name="paymentMethod" value="ONLINE_UPI" checked style="margin-top:3px;" />
+                <div>
+                  <div><strong>UPI Instant Pay</strong> (GPay / PhonePe / BHIM)</div>
+                  <div style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-status-paid);margin-top:2px;">✓ Instant Verification • Zero Gateway Fee</div>
+                </div>
               </label>
-              <label class="sn-card" style="padding:12px;cursor:pointer;display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="paymentMethod" value="ONLINE_CARD" />
-                <span><strong>Credit / Debit Card</strong> (Visa / RuPay / MC)</span>
+              <label class="sn-card sn-payment-option-card">
+                <input type="radio" name="paymentMethod" value="ONLINE_CARD" style="margin-top:3px;" />
+                <div>
+                  <div><strong>Credit / Debit Card</strong> (Visa / RuPay / MC)</div>
+                  <div style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-status-paid);margin-top:2px;">✓ Instant Verification • Zero Gateway Fee</div>
+                </div>
               </label>
-              <label class="sn-card" style="padding:12px;cursor:pointer;display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="paymentMethod" value="ONLINE_NETBANKING" />
-                <span><strong>Net Banking</strong> (All Indian Banks)</span>
+              <label class="sn-card sn-payment-option-card">
+                <input type="radio" name="paymentMethod" value="ONLINE_NETBANKING" style="margin-top:3px;" />
+                <div>
+                  <div><strong>Net Banking</strong> (All Indian Banks)</div>
+                  <div style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-status-paid);margin-top:2px;">✓ Instant Verification • Zero Gateway Fee</div>
+                </div>
               </label>
-              <label class="sn-card" style="padding:12px;cursor:pointer;display:flex;align-items:center;gap:8px;">
-                <input type="radio" name="paymentMethod" value="COD" />
-                <span><strong>Cash on Delivery (COD)</strong> (Pay at Doorstep)</span>
+              <label class="sn-card sn-payment-option-card">
+                <input type="radio" name="paymentMethod" value="COD" style="margin-top:3px;" />
+                <div>
+                  <div><strong>Cash on Delivery (COD)</strong> (Pay at Doorstep)</div>
+                  <div style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-text-secondary);margin-top:2px;">Pay Cash / UPI on Delivery (OTP Verified)</div>
+                </div>
               </label>
             </div>
 
@@ -881,15 +932,25 @@ function renderCheckoutPage({
             </button>
           </form>
 
-          <div>
+          <div class="sn-checkout-sidebar">
             <div class="sn-card" style="margin-bottom:20px;">
               <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">Apply Promotional Coupon</h3>
               <div style="display:flex;gap:10px;margin-bottom:10px;">
                 <input type="text" id="sn-checkout-coupon" placeholder="Enter SASYA10 or WELCOME15" value="SASYA10" class="sn-input" />
                 <button type="button" class="sn-btn sn-btn-forest" id="sn-apply-coupon-btn">Apply</button>
               </div>
-              <div style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);">
-                Active codes: ${coupons.map(c => `<strong>${escapeHtml(c.code)}</strong> (${escapeHtml(c.description)})`).join(' | ')}
+              <div style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);margin-bottom:6px;">
+                Tap a coupon below to apply automatically:
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                ${coupons.map(c => `
+                  <button
+                    type="button"
+                    class="sn-coupon-chip"
+                    data-apply-coupon-chip="${escapeHtml(c.code)}"
+                    title="${escapeHtml(c.description)}"
+                  >🏷️ ${escapeHtml(c.code)} <span style="font-weight:400;opacity:0.85;">(${escapeHtml(c.description)})</span></button>
+                `).join('')}
               </div>
             </div>
 
@@ -983,13 +1044,22 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
             </div>
 
             <div class="sn-stepper-grid" style="margin:22px 0;">
-              ${steps.map(st => {
+              ${steps.map((st, idx) => {
                 const currentIdx = steps.indexOf(order.fulfilment_status);
-                const stepIdx = steps.indexOf(st);
-                const done = currentIdx >= stepIdx;
+                const isCurrent = currentIdx === idx;
+                const isCompleted = currentIdx > idx;
+                const bg = isCurrent
+                  ? 'var(--sn-bg-forest)'
+                  : (isCompleted ? 'var(--sn-status-paid-bg)' : 'var(--sn-bg-parchment)');
+                const color = isCurrent
+                  ? '#FFFFFF'
+                  : (isCompleted ? 'var(--sn-bg-forest)' : 'var(--sn-text-muted)');
+                const border = isCurrent || isCompleted
+                  ? 'var(--sn-bg-forest)'
+                  : 'var(--sn-border-warm)';
                 return `
-                  <div style="padding:10px;border-radius:6px;border:1px solid ${done ? 'var(--sn-bg-forest)' : 'var(--sn-border-warm)'};background-color:${done ? 'var(--sn-status-paid-bg)' : 'var(--sn-bg-parchment)'};text-align:center;font-family:var(--sn-font-mono);font-size:0.75rem;font-weight:600;color:${done ? 'var(--sn-bg-forest)' : 'var(--sn-text-muted)'};">
-                    ${done ? '✓ ' : ''}${escapeHtml(st)}
+                  <div style="padding:10px 8px;border-radius:6px;border:${isCurrent ? '2px' : '1px'} solid ${border};background-color:${bg};text-align:center;font-family:var(--sn-font-mono);font-size:0.75rem;font-weight:${isCurrent ? '700' : '600'};color:${color};box-shadow:${isCurrent ? 'var(--sn-shadow-soft)' : 'none'};">
+                    ${isCurrent ? '● ' : (isCompleted ? '✓ ' : `${idx + 1}. `)}${escapeHtml(st)}
                   </div>
                 `;
               }).join('')}
@@ -1015,7 +1085,18 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
                 ${order.courier_name ? `
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;font-size:0.88rem;">
                     <div><span style="color:var(--sn-text-muted);">Courier Partner:</span><br/><strong>${escapeHtml(order.courier_name)}</strong></div>
-                    <div><span style="color:var(--sn-text-muted);">Tracking / AWB Number:</span><br/><strong style="font-family:var(--sn-font-mono);">${escapeHtml(order.tracking_number)}</strong></div>
+                    <div>
+                      <span style="color:var(--sn-text-muted);">Tracking / AWB Number:</span><br/>
+                      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px;">
+                        <strong style="font-family:var(--sn-font-mono);">${escapeHtml(order.tracking_number)}</strong>
+                        <button
+                          type="button"
+                          class="sn-btn sn-btn-outline sn-btn-sm"
+                          data-copy-shipping-label="${escapeHtml(order.tracking_number)}"
+                          style="padding:2px 8px;min-height:24px;font-size:0.7rem;"
+                        >📋 Copy AWB</button>
+                      </div>
+                    </div>
                     <div><span style="color:var(--sn-text-muted);">Dispatch Date:</span><br/><strong style="font-family:var(--sn-font-mono);">${escapeHtml(order.dispatch_date || 'Recorded')}</strong></div>
                     <div><span style="color:var(--sn-text-muted);">Tracking Link:</span><br/><a href="${escapeHtml(order.tracking_url || '#')}" target="_blank" rel="noopener" style="color:var(--sn-accent-terracotta);font-weight:600;">Open Courier Portal &rarr;</a></div>
                   </div>
@@ -1106,8 +1187,8 @@ function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, basePa
         </div>
 
         <div class="sn-card">
-          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;padding-bottom:20px;border-bottom:2px solid var(--sn-bg-forest);">
-            <div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;padding-bottom:20px;border-bottom:2px solid var(--sn-bg-forest);">
+            <div style="flex:1.3 1 320px;">
               <span class="sn-eyebrow">Tax Invoice (Original for Recipient)</span>
               <h1 style="font-family:var(--sn-font-serif);font-size:1.75rem;margin:0;color:var(--sn-bg-forest);">${escapeHtml(legalName)}</h1>
               <div style="font-size:0.84rem;color:var(--sn-text-secondary);margin-top:4px;">
@@ -1116,7 +1197,7 @@ function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, basePa
                 <strong>FSSAI Lic. No.:</strong> <span style="font-family:var(--sn-font-mono);">${escapeHtml(fssaiVal)}</span>
               </div>
             </div>
-            <div style="font-family:var(--sn-font-mono);font-size:0.82rem;">
+            <div class="sn-invoice-meta-right" style="flex:0.9 1 240px;">
               <div><strong>Invoice No:</strong> INV-${escapeHtml(order.order_number)}</div>
               <div><strong>Order No:</strong> ${escapeHtml(order.order_number)}</div>
               <div><strong>Date:</strong> ${escapeHtml(order.created_at.slice(0, 10))}</div>
@@ -1399,25 +1480,51 @@ function renderCustomerAccountPage({
                 `).join('')}
               </div>
 
-              <form id="sn-customer-add-address-form" style="padding-top:12px;border-top:1px solid var(--sn-border-warm);">
-                <div style="font-family:var(--sn-font-mono);font-size:0.75rem;text-transform:uppercase;color:var(--sn-text-muted);margin-bottom:8px;">Add New Delivery Address</div>
-                <input type="hidden" name="userId" value="${activeCustomer.id}" />
-                <div class="sn-grid-3" style="gap:8px;margin-bottom:8px;">
-                  <input type="text" name="label" required placeholder="Label (e.g. Office)" class="sn-input" />
-                  <input type="text" name="recipientName" required value="${escapeHtml(activeCustomer.full_name)}" placeholder="Recipient Name" class="sn-input" />
-                  <input type="tel" name="phone" required value="${escapeHtml(activeCustomer.phone)}" placeholder="Mobile No." class="sn-input" />
-                </div>
-                <div class="sn-grid-2" style="gap:8px;margin-bottom:8px;">
-                  <input type="text" name="line1" required placeholder="House / Flat / Street Address" class="sn-input" />
-                  <input type="text" name="line2" placeholder="Landmark / Area (Optional)" class="sn-input" />
-                </div>
-                <div class="sn-form-row-3-action">
-                  <input type="text" name="city" required placeholder="City (e.g. Bengaluru)" class="sn-input" />
-                  <input type="text" name="state" required placeholder="State (e.g. Karnataka)" class="sn-input" />
-                  <input type="text" name="pincode" required pattern="\\d{6}" placeholder="6-Digit PIN" class="sn-input" />
-                  <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Save Address</button>
-                </div>
-              </form>
+              <details class="sn-faq-item" style="background-color:var(--sn-bg-parchment);padding:12px 16px;margin-bottom:0;">
+                <summary style="font-size:0.95rem;">+ Add New Delivery Address</summary>
+                <form id="sn-customer-add-address-form" style="padding-top:12px;margin-top:10px;border-top:1px dashed var(--sn-border-warm);">
+                  <input type="hidden" name="userId" value="${activeCustomer.id}" />
+                  <div class="sn-grid-3" style="gap:8px;margin-bottom:8px;">
+                    <div>
+                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">Address Label *</label>
+                      <input type="text" name="label" required placeholder="e.g. Office / Home" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">Recipient Name *</label>
+                      <input type="text" name="recipientName" required value="${escapeHtml(activeCustomer.full_name)}" placeholder="Recipient Name" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">Mobile No. *</label>
+                      <input type="tel" name="phone" required value="${escapeHtml(activeCustomer.phone)}" placeholder="Mobile No." class="sn-input" />
+                    </div>
+                  </div>
+                  <div class="sn-grid-2" style="gap:8px;margin-bottom:8px;">
+                    <div>
+                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">House / Flat / Street Address *</label>
+                      <input type="text" name="line1" required placeholder="House / Flat / Street Address" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">Landmark / Area (Optional)</label>
+                      <input type="text" name="line2" placeholder="Landmark / Area (Optional)" class="sn-input" />
+                    </div>
+                  </div>
+                  <div class="sn-form-row-3-action" style="align-items:end;">
+                    <div>
+                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">City *</label>
+                      <input type="text" name="city" required placeholder="e.g. Bengaluru" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">State *</label>
+                      <input type="text" name="state" required placeholder="e.g. Karnataka" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">6-Digit PIN *</label>
+                      <input type="text" name="pincode" required pattern="\\d{6}" placeholder="560038" class="sn-input" />
+                    </div>
+                    <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Save Address</button>
+                  </div>
+                </form>
+              </details>
             </div>
           </div>
 
@@ -1449,14 +1556,14 @@ function renderCustomerAccountPage({
                     const oItems = orderItems.filter(it => Number(it.order_id) === Number(o.id));
                     return `
                       <tr>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${escapeHtml(o.order_number)}</td>
-                        <td style="font-family:var(--sn-font-mono);font-size:0.78rem;">${escapeHtml((o.created_at || '').slice(0, 10))}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;white-space:nowrap;">${escapeHtml(o.order_number)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-size:0.78rem;white-space:nowrap;">${escapeHtml((o.created_at || '').slice(0, 10))}</td>
                         <td style="font-size:0.82rem;">
                           ${oItems.length > 0
                             ? oItems.map(it => `${escapeHtml(it.product_name)} (${escapeHtml(it.pack_label)} × ${it.quantity})`).join(', ')
                             : 'Pantry Order Packs'}
                         </td>
-                        <td style="font-family:var(--sn-font-mono);font-weight:700;">${formatInr(o.total_paise)}</td>
+                        <td style="font-family:var(--sn-font-mono);font-weight:700;white-space:nowrap;">${formatInr(o.total_paise)}</td>
                         <td><span class="sn-status ${o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(o.payment_status)}</span></td>
                         <td><span class="sn-status sn-status-paid">${escapeHtml(o.fulfilment_status)}</span></td>
                         <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">
@@ -1644,7 +1751,7 @@ function renderAdminPortalPage({
             </form>
             <div style="display:flex;align-items:center;gap:6px;">
               <label for="sn-admin-role-switcher" style="font-family:var(--sn-font-mono);font-size:0.74rem;">Role Switcher:</label>
-              <select id="sn-admin-role-switcher" class="sn-select" style="width:265px;font-weight:600;padding:6px 10px;font-size:0.78rem;">
+              <select id="sn-admin-role-switcher" class="sn-select" style="min-width:315px;max-width:100%;font-weight:600;padding:6px 10px;font-size:0.78rem;">
                 ${staffUsers.map(u => `
                   <option value="${escapeHtml(u.email)}">${escapeHtml(u.role)} - ${escapeHtml(u.full_name)}${u.is_active ? '' : ' (Inactive)'}</option>
                 `).join('')}
@@ -1900,10 +2007,21 @@ function renderAdminPortalPage({
 
             <!-- Panel 3: Categories, Products, Edit/Publish/Deactivate & Media Manager -->
             <div class="sn-card" data-admin-panel="products" style="display:none;">
-              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Categories, Products, Pack Variants &amp; Media Manager</h2>
-              <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 18px;">
-                Authorized for <strong>SUPER_ADMIN</strong> and <strong>PRODUCT_MANAGER</strong>. Create, edit, publish/deactivate categories and products, update pack prices, and upload magic-byte verified images.
-              </p>
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+                <div>
+                  <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Categories, Products, Pack Variants &amp; Media Manager</h2>
+                  <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0;">
+                    Authorized for <strong>SUPER_ADMIN</strong> and <strong>PRODUCT_MANAGER</strong>. Create, edit, publish/deactivate categories and products, update pack prices, and upload magic-byte verified images.
+                  </p>
+                </div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                  <a href="#sn-admin-create-category-form" class="sn-btn sn-btn-outline sn-btn-sm">+ Category</a>
+                  <a href="#sn-admin-image-upload-form" class="sn-btn sn-btn-outline sn-btn-sm">📸 Upload Media</a>
+                  <a href="#sn-admin-create-product-form" class="sn-btn sn-btn-outline sn-btn-sm">+ New Product</a>
+                  <a href="#sn-admin-edit-product-form" class="sn-btn sn-btn-outline sn-btn-sm">✏️ Edit &amp; Price</a>
+                  <a href="#sn-admin-products-catalogue-table" class="sn-btn sn-btn-forest sn-btn-sm">📋 Jump to ${products.length}-Product Table &darr;</a>
+                </div>
+              </div>
 
               <!-- 3A. Create New Category + Category Image & Status Manager -->
               <div class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:24px;">
@@ -2121,7 +2239,7 @@ function renderAdminPortalPage({
                 </div>
               </form>
 
-              <div class="sn-table-wrap sn-table-scroll-y">
+              <div class="sn-table-wrap sn-table-scroll-y" id="sn-admin-products-catalogue-table">
                 <table class="sn-table">
                   <thead>
                     <tr><th>Photo</th><th>SKU, HSN &amp; Flags</th><th>Product Name &amp; Origin</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th><th>Status</th><th>Quick Change Photo</th></tr>
@@ -2948,18 +3066,38 @@ function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath
       <div class="sn-container" style="max-width:920px;">
         <span class="sn-eyebrow">${escapeHtml(subtitle)}</span>
         <h1 style="font-family:var(--sn-font-serif);font-size:2.2rem;color:var(--sn-bg-forest);margin:0 0 24px;">${escapeHtml(title)}</h1>
-        <div class="sn-card" style="display:flex;flex-direction:column;gap:16px;font-size:0.98rem;">
-          ${paragraphs.map(p => {
-            const qSplit = slug === 'faq' && p.includes('?');
-            if (qSplit) {
-              const idx = p.indexOf('?');
-              const q = p.slice(0, idx + 1);
-              const a = p.slice(idx + 1).trim();
-              return `<div style="padding-bottom:12px;border-bottom:1px solid var(--sn-border-warm);"><strong style="font-family:var(--sn-font-serif);font-size:1.08rem;color:var(--sn-bg-forest);display:block;margin-bottom:4px;">${escapeHtml(q)}</strong><p style="margin:0;color:var(--sn-text-secondary);">${escapeHtml(a)}</p></div>`;
-            }
-            return `<p style="margin:0;">${escapeHtml(p)}</p>`;
-          }).join('')}
-        </div>
+        ${slug === 'faq' ? `
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            ${paragraphs.map(p => {
+              if (p.includes('?')) {
+                const idx = p.indexOf('?');
+                const q = p.slice(0, idx + 1);
+                const a = p.slice(idx + 1).trim();
+                return `
+                  <details class="sn-faq-item" open>
+                    <summary>${escapeHtml(q)}</summary>
+                    <p>${escapeHtml(a)}</p>
+                  </details>
+                `;
+              }
+              return `<div class="sn-card"><p style="margin:0;">${escapeHtml(p)}</p></div>`;
+            }).join('')}
+          </div>
+          <div class="sn-card" style="margin-top:20px;background-color:var(--sn-bg-parchment);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div>
+              <strong style="font-family:var(--sn-font-serif);font-size:1.05rem;color:var(--sn-bg-forest);">Still have a question about a batch, bulk order, or shipment?</strong>
+              <div style="font-size:0.84rem;color:var(--sn-text-secondary);">Our Bengaluru pantry care desk responds within 4 business hours.</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <a href="${basePath}/track-order" class="sn-btn sn-btn-outline sn-btn-sm">Track Order</a>
+              <a href="${basePath}/contact" class="sn-btn sn-btn-primary sn-btn-sm">Contact Customer Care &rarr;</a>
+            </div>
+          </div>
+        ` : `
+          <div class="sn-card" style="display:flex;flex-direction:column;gap:16px;font-size:0.98rem;">
+            ${paragraphs.map(p => `<p style="margin:0;">${escapeHtml(p)}</p>`).join('')}
+          </div>
+        `}
         ${extraSectionHtml}
       </div>
     </section>

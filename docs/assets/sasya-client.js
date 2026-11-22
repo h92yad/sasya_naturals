@@ -122,7 +122,8 @@
         gstPercent: v.gst_percent,
         quantity: qty,
         lineTotalPaise,
-        lineGstPaise
+        lineGstPaise,
+        imageUrl: v.image_url || '/images/hero-pantry.jpg'
       });
     }
 
@@ -299,22 +300,31 @@
       }
 
       bodyEl.innerHTML = p.lineItems.map(item => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--sn-border-warm);gap:12px;">
-          <div style="flex:1;">
-            <div style="font-weight:600;color:var(--sn-bg-forest);font-size:0.92rem;">${item.productName}</div>
-            <div style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);">Pack: ${item.packLabel} | SKU: ${item.sku} | GST ${item.gstPercent}%</div>
-            <div style="font-family:var(--sn-font-mono);font-size:0.85rem;font-weight:600;margin-top:4px;">${formatInr(item.unitPricePaise)} x ${item.quantity} = ${formatInr(item.lineTotalPaise)}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--sn-border-warm);gap:10px;">
+          <img
+            src="${BASE_PATH}${item.imageUrl || '/images/hero-pantry.jpg'}"
+            alt="${item.productName}"
+            style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);flex-shrink:0;"
+          />
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:600;color:var(--sn-bg-forest);font-size:0.9rem;line-height:1.25;">${item.productName}</div>
+            <div style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);">Pack: ${item.packLabel} | SKU: ${item.sku}</div>
+            <div style="font-family:var(--sn-font-mono);font-size:0.83rem;font-weight:600;margin-top:3px;">${formatInr(item.unitPricePaise)} &times; ${item.quantity} = ${formatInr(item.lineTotalPaise)}</div>
           </div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-cart-qty="${item.variantId}" data-delta="-1">-</button>
-            <span style="font-family:var(--sn-font-mono);font-size:0.85rem;min-width:20px;text-align:center;">${item.quantity}</span>
-            <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-cart-qty="${item.variantId}" data-delta="1">+</button>
+          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+            <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-cart-qty="${item.variantId}" data-delta="-1" aria-label="Decrease quantity">-</button>
+            <span style="font-family:var(--sn-font-mono);font-size:0.84rem;min-width:18px;text-align:center;">${item.quantity}</span>
+            <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-cart-qty="${item.variantId}" data-delta="1" aria-label="Increase quantity">+</button>
+            <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-cart-remove="${item.variantId}" title="Remove item from basket" aria-label="Remove item" style="color:var(--sn-status-danger);padding:4px 7px;">&times;</button>
           </div>
         </div>
       `).join('');
 
       footEl.innerHTML = `
         ${freeDeliveryBanner}
+        <div style="padding:7px 10px;border-radius:6px;background-color:var(--sn-bg-parchment);border:1px dashed var(--sn-border-strong);font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-bg-forest);margin-bottom:10px;">
+          🏷️ Promo Codes at Checkout: <strong>SASYA10</strong> (10% off) • <strong>WELCOME15</strong> (15% off &ge; ₹999)
+        </div>
         <div style="font-size:0.85rem;display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
           <div style="display:flex;justify-content:space-between;"><span>Subtotal (incl. GST ${formatInr(p.gstPaise)})</span><strong style="font-family:var(--sn-font-mono);">${formatInr(p.subtotalPaise)}</strong></div>
           <div style="display:flex;justify-content:space-between;"><span>Est. Zone A Delivery (${grossGrams}g gross)</span><strong style="font-family:var(--sn-font-mono);">${p.shippingPaise === 0 ? 'FREE' : formatInr(p.shippingPaise)}</strong></div>
@@ -333,7 +343,43 @@
     }
   }
 
+  function runPdpPinCheck() {
+    const pinInput = document.getElementById('sn-pdp-pin-input');
+    const resEl = document.getElementById('sn-pdp-pin-result');
+    const pin = String(pinInput ? pinInput.value : '').trim();
+    if (!resEl) return;
+    if (!/^\d{6}$/.test(pin) || pin === '999999') {
+      resEl.style.color = 'var(--sn-status-danger)';
+      resEl.style.backgroundColor = 'var(--sn-status-danger-bg)';
+      resEl.textContent = '✕ Unserviceable PIN Code • Please enter a valid 6-digit Indian PIN';
+      return;
+    }
+    const p3 = pin.slice(0, 3);
+    const p2 = pin.slice(0, 2);
+    let zoneDesc = 'Zone C (Rest of India • ₹75/500g • 3-5 Days)';
+    if (p3 === '560') {
+      zoneDesc = 'Zone A (Local Bengaluru • ₹40/500g • 1-2 Days)';
+    } else if (['18', '19', '78', '79'].includes(p2) || ['744', '682'].includes(p3)) {
+      zoneDesc = 'Zone D (NE / J&K / Remote • ₹110/500g • 5-7 Days)';
+    } else if (['50', '51', '52', '53', '56', '57', '58', '59', '60', '61', '62', '63', '64', '67', '68', '69'].includes(p2)) {
+      zoneDesc = 'Zone B (South India • ₹55/500g • 2-4 Days)';
+    }
+    const codNote = pin === '800099' ? 'Prepaid Only (COD Disabled)' : 'Prepaid & COD Available';
+    resEl.style.color = 'var(--sn-status-paid)';
+    resEl.style.backgroundColor = 'var(--sn-status-paid-bg)';
+    resEl.textContent = `✓ ${zoneDesc} • ${codNote}`;
+  }
+
   function bindGlobalListeners() {
+    const pdpPinInput = document.getElementById('sn-pdp-pin-input');
+    if (pdpPinInput) {
+      pdpPinInput.addEventListener('input', () => {
+        if (/^\d{6}$/.test(pdpPinInput.value.trim())) {
+          runPdpPinCheck();
+        }
+      });
+    }
+
     document.addEventListener('click', async (e) => {
       const mobileMenuBtn = e.target.closest('[data-mobile-menu]');
       if (mobileMenuBtn) {
@@ -341,6 +387,31 @@
         if (navEl) {
           const isOpen = navEl.classList.toggle('sn-nav-open');
           mobileMenuBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+        return;
+      }
+
+      const pdpQtyBtn = e.target.closest('[data-pdp-qty-delta]');
+      if (pdpQtyBtn) {
+        const qtyInput = document.getElementById('sn-pdp-qty');
+        if (qtyInput) {
+          const delta = Number(pdpQtyBtn.getAttribute('data-pdp-qty-delta') || 0);
+          const nextVal = Math.max(1, Math.min(20, Number(qtyInput.value || 1) + delta));
+          qtyInput.value = String(nextVal);
+        }
+        return;
+      }
+
+      const couponChipBtn = e.target.closest('[data-apply-coupon-chip]');
+      if (couponChipBtn) {
+        const code = couponChipBtn.getAttribute('data-apply-coupon-chip') || '';
+        const couponInput = document.getElementById('sn-checkout-coupon');
+        if (couponInput && code) {
+          couponInput.value = code;
+          if (typeof window.__snRenderCheckoutSummary === 'function') {
+            await window.__snRenderCheckoutSummary();
+          }
+          showToast(`Applied promo code ${code}`);
         }
         return;
       }
@@ -361,6 +432,7 @@
 
         const priceEl = container.querySelector('[data-price-display]');
         const mrpEl = container.querySelector('[data-mrp-display]');
+        const saveEl = container.querySelector('[data-save-display]');
         const skuEl = container.querySelector('[data-sku-display]');
         const stockEl = container.querySelector('[data-stock-display]');
         const addBtn = container.querySelector('[data-add-to-cart]');
@@ -368,6 +440,11 @@
 
         if (priceEl) priceEl.textContent = formatInr(pricePaise);
         if (mrpEl) mrpEl.textContent = 'MRP ' + formatInr(mrpPaise);
+        if (saveEl) {
+          const savePct = mrpPaise > pricePaise ? Math.round(((mrpPaise - pricePaise) / mrpPaise) * 100) : 0;
+          saveEl.textContent = savePct > 0 ? `Save ${savePct}%` : '';
+          saveEl.style.display = savePct > 0 ? 'inline-block' : 'none';
+        }
         if (skuEl) skuEl.textContent = sku;
         if (stockEl) {
           stockEl.textContent = stock > 0 ? `In Stock (${stock} packs)` : 'Out of Stock';
@@ -399,6 +476,16 @@
           cart.push({ variantId, quantity: addQty });
         }
         saveCart(cart);
+
+        const origLabel = addBtn.getAttribute('data-orig-label') || addBtn.textContent;
+        addBtn.setAttribute('data-orig-label', origLabel);
+        addBtn.textContent = '✓ Added';
+        addBtn.classList.add('sn-btn-added');
+        setTimeout(() => {
+          addBtn.textContent = origLabel;
+          addBtn.classList.remove('sn-btn-added');
+        }, 1200);
+
         showToast(`Added ${productName} (${packLabel}) to your Pantry Basket`, { showViewBasket: true });
         await refreshCartDrawer();
         return;
@@ -423,28 +510,7 @@
       }
 
       if (e.target.id === 'sn-pdp-pin-check-btn') {
-        const pinInput = document.getElementById('sn-pdp-pin-input');
-        const resEl = document.getElementById('sn-pdp-pin-result');
-        const pin = String(pinInput ? pinInput.value : '').trim();
-        if (!resEl) return;
-        if (!/^\d{6}$/.test(pin) || pin === '999999') {
-          resEl.style.color = 'var(--sn-status-danger)';
-          resEl.textContent = '✕ Unserviceable PIN Code • Please enter a valid 6-digit Indian PIN';
-          return;
-        }
-        const p3 = pin.slice(0, 3);
-        const p2 = pin.slice(0, 2);
-        let zoneDesc = 'Zone C (Rest of India • ₹75/500g • 3-5 Days)';
-        if (p3 === '560') {
-          zoneDesc = 'Zone A (Local Bengaluru • ₹40/500g • 1-2 Days)';
-        } else if (['18', '19', '78', '79'].includes(p2) || ['744', '682'].includes(p3)) {
-          zoneDesc = 'Zone D (NE / J&K / Remote • ₹110/500g • 5-7 Days)';
-        } else if (['50', '51', '52', '53', '56', '57', '58', '59', '60', '61', '62', '63', '64', '67', '68', '69'].includes(p2)) {
-          zoneDesc = 'Zone B (South India • ₹55/500g • 2-4 Days)';
-        }
-        const codNote = pin === '800099' ? 'Prepaid Only (COD Disabled)' : 'Prepaid & COD Available';
-        resEl.style.color = 'var(--sn-status-paid)';
-        resEl.textContent = `✓ ${zoneDesc} • ${codNote}`;
+        runPdpPinCheck();
         return;
       }
 
@@ -465,6 +531,18 @@
       if (closeCartBtn || e.target.id === 'sn-cart-backdrop') {
         const drawer = document.getElementById('sn-cart-backdrop');
         if (drawer) drawer.classList.remove('sn-open');
+        return;
+      }
+
+      const removeBtn = e.target.closest('[data-cart-remove]');
+      if (removeBtn) {
+        const variantId = Number(removeBtn.getAttribute('data-cart-remove'));
+        const cart = getCart().filter(i => Number(i.variantId) !== variantId);
+        saveCart(cart);
+        await refreshCartDrawer();
+        if (typeof window.__snRenderCheckoutSummary === 'function') {
+          window.__snRenderCheckoutSummary();
+        }
         return;
       }
 
@@ -1995,8 +2073,7 @@
 
     if (!IS_STATIC_SHOWCASE) return;
 
-    filterForm.addEventListener('submit', (e) => {
-      e.preventDefault();
+    function applyStaticFilters() {
       const q = (document.getElementById('catalog-search-input')?.value || '').trim().toLowerCase();
       const tag = document.getElementById('catalog-tag-select')?.value || 'all';
       const maxPrice = document.getElementById('catalog-price-select')?.value || 'all';
@@ -2024,9 +2101,33 @@
 
       const label = document.getElementById('sn-catalog-count-label');
       if (label) {
-        label.innerHTML = `Showing <strong>${visibleCount}</strong> of <strong>${cards.length}</strong> products`;
+        label.innerHTML = `Showing <strong>${visibleCount}</strong> of <strong>${cards.length}</strong> Harvests`;
       }
+    }
+
+    filterForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      applyStaticFilters();
     });
+
+    // Hydrate URL query parameters (?q=..., ?tag=..., ?maxPrice=...) on static showcase
+    const params = new URLSearchParams(window.location.search);
+    let hasParam = false;
+    if (params.get('q') && document.getElementById('catalog-search-input')) {
+      document.getElementById('catalog-search-input').value = params.get('q');
+      hasParam = true;
+    }
+    if (params.get('tag') && document.getElementById('catalog-tag-select')) {
+      document.getElementById('catalog-tag-select').value = params.get('tag');
+      hasParam = true;
+    }
+    if (params.get('maxPrice') && document.getElementById('catalog-price-select')) {
+      document.getElementById('catalog-price-select').value = params.get('maxPrice');
+      hasParam = true;
+    }
+    if (hasParam) {
+      applyStaticFilters();
+    }
   }
 
   function appendCategoryToAdminDom(cat) {
@@ -2074,6 +2175,9 @@
         const mainCap = document.getElementById('sn-pdp-main-caption');
         if (mainImg) mainImg.src = thumbBtn.getAttribute('data-pdp-thumb-url');
         if (mainCap) mainCap.textContent = thumbBtn.getAttribute('data-pdp-thumb-caption');
+        document.querySelectorAll('[data-pdp-thumb-url]').forEach(btn => {
+          btn.style.border = btn === thumbBtn ? '2px solid var(--sn-accent-terracotta)' : '1px solid var(--sn-border-strong)';
+        });
       }
     });
 
