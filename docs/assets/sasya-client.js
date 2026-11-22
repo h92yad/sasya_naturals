@@ -894,7 +894,22 @@
       });
     }
 
-    function activateAdminModule(target) {
+    function syncSubmenuChevrons() {
+      document.querySelectorAll('[data-admin-submenu-for]').forEach(subUl => {
+        const modKey = subUl.getAttribute('data-admin-submenu-for');
+        const isOpen = subUl.classList.contains('sn-submenu-open');
+        const parentBtn = document.querySelector(`[data-admin-tab-btn="${modKey}"]`);
+        if (parentBtn) {
+          parentBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+          parentBtn.textContent = parentBtn.textContent.replace(/[▾▴]\s*$/, isOpen ? '▴' : '▾');
+        }
+      });
+    }
+
+    function activateAdminModule(target, { toggleIfAlreadyActive = false } = {}) {
+      const targetBtn = document.querySelector(`[data-admin-tab-btn="${target}"]`);
+      const wasAlreadyActive = targetBtn ? targetBtn.classList.contains('sn-active') : false;
+
       document.querySelectorAll('[data-admin-tab-btn]').forEach(b => {
         const isMatch = b.getAttribute('data-admin-tab-btn') === target;
         b.classList.toggle('sn-active', isMatch);
@@ -904,8 +919,16 @@
       });
       document.querySelectorAll('[data-admin-submenu-for]').forEach(subUl => {
         const isMatch = subUl.getAttribute('data-admin-submenu-for') === target;
-        subUl.classList.toggle('sn-submenu-open', isMatch);
+        if (!isMatch) {
+          subUl.classList.remove('sn-submenu-open');
+        } else if (wasAlreadyActive && toggleIfAlreadyActive) {
+          subUl.classList.toggle('sn-submenu-open');
+        } else {
+          subUl.classList.add('sn-submenu-open');
+        }
       });
+      syncSubmenuChevrons();
+
       let activePanelEl = null;
       document.querySelectorAll('[data-admin-panel]').forEach(panel => {
         const isMatch = panel.getAttribute('data-admin-panel') === target;
@@ -923,7 +946,7 @@
     function activateAdminSubTab(subtabKey) {
       if (!subtabKey || !subtabKey.includes(':')) return;
       const [moduleKey] = subtabKey.split(':');
-      activateAdminModule(moduleKey);
+      activateAdminModule(moduleKey, { toggleIfAlreadyActive: false });
 
       document.querySelectorAll(`[data-admin-subpanel^="${moduleKey}:"]`).forEach(subPanel => {
         subPanel.style.display = subPanel.getAttribute('data-admin-subpanel') === subtabKey ? 'block' : 'none';
@@ -932,16 +955,17 @@
         pill.classList.toggle('sn-active', pill.getAttribute('data-admin-subtab-btn') === subtabKey);
       });
       document.querySelectorAll(`[data-admin-subtab-link^="${moduleKey}:"]`).forEach(subBtn => {
-        subBtn.classList.toggle('sn-sub-active', subBtn.getAttribute('data-admin-subtab-link') === subtabKey);
+        subBtn.classList.toggle('sn-sub-active', subBtn.getAttribute('data-sub-active') || subBtn.getAttribute('data-admin-subtab-link') === subtabKey);
       });
     }
 
     document.querySelectorAll('[data-admin-tab-btn]').forEach(btn => {
       btn.addEventListener('click', () => {
         const target = btn.getAttribute('data-admin-tab-btn');
-        activateAdminModule(target);
+        activateAdminModule(target, { toggleIfAlreadyActive: true });
       });
     });
+    syncSubmenuChevrons();
 
     document.querySelectorAll('[data-admin-subtab-btn]').forEach(pill => {
       pill.addEventListener('click', () => {
