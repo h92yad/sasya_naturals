@@ -10,6 +10,7 @@ const {
 const { buildMasterSchemaGraph } = require('../core/content/schemaBuilder');
 const { getShippingPolicyFromDb } = require('../core/checkout/checkoutEngine');
 const { buildComprehensiveReports } = require('../core/reports/reportingEngine');
+const { getStorefrontContentAndSeo } = require('../core/content/contentStore');
 
 function escapeHtml(str) {
   return String(str ?? '')
@@ -151,23 +152,29 @@ function renderShell({
   const canonicalUrl = `${CANONICAL_ORIGIN}${canonicalPath === '/' ? '/' : canonicalPath}`;
   const mdTwinPath = canonicalPath === '/' ? '/index.md' : `${canonicalPath}.md`;
   const shipCopy = getDynamicShippingCopy();
+  const contentAndSeo = getStorefrontContentAndSeo();
+  const hp = contentAndSeo.homepage;
+  const routeSeo = contentAndSeo.seoRoutes[canonicalPath] || null;
+  const finalTitle = routeSeo && routeSeo.metaTitle ? routeSeo.metaTitle : title;
+  const finalDescription = routeSeo && routeSeo.metaDescription ? routeSeo.metaDescription : description;
+  const ogImgPath = routeSeo && routeSeo.ogImagePath ? routeSeo.ogImagePath : '/images/hero-pantry.jpg';
 
   return `<!DOCTYPE html>
 <html lang="en-IN">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(title)}</title>
-  <meta name="description" content="${escapeHtml(description)}" />
+  <title>${escapeHtml(finalTitle)}</title>
+  <meta name="description" content="${escapeHtml(finalDescription)}" />
   <meta name="robots" content="${isNoIndex ? 'noindex, nofollow' : 'index, follow'}" />
   <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
   <link rel="alternate" type="text/markdown" href="${escapeHtml(CANONICAL_ORIGIN + mdTwinPath)}" title="Markdown Version" />
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="${escapeHtml(title)}" />
-  <meta property="og:description" content="${escapeHtml(description)}" />
+  <meta property="og:title" content="${escapeHtml(finalTitle)}" />
+  <meta property="og:description" content="${escapeHtml(finalDescription)}" />
   <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
   <meta property="og:site_name" content="${escapeHtml(BRAND_NAME)}" />
-  <meta property="og:image" content="${escapeHtml(CANONICAL_ORIGIN)}/images/hero-pantry.jpg" />
+  <meta property="og:image" content="${escapeHtml(CANONICAL_ORIGIN)}${escapeHtml(ogImgPath)}" />
   <link rel="stylesheet" href="${basePath}/assets/sasya-core.css?v=${APP_VERSION}" />
   <script type="application/ld+json">${JSON.stringify(schemaGraph)}</script>
 </head>
@@ -176,9 +183,9 @@ function renderShell({
     <div class="sn-container sn-topbar-inner">
       <span id="sn-dynamic-topbar-ship">${shipCopy.topbarHtml}</span>
       <div class="sn-topbar-badges">
-        <span>Unpolished Native Grains</span>
-        <span>Single-Origin Spices</span>
-        <span>Razorpay UPI / Cards &amp; COD</span>
+        <span>${escapeHtml(hp.topbarBadge1)}</span>
+        <span>${escapeHtml(hp.topbarBadge2)}</span>
+        <span>${escapeHtml(hp.topbarBadge3)}</span>
       </div>
     </div>
   </div>
@@ -239,10 +246,10 @@ function renderShell({
         <div>
           <h4>Sasya Naturals</h4>
           <p style="color:#B9C2BA;margin:0 0 14px;">
-            Direct-to-customer Indian pantry delivering unbleached dry fruits, rain-fed unpolished millets, and cold-milled heirloom spices in 100 g, 250 g, 500 g, and 1 kg packs.
+            ${escapeHtml(hp.footerBlurb)}
           </p>
           <div style="font-family:var(--sn-font-mono);font-size:0.76rem;color:#9BA69D;">
-            Domain: sasynaturals.com | Support: care@sasynaturals.com
+            ${escapeHtml(hp.footerSupportLine)}
           </div>
         </div>
         <div>
@@ -307,8 +314,11 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
     ...products.filter(p => p.is_bestseller && featuredIds.has(p.id))
   ].slice(0, 6);
 
-  const title = `${BRAND_NAME} | ${BRAND_TAGLINE}`;
-  const description = 'Shop farm-direct Kashmiri almonds, Goan W240 cashews, unpolished native millets, and cold-milled Lakadong turmeric across India in 100 g to 1 kg packs.';
+  const contentAndSeo = getStorefrontContentAndSeo();
+  const hp = contentAndSeo.homepage;
+  const homeSeo = contentAndSeo.seoRoutes['/'] || {};
+  const title = homeSeo.metaTitle || `${BRAND_NAME} | ${BRAND_TAGLINE}`;
+  const description = homeSeo.metaDescription || 'Shop farm-direct Kashmiri almonds, Goan W240 cashews, unpolished native millets, and cold-milled Lakadong turmeric across India in 100 g to 1 kg packs.';
 
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'website',
@@ -322,35 +332,35 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
     <section class="sn-hero">
       <div class="sn-container sn-hero-grid">
         <div>
-          <span class="sn-eyebrow">Direct-To-Customer Indian Pantry • Batch Traceable</span>
-          <h1>Single-Origin Dry Fruits, Unpolished Native Millets &amp; Heirloom Spices</h1>
+          <span class="sn-eyebrow">${escapeHtml(hp.heroEyebrow)}</span>
+          <h1>${escapeHtml(hp.heroHeading)}</h1>
           <p class="sn-hero-lead">
-            Every Sasya Naturals harvest is sourced directly from regional grower cooperatives in Kashmir, Goa, Karnataka, Kerala, and Meghalaya. Packed fresh in 100 g, 250 g, 500 g, and 1 kg pouches with transparent batch labels.
+            ${escapeHtml(hp.heroLead)}
           </p>
           <div class="sn-hero-ctas">
-            <a href="${basePath}/shop" class="sn-btn sn-btn-primary" id="hero-shop-all-btn">Explore Full Pantry</a>
-            <a href="${basePath}/track-order?order=SN-2026-1001" class="sn-btn sn-btn-outline" id="hero-track-demo-btn">Track Your Order</a>
+            <a href="${basePath}/shop" class="sn-btn sn-btn-primary" id="hero-shop-all-btn">${escapeHtml(hp.heroPrimaryCtaLabel)}</a>
+            <a href="${basePath}/track-order?order=SN-2026-1001" class="sn-btn sn-btn-outline" id="hero-track-demo-btn">${escapeHtml(hp.heroSecondaryCtaLabel)}</a>
           </div>
           <div class="sn-trust-strip">
             <div class="sn-trust-item">
-              <strong>4 Pack Sizes</strong>
-              <span>100 g, 250 g, 500 g &amp; 1 kg options</span>
+              <strong>${escapeHtml(hp.trust1Title)}</strong>
+              <span>${escapeHtml(hp.trust1Sub)}</span>
             </div>
             <div class="sn-trust-item">
-              <strong>Zero Chemical Polish</strong>
-              <span>Intact bran millets &amp; unbleached nuts</span>
+              <strong>${escapeHtml(hp.trust2Title)}</strong>
+              <span>${escapeHtml(hp.trust2Sub)}</span>
             </div>
             <div class="sn-trust-item">
-              <strong>Verified Payments</strong>
-              <span>Razorpay UPI, Cards, NetBanking &amp; COD</span>
+              <strong>${escapeHtml(hp.trust3Title)}</strong>
+              <span>${escapeHtml(hp.trust3Sub)}</span>
             </div>
           </div>
         </div>
         <div class="sn-hero-media">
           <img src="${basePath}/images/hero-pantry.jpg" alt="Sasya Naturals dry fruits, unpolished millets, and heirloom spices" />
           <div class="sn-hero-caption">
-            <span>Harvest Batch: Nov 2026</span>
-            <span>India-Wide Dispatch from Bengaluru</span>
+            <span>${escapeHtml(hp.heroBatchCaptionLeft)}</span>
+            <span>${escapeHtml(hp.heroBatchCaptionRight)}</span>
           </div>
         </div>
       </div>
@@ -1705,34 +1715,89 @@ function renderAdminPortalPage({
     categories
   });
 
-  // Customer Directory Aggregation (Section 5.1 Customers)
+  const contentAndSeo = getStorefrontContentAndSeo();
+
+  // Customer & Signed-Up User Purchase Intelligence Aggregation (Module 6 Users & Purchases)
   const customerDirectoryMap = new Map();
   for (const cu of customerUsers) {
+    const userAddrs = customerAddresses.filter(a => Number(a.user_id) === Number(cu.id));
+    const defAddr = userAddrs.find(a => Number(a.is_default) === 1) || userAddrs[0] || null;
     customerDirectoryMap.set(cu.email.toLowerCase(), {
       userId: cu.id,
+      userIdLabel: `USR-${cu.id}`,
+      joinedDate: (cu.created_at || '2026-11-20').slice(0, 10),
       fullName: cu.full_name,
       email: cu.email,
       phone: cu.phone,
       accountType: 'Registered Customer',
-      addressCount: customerAddresses.filter(a => Number(a.user_id) === Number(cu.id)).length,
+      isRegistered: true,
+      addressCount: userAddrs.length,
+      defaultCity: defAddr ? defAddr.city : 'Bengaluru',
+      defaultState: defAddr ? defAddr.state : 'Karnataka',
+      defaultPincode: defAddr ? defAddr.pincode : '560038',
       orderNumbers: [],
-      totalSpendPaise: 0
+      totalPacksBought: 0,
+      settledSpendPaise: 0,
+      codPendingPaise: 0,
+      totalSpendPaise: 0,
+      lastOrderDate: 'No orders yet',
+      purchasedItemsList: [],
+      detailedOrders: []
     });
   }
   for (const ord of orders) {
     const em = (ord.customer_email || '').toLowerCase();
     const existing = customerDirectoryMap.get(em) || {
       userId: ord.user_id || null,
+      userIdLabel: ord.user_id ? `USR-${ord.user_id}` : 'GUEST',
+      joinedDate: (ord.created_at || '2026-11-20').slice(0, 10),
       fullName: ord.customer_name,
       email: ord.customer_email,
       phone: ord.customer_phone,
       accountType: ord.user_id ? 'Registered Customer' : 'Guest Checkout',
+      isRegistered: Boolean(ord.user_id),
       addressCount: 1,
+      defaultCity: ord.shipping_city || 'Bengaluru',
+      defaultState: ord.shipping_state || 'Karnataka',
+      defaultPincode: ord.shipping_pincode || '560038',
       orderNumbers: [],
-      totalSpendPaise: 0
+      totalPacksBought: 0,
+      settledSpendPaise: 0,
+      codPendingPaise: 0,
+      totalSpendPaise: 0,
+      lastOrderDate: 'No orders yet',
+      purchasedItemsList: [],
+      detailedOrders: []
     };
+    const oItems = orderItems.filter(it => Number(it.order_id) === Number(ord.id));
+    const ordPacks = oItems.reduce((acc, it) => acc + Number(it.quantity || 0), 0);
     existing.orderNumbers.push(ord.order_number);
+    existing.totalPacksBought += ordPacks;
+    if (ord.payment_status === 'PAID' || ord.payment_status === 'COD_COLLECTED') {
+      existing.settledSpendPaise += Number(ord.total_paise || 0);
+    } else if (ord.payment_status === 'COD_PENDING') {
+      existing.codPendingPaise += Number(ord.total_paise || 0);
+    }
     existing.totalSpendPaise += Number(ord.total_paise || 0);
+    const ordDate = (ord.created_at || '').slice(0, 10);
+    if (existing.lastOrderDate === 'No orders yet' || ordDate > existing.lastOrderDate) {
+      existing.lastOrderDate = ordDate;
+    }
+    for (const it of oItems) {
+      existing.purchasedItemsList.push(`${it.product_name} (${it.pack_label} × ${it.quantity})`);
+    }
+    existing.detailedOrders.push({
+      orderNumber: ord.order_number,
+      orderDate: ordDate,
+      paymentMethod: ord.payment_method,
+      paymentStatus: ord.payment_status,
+      fulfilmentStatus: ord.fulfilment_status,
+      totalPaise: Number(ord.total_paise || 0),
+      shippingCity: ord.shipping_city,
+      shippingState: ord.shipping_state,
+      shippingPincode: ord.shipping_pincode,
+      items: oItems
+    });
     customerDirectoryMap.set(em, existing);
   }
   const customerDirectoryRows = Array.from(customerDirectoryMap.values());
@@ -1894,7 +1959,13 @@ function renderAdminPortalPage({
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="payments:gst-summaries">5.4 GST Tax &amp; Gateway Summaries</button></li>
                 </ul>
               </li>
-              <li><button type="button" data-admin-tab-btn="customers" id="tab-btn-customers">6. Customers &amp; Order History</button></li>
+              <li>
+                <button type="button" data-admin-tab-btn="customers" id="tab-btn-customers">6. Users, Purchases &amp; Export ▾</button>
+                <ul class="sn-admin-submenu" data-admin-submenu-for="customers">
+                  <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="customers:users">6.1 Signed-Up Users &amp; Purchases (${customerDirectoryRows.length})</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="customers:addresses">6.2 Saved Addresses Directory (${customerAddresses.length})</button></li>
+                </ul>
+              </li>
               <li>
                 <button type="button" data-admin-tab-btn="rbac" id="tab-btn-rbac">7. Staff RBAC &amp; Audit Logs ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="rbac">
@@ -1908,6 +1979,14 @@ function renderAdminPortalPage({
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="compliance:shipping">8.1 Delivery Pricing (4-Zone)</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="compliance:legal-templates">8.2 GSTIN, FSSAI &amp; Templates</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="compliance:notif-logs">8.3 Notification Logs (${notificationLogs.length})</button></li>
+                </ul>
+              </li>
+              <li>
+                <button type="button" data-admin-tab-btn="content" id="tab-btn-content">9. Storefront Content &amp; SEO ▾</button>
+                <ul class="sn-admin-submenu" data-admin-submenu-for="content">
+                  <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="content:homepage">9.1 Homepage Hero, Topbar &amp; Footer</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="content:pages">9.2 Info &amp; Policy Pages (6 Pages)</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="content:seo">9.3 Route SEO Meta &amp; SERP Preview</button></li>
                 </ul>
               </li>
             </ul>
@@ -3253,41 +3332,175 @@ function renderAdminPortalPage({
               </div>
             </div>
 
-            <!-- Panel 6: Customers Directory & Order History (Section 5.1 Customers Module) -->
+            <!-- Panel 6: Users, Purchases & Customer Export Module (Database-Connected Signed-Up Users & Purchase History) -->
             <div class="sn-card" data-admin-panel="customers" style="display:none;">
-              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Customer Profiles, Saved Addresses &amp; Order History</h2>
-              <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 18px;">
-                Authorized for <strong>SUPER_ADMIN</strong> and <strong>ORDER_MANAGER</strong>. View registered customer accounts and guest buyers with their order history.
-              </p>
-              <div class="sn-table-wrap">
-                <table class="sn-table sn-table-cards">
-                  <thead>
-                    <tr><th>Customer Name</th><th>Email &amp; Phone</th><th>Account Type</th><th>Saved Addresses</th><th>Order History</th><th>Lifetime Spend</th></tr>
-                  </thead>
-                  <tbody>
-                    ${customerDirectoryRows.map(c => `
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+                <div>
+                  <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Signed-Up Users, Purchase History &amp; Customer Data Export</h2>
+                  <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0;">
+                    Authorized for <strong>SUPER_ADMIN</strong> and <strong>ORDER_MANAGER</strong>. Inspect database-connected customer accounts, itemized pack purchases, lifetime spend, and export summary or line-item purchase ledgers to CSV.
+                  </p>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                  <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" id="sn-export-users-summary-btn" data-export-users-csv="users_summary">⬇ Export Users Summary CSV</button>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-export-user-purchases-btn" data-export-users-csv="user_purchases">⬇ Export Detailed Purchases CSV</button>
+                </div>
+              </div>
+
+              <!-- In-Panel Segmented Sub-Module Bar (Synced with Desktop Sidebar Accordion) -->
+              <div class="sn-admin-subnav-bar" role="tablist">
+                <button type="button" class="sn-admin-subtab-pill sn-active" data-admin-subtab-btn="customers:users">👤 6.1 Signed-Up Users &amp; Purchases (${customerDirectoryRows.length})</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="customers:addresses">📍 6.2 Saved Addresses Directory (${customerAddresses.length})</button>
+              </div>
+
+              <!-- Sub-Panel 6.1 (Default): Signed-Up Users & Purchase Profiles -->
+              <div data-admin-subpanel="customers:users">
+                <div class="sn-grid-4" style="gap:12px;margin-bottom:14px;">
+                  <div class="sn-card" style="padding:10px 14px;background-color:var(--sn-bg-parchment);">
+                    <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);text-transform:uppercase;">Signed-Up Users (DB)</div>
+                    <strong style="font-family:var(--sn-font-mono);font-size:1.2rem;color:var(--sn-bg-forest);">${customerUsers.length}</strong>
+                  </div>
+                  <div class="sn-card" style="padding:10px 14px;background-color:var(--sn-bg-parchment);">
+                    <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);text-transform:uppercase;">Total Active Buyers</div>
+                    <strong style="font-family:var(--sn-font-mono);font-size:1.2rem;color:var(--sn-bg-forest);">${customerDirectoryRows.length}</strong>
+                  </div>
+                  <div class="sn-card" style="padding:10px 14px;background-color:var(--sn-bg-parchment);">
+                    <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);text-transform:uppercase;">Total Packs Purchased</div>
+                    <strong style="font-family:var(--sn-font-mono);font-size:1.2rem;color:var(--sn-bg-forest);">${customerDirectoryRows.reduce((acc, r) => acc + r.totalPacksBought, 0)} packs</strong>
+                  </div>
+                  <div class="sn-card" style="padding:10px 14px;background-color:var(--sn-bg-parchment);">
+                    <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);text-transform:uppercase;">Cumulative Buyer Spend</div>
+                    <strong style="font-family:var(--sn-font-mono);font-size:1.2rem;color:var(--sn-bg-forest);">${formatInr(customerDirectoryRows.reduce((acc, r) => acc + r.totalSpendPaise, 0))}</strong>
+                  </div>
+                </div>
+
+                <!-- Live Multi-Field User Search & Account Filter Toolbar -->
+                <div class="sn-card" style="background-color:var(--sn-bg-mortar);padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                  <input type="search" id="sn-admin-users-search" placeholder="Search User ID, Name, Email, Mobile Phone, City, PIN, Order #, or Purchased Product..." class="sn-input" style="flex:1;min-width:210px;" />
+                  <select id="sn-admin-users-type-filter" class="sn-select" style="width:auto;min-width:175px;">
+                    <option value="all">Account: All Buyers (${customerDirectoryRows.length})</option>
+                    <option value="registered">Signed-Up Users Only (${customerDirectoryRows.filter(c => c.isRegistered).length})</option>
+                    <option value="guest">Guest Checkout Buyers (${customerDirectoryRows.filter(c => !c.isRegistered).length})</option>
+                    <option value="with_orders">Buyers With Purchases (${customerDirectoryRows.filter(c => c.orderNumbers.length > 0).length})</option>
+                  </select>
+                  <span id="sn-admin-users-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);">Showing ${customerDirectoryRows.length} of ${customerDirectoryRows.length} Users</span>
+                </div>
+
+                <div class="sn-table-wrap">
+                  <table class="sn-table sn-table-cards" id="sn-admin-users-table">
+                    <thead>
                       <tr>
-                        <td data-label="Customer Name"><strong>${escapeHtml(c.fullName)}</strong></td>
-                        <td data-label="Email &amp; Phone" style="font-family:var(--sn-font-mono);font-size:0.76rem;">
-                          <div>
-                            ${escapeHtml(c.email)}<br/>
-                            ${escapeHtml(c.phone)}
-                          </div>
-                        </td>
-                        <td data-label="Account Type"><span class="sn-status sn-status-paid">${escapeHtml(c.accountType)}</span></td>
-                        <td data-label="Saved Addresses" style="font-family:var(--sn-font-mono);">${c.addressCount} saved</td>
-                        <td data-label="Order History" style="font-family:var(--sn-font-mono);font-size:0.78rem;">
-                          <span>
-                            ${c.orderNumbers.length > 0
-                              ? c.orderNumbers.map(on => `<a href="${basePath}/track-order?order=${encodeURIComponent(on)}" style="color:var(--sn-accent-terracotta);font-weight:600;">${escapeHtml(on)}</a>`).join(', ')
-                              : 'No orders yet'}
-                          </span>
-                        </td>
-                        <td data-label="Lifetime Spend" style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-bg-forest);">${formatInr(c.totalSpendPaise)}</td>
+                        <th>User ID &amp; Account</th>
+                        <th>Customer Name &amp; Contact</th>
+                        <th>Default Delivery Location</th>
+                        <th>Orders &amp; Pack Volume</th>
+                        <th>Purchased Products &amp; Invoices</th>
+                        <th>Lifetime Spend</th>
                       </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      ${customerDirectoryRows.map(c => `
+                        <tr
+                          data-admin-user-row="${escapeHtml(c.email)}"
+                          data-user-account-type="${c.isRegistered ? 'registered' : 'guest'}"
+                          data-user-orders-count="${c.orderNumbers.length}"
+                          data-user-details-json="${escapeHtml(JSON.stringify(c))}"
+                        >
+                          <td data-label="User ID &amp; Account">
+                            <strong style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${escapeHtml(c.userIdLabel)}</strong><br/>
+                            <span class="sn-status ${c.isRegistered ? 'sn-status-paid' : 'sn-status-warn'}" style="margin-top:3px;display:inline-block;">${escapeHtml(c.accountType)}</span>
+                            <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);margin-top:2px;">Joined: ${escapeHtml(c.joinedDate)}</div>
+                          </td>
+                          <td data-label="Customer &amp; Contact">
+                            <strong>${escapeHtml(c.fullName)}</strong>
+                            <div style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-secondary);margin-top:2px;">
+                              ${escapeHtml(c.email)}<br/>
+                              📞 ${escapeHtml(c.phone)}
+                            </div>
+                          </td>
+                          <td data-label="Default Location" style="font-size:0.81rem;">
+                            <strong>${escapeHtml(c.defaultCity)}, ${escapeHtml(c.defaultState)}</strong><br/>
+                            <span style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-muted);">PIN: ${escapeHtml(c.defaultPincode)} • ${c.addressCount} saved addr</span>
+                          </td>
+                          <td data-label="Orders &amp; Volume" style="font-family:var(--sn-font-mono);font-size:0.78rem;">
+                            <strong>${c.orderNumbers.length} orders</strong> (${c.totalPacksBought} packs)<br/>
+                            <span style="font-size:0.71rem;color:var(--sn-text-muted);">Last: ${escapeHtml(c.lastOrderDate)}</span>
+                          </td>
+                          <td data-label="Purchases &amp; Invoices" style="font-size:0.79rem;">
+                            ${c.purchasedItemsList.length > 0 ? `
+                              <div style="margin-bottom:4px;line-height:1.35;">${escapeHtml(c.purchasedItemsList.slice(0, 2).join(', '))}${c.purchasedItemsList.length > 2 ? ` +${c.purchasedItemsList.length - 2} more` : ''}</div>
+                            ` : '<div style="color:var(--sn-text-muted);margin-bottom:4px;">No pack purchases yet</div>'}
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                              ${c.orderNumbers.map(on => `<a href="${basePath}/orders/${encodeURIComponent(on)}/invoice" class="sn-status sn-status-paid" style="text-decoration:none;font-family:var(--sn-font-mono);">🧾 ${escapeHtml(on)}</a>`).join('')}
+                              ${c.detailedOrders.length > 0 ? `
+                                <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-open-user-purchases="${escapeHtml(c.email)}" style="padding:2px 8px;min-height:24px;font-size:0.72rem;">🔍 View Purchases</button>
+                              ` : ''}
+                            </div>
+                          </td>
+                          <td data-label="Lifetime Spend" style="font-family:var(--sn-font-mono);">
+                            <strong style="font-size:0.95rem;color:var(--sn-bg-forest);">${formatInr(c.totalSpendPaise)}</strong><br/>
+                            <span style="font-size:0.7rem;color:var(--sn-status-paid);">Settled: ${formatInr(c.settledSpendPaise)}</span>
+                            ${c.codPendingPaise > 0 ? `<br/><span style="font-size:0.7rem;color:var(--sn-status-warn);">COD: ${formatInr(c.codPendingPaise)}</span>` : ''}
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+                <div id="sn-admin-users-pagination" class="sn-admin-pagination-bar"></div>
+              </div>
+
+              <!-- Sub-Panel 6.2: Saved Delivery Addresses Directory -->
+              <div data-admin-subpanel="customers:addresses" style="display:none;">
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">Saved Customer Delivery Addresses (${customerAddresses.length} Addresses in Database)</h3>
+                <div class="sn-table-wrap">
+                  <table class="sn-table sn-table-cards" id="sn-admin-addresses-table">
+                    <thead>
+                      <tr><th>Address ID</th><th>Linked User Account</th><th>Label</th><th>Recipient &amp; Mobile</th><th>Street Address</th><th>City, State &amp; PIN</th><th>Default</th></tr>
+                    </thead>
+                    <tbody>
+                      ${customerAddresses.map(addr => {
+                        const owner = customerUsers.find(u => Number(u.id) === Number(addr.user_id));
+                        return `
+                          <tr>
+                            <td data-label="Address ID" style="font-family:var(--sn-font-mono);">#ADDR-${addr.id}</td>
+                            <td data-label="Linked User" style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                              <strong>${owner ? `USR-${owner.id}` : `USR-${addr.user_id}`}</strong><br/>
+                              ${escapeHtml(owner ? owner.email : '')}
+                            </td>
+                            <td data-label="Label"><span class="sn-status sn-status-paid">${escapeHtml(addr.label || 'Home')}</span></td>
+                            <td data-label="Recipient">
+                              <strong>${escapeHtml(addr.recipient_name)}</strong><br/>
+                              <span style="font-family:var(--sn-font-mono);font-size:0.75rem;">${escapeHtml(addr.phone)}</span>
+                            </td>
+                            <td data-label="Street Address" style="font-size:0.82rem;">
+                              ${escapeHtml(addr.line1)}${addr.line2 ? ', ' + escapeHtml(addr.line2) : ''}
+                            </td>
+                            <td data-label="City, State &amp; PIN" style="font-family:var(--sn-font-mono);font-size:0.78rem;">
+                              ${escapeHtml(addr.city)}, ${escapeHtml(addr.state)} - <strong>${escapeHtml(addr.pincode)}</strong>
+                            </td>
+                            <td data-label="Default">${addr.is_default ? '<span class="sn-status sn-status-paid">✓ Default</span>' : '<span style="color:var(--sn-text-muted);font-size:0.75rem;">Secondary</span>'}</td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Contextual User Purchases & Invoices Modal -->
+              <div id="sn-admin-user-purchases-modal" class="sn-admin-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sn-user-purchases-modal-heading" style="display:none;">
+                <div class="sn-admin-modal-card" style="max-width:780px;">
+                  <div class="sn-admin-modal-header">
+                    <div>
+                      <span id="sn-user-purchases-modal-eyebrow" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">USER PURCHASE LEDGER</span>
+                      <h3 id="sn-user-purchases-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.2rem;color:#FAF6EE;">Customer Purchase History &amp; GST Invoices</h3>
+                    </div>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-user-purchases-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                  </div>
+                  <div class="sn-admin-modal-body" id="sn-user-purchases-modal-body">
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -3605,6 +3818,220 @@ function renderAdminPortalPage({
                   </table>
                 </div>
                 <div id="sn-admin-notif-pagination" class="sn-admin-pagination-bar"></div>
+              </div>
+            </div>
+
+            <!-- Panel 9: Storefront Content & SEO Manager (Homepage Hero/Footer, 6 Info Pages & Route SEO Meta + SERP Preview) -->
+            <div class="sn-card" data-admin-panel="content" style="display:none;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+                <div>
+                  <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Storefront Non-Product Content, Policy Pages &amp; Route SEO Manager</h2>
+                  <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0;">
+                    Authorized for <strong>SUPER_ADMIN</strong>. Edit homepage hero/topbar/footer copy, static info &amp; policy pages (<code>/about</code>, <code>/contact</code>, <code>/faq</code>, <code>/shipping-returns</code>, <code>/privacy</code>, <code>/terms</code>), and route-level SEO meta titles, descriptions &amp; OpenGraph cards. Every save is validated by the <code>humanizer-en</code> &amp; Wikidata Moratorium linter.
+                  </p>
+                </div>
+                <a href="${basePath}/" target="_blank" rel="noopener" class="sn-btn sn-btn-outline sn-btn-sm">↗ Preview Live Storefront</a>
+              </div>
+
+              <!-- In-Panel Segmented Sub-Module Bar (Synced with Desktop Sidebar Accordion) -->
+              <div class="sn-admin-subnav-bar" role="tablist">
+                <button type="button" class="sn-admin-subtab-pill sn-active" data-admin-subtab-btn="content:homepage">🏠 9.1 Homepage Hero, Topbar &amp; Footer</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="content:pages">📄 9.2 Info &amp; Policy Pages (6 Pages)</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="content:seo">🔍 9.3 Route SEO Meta &amp; SERP Preview</button>
+              </div>
+
+              <!-- Sub-Panel 9.1 (Default): Homepage Hero, Topbar Badges, Trust Strip & Footer Copy -->
+              <div data-admin-subpanel="content:homepage">
+                <form id="sn-admin-content-homepage-form" class="sn-card" style="background-color:var(--sn-bg-parchment);padding:16px 18px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">1. Topbar Announcement Badges &amp; Homepage Hero Section</h3>
+
+                  <div class="sn-grid-3" style="gap:10px;margin-bottom:12px;">
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Topbar Badge 1 *</label>
+                      <input type="text" name="topbarBadge1" required value="${escapeHtml(contentAndSeo.homepage.topbarBadge1)}" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Topbar Badge 2 *</label>
+                      <input type="text" name="topbarBadge2" required value="${escapeHtml(contentAndSeo.homepage.topbarBadge2)}" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Topbar Badge 3 *</label>
+                      <input type="text" name="topbarBadge3" required value="${escapeHtml(contentAndSeo.homepage.topbarBadge3)}" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <div class="sn-grid-2" style="gap:10px;margin-bottom:12px;">
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Eyebrow *</label>
+                      <input type="text" name="heroEyebrow" required value="${escapeHtml(contentAndSeo.homepage.heroEyebrow)}" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero H1 Main Headline *</label>
+                      <input type="text" name="heroHeading" required value="${escapeHtml(contentAndSeo.homepage.heroHeading)}" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom:12px;">
+                    <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Lead Paragraph (Humanizer-Checked) *</label>
+                    <textarea name="heroLead" rows="2" required class="sn-textarea">${escapeHtml(contentAndSeo.homepage.heroLead)}</textarea>
+                  </div>
+
+                  <div class="sn-grid-4" style="gap:10px;margin-bottom:16px;">
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Primary CTA Button Text *</label>
+                      <input type="text" name="heroPrimaryCtaLabel" required value="${escapeHtml(contentAndSeo.homepage.heroPrimaryCtaLabel)}" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Secondary CTA Button Text *</label>
+                      <input type="text" name="heroSecondaryCtaLabel" required value="${escapeHtml(contentAndSeo.homepage.heroSecondaryCtaLabel)}" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Image Batch Tag *</label>
+                      <input type="text" name="heroBatchCaptionLeft" required value="${escapeHtml(contentAndSeo.homepage.heroBatchCaptionLeft)}" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Image Dispatch Tag *</label>
+                      <input type="text" name="heroBatchCaptionRight" required value="${escapeHtml(contentAndSeo.homepage.heroBatchCaptionRight)}" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">2. Homepage 3 Trust Pillars &amp; Global Footer Copy</h3>
+
+                  <div class="sn-grid-3" style="gap:10px;margin-bottom:12px;">
+                    <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Trust Pillar 1 Title &amp; Subtitle</label>
+                      <input type="text" name="trust1Title" required value="${escapeHtml(contentAndSeo.homepage.trust1Title)}" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="trust1Sub" required value="${escapeHtml(contentAndSeo.homepage.trust1Sub)}" class="sn-input" />
+                    </div>
+                    <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Trust Pillar 2 Title &amp; Subtitle</label>
+                      <input type="text" name="trust2Title" required value="${escapeHtml(contentAndSeo.homepage.trust2Title)}" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="trust2Sub" required value="${escapeHtml(contentAndSeo.homepage.trust2Sub)}" class="sn-input" />
+                    </div>
+                    <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Trust Pillar 3 Title &amp; Subtitle</label>
+                      <input type="text" name="trust3Title" required value="${escapeHtml(contentAndSeo.homepage.trust3Title)}" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="trust3Sub" required value="${escapeHtml(contentAndSeo.homepage.trust3Sub)}" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <div class="sn-grid-2" style="gap:10px;margin-bottom:14px;">
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Global Footer Brand Blurb *</label>
+                      <input type="text" name="footerBlurb" required value="${escapeHtml(contentAndSeo.homepage.footerBlurb)}" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Global Footer Domain &amp; Support Line *</label>
+                      <input type="text" name="footerSupportLine" required value="${escapeHtml(contentAndSeo.homepage.footerSupportLine)}" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <div style="display:flex;justify-content:flex-end;">
+                    <button type="submit" class="sn-btn sn-btn-forest" id="sn-save-homepage-content-btn">Save Homepage &amp; Global Shell Copy</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Sub-Panel 9.2: Static Info & Policy Pages Editor (About, Contact, FAQ, Shipping/Returns, Privacy, Terms) -->
+              <div data-admin-subpanel="content:pages" style="display:none;">
+                <form id="sn-admin-content-page-form" class="sn-card" style="background-color:var(--sn-bg-parchment);padding:16px 18px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+                    <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">Edit Storefront Info &amp; Legal Policy Pages (HTML + Markdown Twin)</h3>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                      <a id="sn-content-page-live-link" href="${basePath}/about" target="_blank" rel="noopener" class="sn-btn sn-btn-outline sn-btn-sm">↗ Open Live Page (/about)</a>
+                      <a id="sn-content-page-md-link" href="${basePath}/about.md" target="_blank" rel="noopener" class="sn-btn sn-btn-outline sn-btn-sm">📄 View Markdown Twin (/about.md)</a>
+                    </div>
+                  </div>
+
+                  <div class="sn-grid-3" style="gap:10px;margin-bottom:12px;">
+                    <div>
+                      <label for="sn-admin-content-page-select" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Select Storefront Page *</label>
+                      <select name="slug" id="sn-admin-content-page-select" class="sn-select">
+                        ${['about', 'contact', 'faq', 'shipping-returns', 'privacy', 'terms'].map(slug => {
+                          const pg = contentAndSeo.infoPages[slug] || { title: slug, subtitle: '', paragraphs: [] };
+                          return `<option
+                            value="${escapeHtml(slug)}"
+                            data-page-title="${escapeHtml(pg.title)}"
+                            data-page-subtitle="${escapeHtml(pg.subtitle)}"
+                            data-page-paragraphs="${escapeHtml((pg.paragraphs || []).join('\n'))}"
+                          >/${escapeHtml(slug)} — ${escapeHtml(pg.title)}</option>`;
+                        }).join('')}
+                      </select>
+                    </div>
+                    <div>
+                      <label for="sn-content-page-title" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Page H1 Heading *</label>
+                      <input type="text" name="title" id="sn-content-page-title" required value="${escapeHtml(contentAndSeo.infoPages.about.title)}" class="sn-input" />
+                    </div>
+                    <div>
+                      <label for="sn-content-page-subtitle" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Subtitle / Eyebrow *</label>
+                      <input type="text" name="subtitle" id="sn-content-page-subtitle" required value="${escapeHtml(contentAndSeo.infoPages.about.subtitle)}" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom:14px;">
+                    <label for="sn-content-page-paragraphs" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Page Body Paragraphs (One Paragraph per Line • For FAQ, include "?" to auto-render collapsible Q&amp;A accordions) *</label>
+                    <textarea name="paragraphsText" id="sn-content-page-paragraphs" rows="5" required class="sn-textarea">${escapeHtml((contentAndSeo.infoPages.about.paragraphs || []).join('\n'))}</textarea>
+                  </div>
+
+                  <div style="display:flex;justify-content:flex-end;">
+                    <button type="submit" class="sn-btn sn-btn-forest" id="sn-save-info-page-btn">Save Page Content &amp; Update Markdown Twin</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Sub-Panel 9.3: Route SEO Meta Titles, Descriptions, OpenGraph & Live Google SERP Preview -->
+              <div data-admin-subpanel="content:seo" style="display:none;">
+                <form id="sn-admin-content-seo-form" class="sn-card" style="background-color:var(--sn-bg-parchment);padding:16px 18px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">Route-Level SEO Meta Tags, OpenGraph &amp; Live Google SERP Preview</h3>
+
+                  <div class="sn-grid-2" style="gap:10px;margin-bottom:12px;">
+                    <div>
+                      <label for="sn-admin-seo-route-select" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Target Storefront Route *</label>
+                      <select name="routePath" id="sn-admin-seo-route-select" class="sn-select">
+                        ${Object.entries(contentAndSeo.seoRoutes).map(([routePath, seoObj]) => `
+                          <option
+                            value="${escapeHtml(routePath)}"
+                            data-seo-title="${escapeHtml(seoObj.metaTitle)}"
+                            data-seo-desc="${escapeHtml(seoObj.metaDescription)}"
+                            data-seo-og="${escapeHtml(seoObj.ogImagePath)}"
+                          >${escapeHtml(seoObj.label)}</option>
+                        `).join('')}
+                      </select>
+                    </div>
+                    <div>
+                      <label for="sn-seo-og-image" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">OpenGraph Social Share Image Path (<code>og:image</code>) *</label>
+                      <input type="text" name="ogImagePath" id="sn-seo-og-image" required value="${escapeHtml(contentAndSeo.seoRoutes['/'].ogImagePath)}" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                      <label for="sn-seo-meta-title" style="font-size:0.73rem;font-weight:700;">SEO Meta Title (<code>&lt;title&gt;</code> &amp; <code>og:title</code>) *</label>
+                      <span id="sn-seo-title-char-count" style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-bg-forest);">${contentAndSeo.seoRoutes['/'].metaTitle.length} chars (Optimal: 50–65)</span>
+                    </div>
+                    <input type="text" name="metaTitle" id="sn-seo-meta-title" required value="${escapeHtml(contentAndSeo.seoRoutes['/'].metaTitle)}" class="sn-input" />
+                  </div>
+
+                  <div style="margin-bottom:14px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                      <label for="sn-seo-meta-desc" style="font-size:0.73rem;font-weight:700;">SEO Meta Description (<code>&lt;meta name="description"&gt;</code> &amp; <code>og:description</code>) *</label>
+                      <span id="sn-seo-desc-char-count" style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-bg-forest);">${contentAndSeo.seoRoutes['/'].metaDescription.length} chars (Optimal: 120–160)</span>
+                    </div>
+                    <textarea name="metaDescription" id="sn-seo-meta-desc" rows="2" required class="sn-textarea">${escapeHtml(contentAndSeo.seoRoutes['/'].metaDescription)}</textarea>
+                  </div>
+
+                  <!-- Live Google SERP Snippet Preview -->
+                  <div class="sn-card" id="sn-admin-seo-serp-preview" style="background-color:#FFFFFF;border:1px solid var(--sn-border-strong);padding:14px 16px;margin-bottom:14px;">
+                    <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);text-transform:uppercase;margin-bottom:6px;">🔍 Live Google Search &amp; OpenGraph Snippet Preview</div>
+                    <div id="sn-serp-preview-url" style="font-size:0.78rem;color:#202124;font-family:var(--sn-font-sans);margin-bottom:2px;">https://sasynaturals.com/</div>
+                    <div id="sn-serp-preview-title" style="font-size:1.12rem;color:#1a0dab;font-weight:600;line-height:1.3;margin-bottom:4px;">${escapeHtml(contentAndSeo.seoRoutes['/'].metaTitle)}</div>
+                    <div id="sn-serp-preview-desc" style="font-size:0.84rem;color:#4d5156;line-height:1.45;">${escapeHtml(contentAndSeo.seoRoutes['/'].metaDescription)}</div>
+                  </div>
+
+                  <div style="display:flex;justify-content:flex-end;">
+                    <button type="submit" class="sn-btn sn-btn-forest" id="sn-save-route-seo-btn">Save Route SEO Meta &amp; OpenGraph Tags</button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>

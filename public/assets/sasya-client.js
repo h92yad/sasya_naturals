@@ -913,7 +913,7 @@
       document.querySelectorAll('[data-admin-tab-btn]').forEach(b => {
         const isMatch = b.getAttribute('data-admin-tab-btn') === target;
         b.classList.toggle('sn-active', isMatch);
-        if (isMatch && typeof b.scrollIntoView === 'function') {
+        if (isMatch && !wasAlreadyActive && typeof b.scrollIntoView === 'function') {
           b.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
       });
@@ -2665,6 +2665,401 @@
         }
         showToast('Saved Business Legal, GSTIN, FSSAI & Notification Templates!');
         setTimeout(() => window.location.reload(), 700);
+      });
+    }
+
+    // 10. Module 6: Signed-Up Users, Purchase History Modal & CSV Exports
+    const usersSearchInput = document.getElementById('sn-admin-users-search');
+    const usersTypeFilter = document.getElementById('sn-admin-users-type-filter');
+    const usersListCtrl = createAdminListController({
+      getItems: () => document.querySelectorAll('#sn-admin-users-table tbody tr'),
+      matchItem: (tr) => {
+        const q = (usersSearchInput ? usersSearchInput.value : '').trim().toLowerCase();
+        const typeVal = usersTypeFilter ? usersTypeFilter.value : 'all';
+        const accType = tr.getAttribute('data-user-account-type') || 'registered';
+        const ordCount = Number(tr.getAttribute('data-user-orders-count') || 0);
+
+        if (typeVal === 'registered' && accType !== 'registered') return false;
+        if (typeVal === 'guest' && accType !== 'guest') return false;
+        if (typeVal === 'with_orders' && ordCount <= 0) return false;
+        if (q && !tr.textContent.toLowerCase().includes(q)) return false;
+        return true;
+      },
+      countBadgeEl: document.getElementById('sn-admin-users-count-badge'),
+      paginationEl: document.getElementById('sn-admin-users-pagination'),
+      defaultPageSize: 10,
+      unitLabel: 'users'
+    });
+    if (usersSearchInput && usersListCtrl) {
+      usersSearchInput.addEventListener('input', () => usersListCtrl.render(true));
+    }
+    if (usersTypeFilter && usersListCtrl) {
+      usersTypeFilter.addEventListener('change', () => usersListCtrl.render(true));
+    }
+
+    const userPurchasesModal = document.getElementById('sn-admin-user-purchases-modal');
+    const userPurchasesModalHeading = document.getElementById('sn-user-purchases-modal-heading');
+    const userPurchasesModalEyebrow = document.getElementById('sn-user-purchases-modal-eyebrow');
+    const userPurchasesModalBody = document.getElementById('sn-user-purchases-modal-body');
+
+    function closeUserPurchasesModal() {
+      if (userPurchasesModal) {
+        userPurchasesModal.style.display = 'none';
+        document.body.style.overflow = '';
+      }
+    }
+
+    document.querySelectorAll('[data-close-user-purchases-modal]').forEach(btn => {
+      btn.addEventListener('click', closeUserPurchasesModal);
+    });
+    if (userPurchasesModal) {
+      userPurchasesModal.addEventListener('click', (e) => {
+        if (e.target === userPurchasesModal) closeUserPurchasesModal();
+      });
+    }
+
+    document.querySelectorAll('[data-open-user-purchases]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const email = btn.getAttribute('data-open-user-purchases');
+        const tr = document.querySelector(`[data-admin-user-row="${email}"]`);
+        if (!tr || !userPurchasesModal || !userPurchasesModalBody) return;
+        let userObj = null;
+        try {
+          userObj = JSON.parse(tr.getAttribute('data-user-details-json') || '{}');
+        } catch {
+          userObj = null;
+        }
+        if (!userObj) return;
+
+        if (userPurchasesModalEyebrow) {
+          userPurchasesModalEyebrow.textContent = `${userObj.userIdLabel} • ${userObj.accountType} • Joined ${userObj.joinedDate}`;
+        }
+        if (userPurchasesModalHeading) {
+          userPurchasesModalHeading.textContent = `${userObj.fullName} (${userObj.email})`;
+        }
+
+        const ordersHtml = (userObj.detailedOrders || []).map(ord => {
+          const itemsRows = (ord.items || []).map(it => `
+            <div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px dotted var(--sn-border-warm);font-size:0.82rem;">
+              <span><strong style="font-family:var(--sn-font-mono);">${it.sku}</strong> • ${it.product_name} (<strong>${it.pack_label} &times; ${it.quantity}</strong>)</span>
+              <span style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(it.line_total_paise)}</span>
+            </div>
+          `).join('');
+          return `
+            <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--sn-border-warm);">
+                <div>
+                  <strong style="font-family:var(--sn-font-mono);font-size:0.96rem;color:var(--sn-bg-forest);">${ord.orderNumber}</strong>
+                  <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);margin-left:6px;">${ord.orderDate} • ${ord.shippingCity}, ${ord.shippingState} - ${ord.shippingPincode}</span>
+                </div>
+                <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                  <span class="sn-status ${ord.paymentStatus === 'PAID' || ord.paymentStatus === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${ord.paymentStatus}</span>
+                  <span class="sn-status sn-status-paid">${ord.fulfilmentStatus}</span>
+                  <strong style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${formatInr(ord.totalPaise)}</strong>
+                  <a href="${BASE_PATH}/orders/${encodeURIComponent(ord.orderNumber)}/invoice" target="_blank" rel="noopener" class="sn-btn sn-btn-forest sn-btn-sm">🧾 GST Invoice</a>
+                </div>
+              </div>
+              <div>${itemsRows || '<span style="color:var(--sn-text-muted);font-size:0.8rem;">Standard Pantry Pack</span>'}</div>
+            </div>
+          `;
+        }).join('');
+
+        userPurchasesModalBody.innerHTML = `
+          <div class="sn-grid-3" style="gap:10px;margin-bottom:14px;">
+            <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-mortar);">
+              <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">TOTAL ORDERS &amp; PACKS</div>
+              <strong style="font-family:var(--sn-font-mono);font-size:1.05rem;color:var(--sn-bg-forest);">${(userObj.orderNumbers || []).length} Orders (${userObj.totalPacksBought || 0} Packs)</strong>
+            </div>
+            <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-mortar);">
+              <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">SETTLED SPEND</div>
+              <strong style="font-family:var(--sn-font-mono);font-size:1.05rem;color:var(--sn-status-paid);">${formatInr(userObj.settledSpendPaise)}</strong>
+            </div>
+            <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-mortar);">
+              <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">DEFAULT LOCATION</div>
+              <strong style="font-size:0.86rem;color:var(--sn-bg-forest);">${userObj.defaultCity}, ${userObj.defaultState} - ${userObj.defaultPincode}</strong>
+            </div>
+          </div>
+          ${ordersHtml || '<p>No orders placed yet.</p>'}
+        `;
+        userPurchasesModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      });
+    });
+
+    document.querySelectorAll('[data-export-users-csv]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const exportType = btn.getAttribute('data-export-users-csv') || 'users_summary';
+        const email = getActiveAdminEmail();
+
+        if (!IS_STATIC_SHOWCASE) {
+          try {
+            const res = await fetch(`/api/admin/users/export.csv?type=${encodeURIComponent(exportType)}`, {
+              headers: { 'x-admin-email': email }
+            });
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              showToast(errData.error || 'RBAC Permission Denied for User Export');
+              return;
+            }
+            const csvText = await res.text();
+            const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sasya-naturals-${exportType}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            showToast(`Exported sasya-naturals-${exportType}.csv!`);
+            return;
+          } catch (err) {
+            showToast(err.message || 'CSV export failed');
+            return;
+          }
+        }
+
+        // Static Showcase fallback
+        if (email !== 'superadmin@sasynaturals.com' && email !== 'orders@sasynaturals.com') {
+          showToast(`403 RBAC Permission Denied: ${email} cannot export customer & purchase data.`);
+          return;
+        }
+        const rows = Array.from(document.querySelectorAll('#sn-admin-users-table tbody tr'));
+        const csvLines = ['User ID,Account Type,Customer Name,Email,Phone,Orders,Packs,Lifetime Spend'];
+        rows.forEach(tr => {
+          try {
+            const u = JSON.parse(tr.getAttribute('data-user-details-json') || '{}');
+            csvLines.push(`"${u.userIdLabel}","${u.accountType}","${u.fullName}","${u.email}","${u.phone}",${(u.orderNumbers || []).length},${u.totalPacksBought || 0},${((u.totalSpendPaise || 0) / 100).toFixed(2)}`);
+          } catch {
+            // ignore
+          }
+        });
+        const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sasya-naturals-${exportType}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast(`[Showcase Verified] Exported sasya-naturals-${exportType}.csv!`);
+      });
+    });
+
+    // 11. Module 9: Storefront Content & SEO Manager (9.1 Homepage, 9.2 Info Pages, 9.3 Route SEO + Live SERP Preview)
+    const homepageContentForm = document.getElementById('sn-admin-content-homepage-form');
+    if (homepageContentForm) {
+      homepageContentForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = getActiveAdminEmail();
+        const fd = new FormData(homepageContentForm);
+        const payload = Object.fromEntries(fd.entries());
+
+        if (IS_STATIC_SHOWCASE) {
+          if (email !== 'superadmin@sasynaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can edit Homepage & Global Shell copy.');
+            return;
+          }
+          showToast('[Showcase Verified] Updated Homepage Hero, Topbar & Global Footer Copy!');
+          return;
+        }
+
+        const res = await fetch('/api/admin/content/homepage', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': email
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to update homepage content');
+          return;
+        }
+        showToast('Saved Homepage Hero, Topbar & Global Footer Copy!');
+      });
+    }
+
+    const contentPageSelect = document.getElementById('sn-admin-content-page-select');
+    const contentPageTitleInput = document.getElementById('sn-content-page-title');
+    const contentPageSubInput = document.getElementById('sn-content-page-subtitle');
+    const contentPageParasInput = document.getElementById('sn-content-page-paragraphs');
+    const contentPageLiveLink = document.getElementById('sn-content-page-live-link');
+    const contentPageMdLink = document.getElementById('sn-content-page-md-link');
+    const contentPageForm = document.getElementById('sn-admin-content-page-form');
+
+    if (contentPageSelect) {
+      contentPageSelect.addEventListener('change', () => {
+        const opt = contentPageSelect.options[contentPageSelect.selectedIndex];
+        if (!opt) return;
+        const slug = opt.value;
+        if (contentPageTitleInput) contentPageTitleInput.value = opt.getAttribute('data-page-title') || '';
+        if (contentPageSubInput) contentPageSubInput.value = opt.getAttribute('data-page-subtitle') || '';
+        if (contentPageParasInput) contentPageParasInput.value = opt.getAttribute('data-page-paragraphs') || '';
+        if (contentPageLiveLink) {
+          contentPageLiveLink.href = `${BASE_PATH}/${slug}`;
+          contentPageLiveLink.textContent = `↗ Open Live Page (/${slug})`;
+        }
+        if (contentPageMdLink) {
+          contentPageMdLink.href = `${BASE_PATH}/${slug}.md`;
+          contentPageMdLink.textContent = `📄 View Markdown Twin (/${slug}.md)`;
+        }
+      });
+    }
+
+    if (contentPageForm) {
+      contentPageForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = getActiveAdminEmail();
+        const fd = new FormData(contentPageForm);
+        const payload = {
+          slug: String(fd.get('slug') || 'about').trim(),
+          title: String(fd.get('title') || '').trim(),
+          subtitle: String(fd.get('subtitle') || '').trim(),
+          paragraphsText: String(fd.get('paragraphsText') || '').trim()
+        };
+
+        if (IS_STATIC_SHOWCASE) {
+          if (email !== 'superadmin@sasynaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can edit Storefront Info & Policy Pages.');
+            return;
+          }
+          if (contentPageSelect) {
+            const opt = contentPageSelect.options[contentPageSelect.selectedIndex];
+            if (opt) {
+              opt.setAttribute('data-page-title', payload.title);
+              opt.setAttribute('data-page-subtitle', payload.subtitle);
+              opt.setAttribute('data-page-paragraphs', payload.paragraphsText);
+            }
+          }
+          showToast(`[Showcase Verified] Saved /${payload.slug} & /${payload.slug}.md!`);
+          return;
+        }
+
+        const res = await fetch('/api/admin/content/page', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': email
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to save page content');
+          return;
+        }
+        if (contentPageSelect) {
+          const opt = contentPageSelect.options[contentPageSelect.selectedIndex];
+          if (opt) {
+            opt.setAttribute('data-page-title', payload.title);
+            opt.setAttribute('data-page-subtitle', payload.subtitle);
+            opt.setAttribute('data-page-paragraphs', payload.paragraphsText);
+            opt.textContent = `/${payload.slug} — ${payload.title}`;
+          }
+        }
+        showToast(`Saved /${payload.slug} HTML & Markdown Twin!`);
+      });
+    }
+
+    const seoRouteSelect = document.getElementById('sn-admin-seo-route-select');
+    const seoTitleInput = document.getElementById('sn-seo-meta-title');
+    const seoDescInput = document.getElementById('sn-seo-meta-desc');
+    const seoOgInput = document.getElementById('sn-seo-og-image');
+    const seoTitleCountEl = document.getElementById('sn-seo-title-char-count');
+    const seoDescCountEl = document.getElementById('sn-seo-desc-char-count');
+    const serpUrlEl = document.getElementById('sn-serp-preview-url');
+    const serpTitleEl = document.getElementById('sn-serp-preview-title');
+    const serpDescEl = document.getElementById('sn-serp-preview-desc');
+    const seoForm = document.getElementById('sn-admin-content-seo-form');
+
+    function updateLiveSeoSerpPreview() {
+      const routePath = seoRouteSelect ? seoRouteSelect.value : '/';
+      const titleVal = seoTitleInput ? seoTitleInput.value : '';
+      const descVal = seoDescInput ? seoDescInput.value : '';
+      if (seoTitleCountEl) {
+        seoTitleCountEl.textContent = `${titleVal.length} chars (Optimal: 50–65)`;
+      }
+      if (seoDescCountEl) {
+        seoDescCountEl.textContent = `${descVal.length} chars (Optimal: 120–160)`;
+      }
+      if (serpUrlEl) {
+        serpUrlEl.textContent = `https://sasynaturals.com${routePath === '/' ? '/' : routePath}`;
+      }
+      if (serpTitleEl) {
+        serpTitleEl.textContent = titleVal || 'Sasya Naturals';
+      }
+      if (serpDescEl) {
+        serpDescEl.textContent = descVal || '';
+      }
+    }
+
+    if (seoRouteSelect) {
+      seoRouteSelect.addEventListener('change', () => {
+        const opt = seoRouteSelect.options[seoRouteSelect.selectedIndex];
+        if (!opt) return;
+        if (seoTitleInput) seoTitleInput.value = opt.getAttribute('data-seo-title') || '';
+        if (seoDescInput) seoDescInput.value = opt.getAttribute('data-seo-desc') || '';
+        if (seoOgInput) seoOgInput.value = opt.getAttribute('data-seo-og') || '/images/hero-pantry.jpg';
+        updateLiveSeoSerpPreview();
+      });
+    }
+    if (seoTitleInput) seoTitleInput.addEventListener('input', updateLiveSeoSerpPreview);
+    if (seoDescInput) seoDescInput.addEventListener('input', updateLiveSeoSerpPreview);
+
+    if (seoForm) {
+      seoForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = getActiveAdminEmail();
+        const fd = new FormData(seoForm);
+        const payload = {
+          routePath: String(fd.get('routePath') || '/').trim(),
+          metaTitle: String(fd.get('metaTitle') || '').trim(),
+          metaDescription: String(fd.get('metaDescription') || '').trim(),
+          ogImagePath: String(fd.get('ogImagePath') || '/images/hero-pantry.jpg').trim()
+        };
+
+        if (IS_STATIC_SHOWCASE) {
+          if (email !== 'superadmin@sasynaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can update Route SEO Meta Tags.');
+            return;
+          }
+          if (seoRouteSelect) {
+            const opt = seoRouteSelect.options[seoRouteSelect.selectedIndex];
+            if (opt) {
+              opt.setAttribute('data-seo-title', payload.metaTitle);
+              opt.setAttribute('data-seo-desc', payload.metaDescription);
+              opt.setAttribute('data-seo-og', payload.ogImagePath);
+            }
+          }
+          showToast(`[Showcase Verified] Saved SEO Meta & OpenGraph for ${payload.routePath}!`);
+          return;
+        }
+
+        const res = await fetch('/api/admin/content/seo', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': email
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to update route SEO meta');
+          return;
+        }
+        if (seoRouteSelect) {
+          const opt = seoRouteSelect.options[seoRouteSelect.selectedIndex];
+          if (opt) {
+            opt.setAttribute('data-seo-title', payload.metaTitle);
+            opt.setAttribute('data-seo-desc', payload.metaDescription);
+            opt.setAttribute('data-seo-og', payload.ogImagePath);
+          }
+        }
+        showToast(`Saved SEO Meta & OpenGraph tags for ${payload.routePath}!`);
       });
     }
   }

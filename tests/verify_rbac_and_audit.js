@@ -209,7 +209,73 @@ function runVerifyRbacAndAudit() {
   db.prepare('DELETE FROM order_items WHERE order_id = ?').run(createdManualOrder.orderId);
   db.prepare('DELETE FROM orders WHERE id = ?').run(createdManualOrder.orderId);
 
-  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice & immutable audit_logs');
+  // 9. Verify Module 6 Users & Purchases CSV Export & Module 9 Storefront Content & SEO Manager (v2.4.0)
+  const {
+    getStorefrontContentAndSeo,
+    updateHomepageContent,
+    updateInfoPageContent,
+    updateRouteSeoMeta,
+    buildUsersAndPurchasesExportCsv
+  } = require('../src/core/content/contentStore');
+
+  const customerUsers = db.prepare("SELECT * FROM users WHERE role = 'CUSTOMER' ORDER BY id").all();
+  const customerAddresses = db.prepare('SELECT * FROM customer_addresses ORDER BY id').all();
+  const allOrders = db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
+  const allOrderItems = db.prepare('SELECT * FROM order_items ORDER BY id DESC').all();
+  const usersSummaryCsv = buildUsersAndPurchasesExportCsv({
+    customerUsers,
+    customerAddresses,
+    orders: allOrders,
+    orderItems: allOrderItems,
+    exportType: 'users_summary'
+  });
+  assert(usersSummaryCsv.includes('User ID,Account Type,Full Name,Email,Mobile Phone'), 'Users summary CSV must include full header');
+  assert(usersSummaryCsv.includes('ananya.iyer@example.com'), 'Users summary CSV must include registered customer Ananya Iyer');
+
+  const userPurchasesCsv = buildUsersAndPurchasesExportCsv({
+    customerUsers,
+    customerAddresses,
+    orders: allOrders,
+    orderItems: allOrderItems,
+    exportType: 'user_purchases'
+  });
+  assert(userPurchasesCsv.includes('Order Number,Order Date,Payment Method,Payment Status,Fulfilment Status,SKU,HSN Code'), 'User purchases CSV must include itemized purchase columns');
+  assert(userPurchasesCsv.includes('SN-2026-1000'), 'User purchases CSV must include order SN-2026-1000');
+
+  const updatedHome = updateHomepageContent(
+    { heroBatchCaptionLeft: 'Harvest Batch: Dec 2026' },
+    { actorId: superAdmin.id, actorEmail: superAdmin.email, actorRole: superAdmin.role }
+  );
+  assert.strictEqual(updatedHome.heroBatchCaptionLeft, 'Harvest Batch: Dec 2026', 'updateHomepageContent must persist updated hero batch caption');
+
+  const updatedFaq = updateInfoPageContent(
+    {
+      slug: 'faq',
+      title: 'Frequently Asked Questions',
+      subtitle: 'Pack Sizes, Payments, Manual Courier Tracking & Storage',
+      paragraphsText: 'What pack sizes do you offer? All dry fruits, millets, and spices are available in 100 g, 250 g, 500 g, and 1 kg packs.'
+    },
+    { actorId: superAdmin.id, actorEmail: superAdmin.email, actorRole: superAdmin.role }
+  );
+  assert.strictEqual(updatedFaq.title, 'Frequently Asked Questions', 'updateInfoPageContent must persist updated info page');
+
+  const updatedSeo = updateRouteSeoMeta(
+    {
+      routePath: '/shop',
+      metaTitle: 'All Natural Products Catalogue | Sasya Naturals',
+      metaDescription: 'Browse all Sasya Naturals dry fruits, unpolished millets, and single-origin spices with 100 g, 250 g, 500 g, and 1 kg pack variants.',
+      ogImagePath: '/images/hero-pantry.jpg'
+    },
+    { actorId: superAdmin.id, actorEmail: superAdmin.email, actorRole: superAdmin.role }
+  );
+  assert.strictEqual(updatedSeo.metaTitle, 'All Natural Products Catalogue | Sasya Naturals', 'updateRouteSeoMeta must persist route SEO metadata');
+  assert.strictEqual(getStorefrontContentAndSeo().homepage.heroBatchCaptionLeft, 'Harvest Batch: Dec 2026');
+
+  // Clean up test content overrides back to baseline defaults
+  db.prepare("DELETE FROM store_settings WHERE key IN ('content_homepage_json', 'content_pages_json', 'content_seo_json')").run();
+  db.prepare("DELETE FROM audit_logs WHERE action IN ('HOMEPAGE_CONTENT_UPDATED', 'INFO_PAGE_CONTENT_UPDATED', 'ROUTE_SEO_META_UPDATED')").run();
+
+  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager & immutable audit_logs');
 }
 
 if (require.main === module) {

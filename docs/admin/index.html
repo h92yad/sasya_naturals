@@ -14,7 +14,7 @@
   <meta property="og:url" content="https://sasynaturals.com/admin" />
   <meta property="og:site_name" content="Sasya Naturals" />
   <meta property="og:image" content="https://sasynaturals.com/images/hero-pantry.jpg" />
-  <link rel="stylesheet" href="/sasya_naturals/assets/sasya-core.css?v=2.3.0" />
+  <link rel="stylesheet" href="/sasya_naturals/assets/sasya-core.css?v=2.4.0" />
   <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://sasynaturals.com/#organization","name":"Sasya Naturals","url":"https://sasynaturals.com/","logo":{"@type":"ImageObject","url":"https://sasynaturals.com/images/hero-pantry.jpg"},"contactPoint":{"@type":"ContactPoint","telephone":"+91-80-4568-2200","contactType":"customer service","areaServed":"IN","availableLanguage":["en","hi","kn"]}},{"@type":"WebSite","@id":"https://sasynaturals.com/#website","url":"https://sasynaturals.com/","name":"Sasya Naturals","publisher":{"@id":"https://sasynaturals.com/#organization"},"potentialAction":{"@type":"SearchAction","target":"https://sasynaturals.com/shop?q={search_term_string}","query-input":"required name=search_term_string"}},{"@type":"BreadcrumbList","@id":"https://sasynaturals.com/admin#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://sasynaturals.com/"},{"@type":"ListItem","position":2,"name":"Admin Portal","item":"https://sasynaturals.com/admin"}]},{"@type":"WebPage","@id":"https://sasynaturals.com/admin#webpage","url":"https://sasynaturals.com/admin","name":"Staff RBAC Administration Portal | Sasya Naturals","description":"Role-based administration portal for Sasya Naturals Super Admin, Product Manager, Order Manager, Accounts Manager, and Staff.","isPartOf":{"@id":"https://sasynaturals.com/#website"},"breadcrumb":{"@id":"https://sasynaturals.com/admin#breadcrumb"}}]}</script>
 </head>
 <body>
@@ -62,7 +62,7 @@
     </div>
   </header>
 
-  <main id="app-mount" data-ssr-rendered="true" data-app-version="2.3.0">
+  <main id="app-mount" data-ssr-rendered="true" data-app-version="2.4.0">
     
     <section class="sn-section" id="sn-admin-portal">
       <div class="sn-container">
@@ -170,7 +170,13 @@
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="payments:gst-summaries">5.4 GST Tax &amp; Gateway Summaries</button></li>
                 </ul>
               </li>
-              <li><button type="button" data-admin-tab-btn="customers" id="tab-btn-customers">6. Customers &amp; Order History</button></li>
+              <li>
+                <button type="button" data-admin-tab-btn="customers" id="tab-btn-customers">6. Users, Purchases &amp; Export ▾</button>
+                <ul class="sn-admin-submenu" data-admin-submenu-for="customers">
+                  <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="customers:users">6.1 Signed-Up Users &amp; Purchases (2)</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="customers:addresses">6.2 Saved Addresses Directory (2)</button></li>
+                </ul>
+              </li>
               <li>
                 <button type="button" data-admin-tab-btn="rbac" id="tab-btn-rbac">7. Staff RBAC &amp; Audit Logs ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="rbac">
@@ -184,6 +190,14 @@
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="compliance:shipping">8.1 Delivery Pricing (4-Zone)</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="compliance:legal-templates">8.2 GSTIN, FSSAI &amp; Templates</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="compliance:notif-logs">8.3 Notification Logs (25)</button></li>
+                </ul>
+              </li>
+              <li>
+                <button type="button" data-admin-tab-btn="content" id="tab-btn-content">9. Storefront Content &amp; SEO ▾</button>
+                <ul class="sn-admin-submenu" data-admin-submenu-for="content">
+                  <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="content:homepage">9.1 Homepage Hero, Topbar &amp; Footer</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="content:pages">9.2 Info &amp; Policy Pages (6 Pages)</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="content:seo">9.3 Route SEO Meta &amp; SERP Preview</button></li>
                 </ul>
               </li>
             </ul>
@@ -7599,57 +7613,236 @@
               </div>
             </div>
 
-            <!-- Panel 6: Customers Directory & Order History (Section 5.1 Customers Module) -->
+            <!-- Panel 6: Users, Purchases & Customer Export Module (Database-Connected Signed-Up Users & Purchase History) -->
             <div class="sn-card" data-admin-panel="customers" style="display:none;">
-              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Customer Profiles, Saved Addresses &amp; Order History</h2>
-              <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 18px;">
-                Authorized for <strong>SUPER_ADMIN</strong> and <strong>ORDER_MANAGER</strong>. View registered customer accounts and guest buyers with their order history.
-              </p>
-              <div class="sn-table-wrap">
-                <table class="sn-table sn-table-cards">
-                  <thead>
-                    <tr><th>Customer Name</th><th>Email &amp; Phone</th><th>Account Type</th><th>Saved Addresses</th><th>Order History</th><th>Lifetime Spend</th></tr>
-                  </thead>
-                  <tbody>
-                    
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+                <div>
+                  <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Signed-Up Users, Purchase History &amp; Customer Data Export</h2>
+                  <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0;">
+                    Authorized for <strong>SUPER_ADMIN</strong> and <strong>ORDER_MANAGER</strong>. Inspect database-connected customer accounts, itemized pack purchases, lifetime spend, and export summary or line-item purchase ledgers to CSV.
+                  </p>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                  <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" id="sn-export-users-summary-btn" data-export-users-csv="users_summary">⬇ Export Users Summary CSV</button>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-export-user-purchases-btn" data-export-users-csv="user_purchases">⬇ Export Detailed Purchases CSV</button>
+                </div>
+              </div>
+
+              <!-- In-Panel Segmented Sub-Module Bar (Synced with Desktop Sidebar Accordion) -->
+              <div class="sn-admin-subnav-bar" role="tablist">
+                <button type="button" class="sn-admin-subtab-pill sn-active" data-admin-subtab-btn="customers:users">👤 6.1 Signed-Up Users &amp; Purchases (2)</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="customers:addresses">📍 6.2 Saved Addresses Directory (2)</button>
+              </div>
+
+              <!-- Sub-Panel 6.1 (Default): Signed-Up Users & Purchase Profiles -->
+              <div data-admin-subpanel="customers:users">
+                <div class="sn-grid-4" style="gap:12px;margin-bottom:14px;">
+                  <div class="sn-card" style="padding:10px 14px;background-color:var(--sn-bg-parchment);">
+                    <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);text-transform:uppercase;">Signed-Up Users (DB)</div>
+                    <strong style="font-family:var(--sn-font-mono);font-size:1.2rem;color:var(--sn-bg-forest);">1</strong>
+                  </div>
+                  <div class="sn-card" style="padding:10px 14px;background-color:var(--sn-bg-parchment);">
+                    <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);text-transform:uppercase;">Total Active Buyers</div>
+                    <strong style="font-family:var(--sn-font-mono);font-size:1.2rem;color:var(--sn-bg-forest);">2</strong>
+                  </div>
+                  <div class="sn-card" style="padding:10px 14px;background-color:var(--sn-bg-parchment);">
+                    <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);text-transform:uppercase;">Total Packs Purchased</div>
+                    <strong style="font-family:var(--sn-font-mono);font-size:1.2rem;color:var(--sn-bg-forest);">7 packs</strong>
+                  </div>
+                  <div class="sn-card" style="padding:10px 14px;background-color:var(--sn-bg-parchment);">
+                    <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);text-transform:uppercase;">Cumulative Buyer Spend</div>
+                    <strong style="font-family:var(--sn-font-mono);font-size:1.2rem;color:var(--sn-bg-forest);">₹2,933</strong>
+                  </div>
+                </div>
+
+                <!-- Live Multi-Field User Search & Account Filter Toolbar -->
+                <div class="sn-card" style="background-color:var(--sn-bg-mortar);padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                  <input type="search" id="sn-admin-users-search" placeholder="Search User ID, Name, Email, Mobile Phone, City, PIN, Order #, or Purchased Product..." class="sn-input" style="flex:1;min-width:210px;" />
+                  <select id="sn-admin-users-type-filter" class="sn-select" style="width:auto;min-width:175px;">
+                    <option value="all">Account: All Buyers (2)</option>
+                    <option value="registered">Signed-Up Users Only (1)</option>
+                    <option value="guest">Guest Checkout Buyers (1)</option>
+                    <option value="with_orders">Buyers With Purchases (2)</option>
+                  </select>
+                  <span id="sn-admin-users-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);">Showing 2 of 2 Users</span>
+                </div>
+
+                <div class="sn-table-wrap">
+                  <table class="sn-table sn-table-cards" id="sn-admin-users-table">
+                    <thead>
                       <tr>
-                        <td data-label="Customer Name"><strong>Ananya Iyer</strong></td>
-                        <td data-label="Email &amp; Phone" style="font-family:var(--sn-font-mono);font-size:0.76rem;">
-                          <div>
-                            ananya.iyer@example.com<br/>
-                            +91 98450 22334
-                          </div>
-                        </td>
-                        <td data-label="Account Type"><span class="sn-status sn-status-paid">Registered Customer</span></td>
-                        <td data-label="Saved Addresses" style="font-family:var(--sn-font-mono);">2 saved</td>
-                        <td data-label="Order History" style="font-family:var(--sn-font-mono);font-size:0.78rem;">
-                          <span>
-                            <a href="/sasya_naturals/track-order?order=SN-2026-1000" style="color:var(--sn-accent-terracotta);font-weight:600;">SN-2026-1000</a>, <a href="/sasya_naturals/track-order?order=SN-2026-1001" style="color:var(--sn-accent-terracotta);font-weight:600;">SN-2026-1001</a>
-                          </span>
-                        </td>
-                        <td data-label="Lifetime Spend" style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-bg-forest);">₹2,243</td>
+                        <th>User ID &amp; Account</th>
+                        <th>Customer Name &amp; Contact</th>
+                        <th>Default Delivery Location</th>
+                        <th>Orders &amp; Pack Volume</th>
+                        <th>Purchased Products &amp; Invoices</th>
+                        <th>Lifetime Spend</th>
                       </tr>
-                    
-                      <tr>
-                        <td data-label="Customer Name"><strong>Vikramaditya Deshmukh</strong></td>
-                        <td data-label="Email &amp; Phone" style="font-family:var(--sn-font-mono);font-size:0.76rem;">
-                          <div>
-                            vikram.deshmukh@example.com<br/>
-                            +91 98201 77412
-                          </div>
-                        </td>
-                        <td data-label="Account Type"><span class="sn-status sn-status-paid">Guest Checkout</span></td>
-                        <td data-label="Saved Addresses" style="font-family:var(--sn-font-mono);">1 saved</td>
-                        <td data-label="Order History" style="font-family:var(--sn-font-mono);font-size:0.78rem;">
-                          <span>
-                            <a href="/sasya_naturals/track-order?order=SN-2026-1002" style="color:var(--sn-accent-terracotta);font-weight:600;">SN-2026-1002</a>
-                          </span>
-                        </td>
-                        <td data-label="Lifetime Spend" style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-bg-forest);">₹690</td>
-                      </tr>
-                    
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      
+                        <tr
+                          data-admin-user-row="ananya.iyer@example.com"
+                          data-user-account-type="registered"
+                          data-user-orders-count="2"
+                          data-user-details-json="{&quot;userId&quot;:6,&quot;userIdLabel&quot;:&quot;USR-6&quot;,&quot;joinedDate&quot;:&quot;2026-11-21&quot;,&quot;fullName&quot;:&quot;Ananya Iyer&quot;,&quot;email&quot;:&quot;ananya.iyer@example.com&quot;,&quot;phone&quot;:&quot;+91 98450 22334&quot;,&quot;accountType&quot;:&quot;Registered Customer&quot;,&quot;isRegistered&quot;:true,&quot;addressCount&quot;:2,&quot;defaultCity&quot;:&quot;Bengaluru&quot;,&quot;defaultState&quot;:&quot;Karnataka&quot;,&quot;defaultPincode&quot;:&quot;560038&quot;,&quot;orderNumbers&quot;:[&quot;SN-2026-1000&quot;,&quot;SN-2026-1001&quot;],&quot;totalPacksBought&quot;:5,&quot;settledSpendPaise&quot;:224300,&quot;codPendingPaise&quot;:0,&quot;totalSpendPaise&quot;:224300,&quot;lastOrderDate&quot;:&quot;2026-11-19&quot;,&quot;purchasedItemsList&quot;:[&quot;Unpolished Haveri Finger Millet (Ragi Whole &amp; Flour) (1 kg × 1)&quot;,&quot;Idukki 8mm+ Bold Green Cardamom (Elaichi) (100 g × 1)&quot;,&quot;Kashmiri Snow-White Walnut Halves (Akhrot Giri) (250 g × 1)&quot;,&quot;Meghalaya Lakadong High-Curcumin Turmeric Powder (250 g × 1)&quot;,&quot;Kashmiri Mamra Giri Almonds (250 g × 1)&quot;],&quot;detailedOrders&quot;:[{&quot;orderNumber&quot;:&quot;SN-2026-1000&quot;,&quot;orderDate&quot;:&quot;2026-11-08&quot;,&quot;paymentMethod&quot;:&quot;ONLINE_CARD&quot;,&quot;paymentStatus&quot;:&quot;PAID&quot;,&quot;fulfilmentStatus&quot;:&quot;Delivered&quot;,&quot;totalPaise&quot;:128000,&quot;shippingCity&quot;:&quot;Bengaluru&quot;,&quot;shippingState&quot;:&quot;Karnataka&quot;,&quot;shippingPincode&quot;:&quot;560038&quot;,&quot;items&quot;:[{&quot;id&quot;:15,&quot;order_id&quot;:11,&quot;product_id&quot;:7,&quot;variant_id&quot;:27,&quot;product_name&quot;:&quot;Unpolished Haveri Finger Millet (Ragi Whole &amp; Flour)&quot;,&quot;sku&quot;:&quot;SN-ML-RAG-1KG&quot;,&quot;pack_label&quot;:&quot;1 kg&quot;,&quot;weight_grams&quot;:1000,&quot;unit_price_paise&quot;:30000,&quot;mrp_paise&quot;:38000,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:43000,&quot;hsn_code&quot;:&quot;100821&quot;},{&quot;id&quot;:14,&quot;order_id&quot;:11,&quot;product_id&quot;:14,&quot;variant_id&quot;:54,&quot;product_name&quot;:&quot;Idukki 8mm+ Bold Green Cardamom (Elaichi)&quot;,&quot;sku&quot;:&quot;SN-SP-CRD-100G&quot;,&quot;pack_label&quot;:&quot;100 g&quot;,&quot;weight_grams&quot;:100,&quot;unit_price_paise&quot;:42000,&quot;mrp_paise&quot;:48000,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:42000,&quot;hsn_code&quot;:&quot;090831&quot;},{&quot;id&quot;:13,&quot;order_id&quot;:11,&quot;product_id&quot;:4,&quot;variant_id&quot;:14,&quot;product_name&quot;:&quot;Kashmiri Snow-White Walnut Halves (Akhrot Giri)&quot;,&quot;sku&quot;:&quot;SN-DF-WLN-250G&quot;,&quot;pack_label&quot;:&quot;250 g&quot;,&quot;weight_grams&quot;:250,&quot;unit_price_paise&quot;:53000,&quot;mrp_paise&quot;:61000,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:53000,&quot;hsn_code&quot;:&quot;080290&quot;}]},{&quot;orderNumber&quot;:&quot;SN-2026-1001&quot;,&quot;orderDate&quot;:&quot;2026-11-19&quot;,&quot;paymentMethod&quot;:&quot;ONLINE_UPI&quot;,&quot;paymentStatus&quot;:&quot;PAID&quot;,&quot;fulfilmentStatus&quot;:&quot;Shipped&quot;,&quot;totalPaise&quot;:96300,&quot;shippingCity&quot;:&quot;Bengaluru&quot;,&quot;shippingState&quot;:&quot;Karnataka&quot;,&quot;shippingPincode&quot;:&quot;560038&quot;,&quot;items&quot;:[{&quot;id&quot;:2,&quot;order_id&quot;:1,&quot;product_id&quot;:12,&quot;variant_id&quot;:46,&quot;product_name&quot;:&quot;Meghalaya Lakadong High-Curcumin Turmeric Powder&quot;,&quot;sku&quot;:&quot;SN-SP-TUR-250G&quot;,&quot;pack_label&quot;:&quot;250 g&quot;,&quot;weight_grams&quot;:250,&quot;unit_price_paise&quot;:32000,&quot;mrp_paise&quot;:37500,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:32000,&quot;hsn_code&quot;:&quot;080290&quot;},{&quot;id&quot;:1,&quot;order_id&quot;:1,&quot;product_id&quot;:1,&quot;variant_id&quot;:2,&quot;product_name&quot;:&quot;Kashmiri Mamra Giri Almonds&quot;,&quot;sku&quot;:&quot;SN-DF-ALM-250G&quot;,&quot;pack_label&quot;:&quot;250 g&quot;,&quot;weight_grams&quot;:250,&quot;unit_price_paise&quot;:75000,&quot;mrp_paise&quot;:84500,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:75000,&quot;hsn_code&quot;:&quot;080290&quot;}]}]}"
+                        >
+                          <td data-label="User ID &amp; Account">
+                            <strong style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">USR-6</strong><br/>
+                            <span class="sn-status sn-status-paid" style="margin-top:3px;display:inline-block;">Registered Customer</span>
+                            <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);margin-top:2px;">Joined: 2026-11-21</div>
+                          </td>
+                          <td data-label="Customer &amp; Contact">
+                            <strong>Ananya Iyer</strong>
+                            <div style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-secondary);margin-top:2px;">
+                              ananya.iyer@example.com<br/>
+                              📞 +91 98450 22334
+                            </div>
+                          </td>
+                          <td data-label="Default Location" style="font-size:0.81rem;">
+                            <strong>Bengaluru, Karnataka</strong><br/>
+                            <span style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-muted);">PIN: 560038 • 2 saved addr</span>
+                          </td>
+                          <td data-label="Orders &amp; Volume" style="font-family:var(--sn-font-mono);font-size:0.78rem;">
+                            <strong>2 orders</strong> (5 packs)<br/>
+                            <span style="font-size:0.71rem;color:var(--sn-text-muted);">Last: 2026-11-19</span>
+                          </td>
+                          <td data-label="Purchases &amp; Invoices" style="font-size:0.79rem;">
+                            
+                              <div style="margin-bottom:4px;line-height:1.35;">Unpolished Haveri Finger Millet (Ragi Whole &amp; Flour) (1 kg × 1), Idukki 8mm+ Bold Green Cardamom (Elaichi) (100 g × 1) +3 more</div>
+                            
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                              <a href="/sasya_naturals/orders/SN-2026-1000/invoice" class="sn-status sn-status-paid" style="text-decoration:none;font-family:var(--sn-font-mono);">🧾 SN-2026-1000</a><a href="/sasya_naturals/orders/SN-2026-1001/invoice" class="sn-status sn-status-paid" style="text-decoration:none;font-family:var(--sn-font-mono);">🧾 SN-2026-1001</a>
+                              
+                                <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-open-user-purchases="ananya.iyer@example.com" style="padding:2px 8px;min-height:24px;font-size:0.72rem;">🔍 View Purchases</button>
+                              
+                            </div>
+                          </td>
+                          <td data-label="Lifetime Spend" style="font-family:var(--sn-font-mono);">
+                            <strong style="font-size:0.95rem;color:var(--sn-bg-forest);">₹2,243</strong><br/>
+                            <span style="font-size:0.7rem;color:var(--sn-status-paid);">Settled: ₹2,243</span>
+                            
+                          </td>
+                        </tr>
+                      
+                        <tr
+                          data-admin-user-row="vikram.deshmukh@example.com"
+                          data-user-account-type="guest"
+                          data-user-orders-count="1"
+                          data-user-details-json="{&quot;userId&quot;:null,&quot;userIdLabel&quot;:&quot;GUEST&quot;,&quot;joinedDate&quot;:&quot;2026-11-21&quot;,&quot;fullName&quot;:&quot;Vikramaditya Deshmukh&quot;,&quot;email&quot;:&quot;vikram.deshmukh@example.com&quot;,&quot;phone&quot;:&quot;+91 98201 77412&quot;,&quot;accountType&quot;:&quot;Guest Checkout&quot;,&quot;isRegistered&quot;:false,&quot;addressCount&quot;:1,&quot;defaultCity&quot;:&quot;Pune&quot;,&quot;defaultState&quot;:&quot;Maharashtra&quot;,&quot;defaultPincode&quot;:&quot;411004&quot;,&quot;orderNumbers&quot;:[&quot;SN-2026-1002&quot;],&quot;totalPacksBought&quot;:2,&quot;settledSpendPaise&quot;:0,&quot;codPendingPaise&quot;:69000,&quot;totalSpendPaise&quot;:69000,&quot;lastOrderDate&quot;:&quot;2026-11-21&quot;,&quot;purchasedItemsList&quot;:[&quot;Chitradurga Unpolished Foxtail Millet (Navane / Kangni) (500 g × 1)&quot;,&quot;Goan W240 Jumbo Whole Cashews (250 g × 1)&quot;],&quot;detailedOrders&quot;:[{&quot;orderNumber&quot;:&quot;SN-2026-1002&quot;,&quot;orderDate&quot;:&quot;2026-11-21&quot;,&quot;paymentMethod&quot;:&quot;COD&quot;,&quot;paymentStatus&quot;:&quot;COD_PENDING&quot;,&quot;fulfilmentStatus&quot;:&quot;Confirmed&quot;,&quot;totalPaise&quot;:69000,&quot;shippingCity&quot;:&quot;Pune&quot;,&quot;shippingState&quot;:&quot;Maharashtra&quot;,&quot;shippingPincode&quot;:&quot;411004&quot;,&quot;items&quot;:[{&quot;id&quot;:4,&quot;order_id&quot;:2,&quot;product_id&quot;:8,&quot;variant_id&quot;:31,&quot;product_name&quot;:&quot;Chitradurga Unpolished Foxtail Millet (Navane / Kangni)&quot;,&quot;sku&quot;:&quot;SN-ML-FOX-500G&quot;,&quot;pack_label&quot;:&quot;500 g&quot;,&quot;weight_grams&quot;:500,&quot;unit_price_paise&quot;:19500,&quot;mrp_paise&quot;:24500,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:19500,&quot;hsn_code&quot;:&quot;080290&quot;},{&quot;id&quot;:3,&quot;order_id&quot;:2,&quot;product_id&quot;:2,&quot;variant_id&quot;:6,&quot;product_name&quot;:&quot;Goan W240 Jumbo Whole Cashews&quot;,&quot;sku&quot;:&quot;SN-DF-CSH-250G&quot;,&quot;pack_label&quot;:&quot;250 g&quot;,&quot;weight_grams&quot;:250,&quot;unit_price_paise&quot;:43500,&quot;mrp_paise&quot;:51500,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:43500,&quot;hsn_code&quot;:&quot;080290&quot;}]}]}"
+                        >
+                          <td data-label="User ID &amp; Account">
+                            <strong style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">GUEST</strong><br/>
+                            <span class="sn-status sn-status-warn" style="margin-top:3px;display:inline-block;">Guest Checkout</span>
+                            <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);margin-top:2px;">Joined: 2026-11-21</div>
+                          </td>
+                          <td data-label="Customer &amp; Contact">
+                            <strong>Vikramaditya Deshmukh</strong>
+                            <div style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-secondary);margin-top:2px;">
+                              vikram.deshmukh@example.com<br/>
+                              📞 +91 98201 77412
+                            </div>
+                          </td>
+                          <td data-label="Default Location" style="font-size:0.81rem;">
+                            <strong>Pune, Maharashtra</strong><br/>
+                            <span style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-muted);">PIN: 411004 • 1 saved addr</span>
+                          </td>
+                          <td data-label="Orders &amp; Volume" style="font-family:var(--sn-font-mono);font-size:0.78rem;">
+                            <strong>1 orders</strong> (2 packs)<br/>
+                            <span style="font-size:0.71rem;color:var(--sn-text-muted);">Last: 2026-11-21</span>
+                          </td>
+                          <td data-label="Purchases &amp; Invoices" style="font-size:0.79rem;">
+                            
+                              <div style="margin-bottom:4px;line-height:1.35;">Chitradurga Unpolished Foxtail Millet (Navane / Kangni) (500 g × 1), Goan W240 Jumbo Whole Cashews (250 g × 1)</div>
+                            
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                              <a href="/sasya_naturals/orders/SN-2026-1002/invoice" class="sn-status sn-status-paid" style="text-decoration:none;font-family:var(--sn-font-mono);">🧾 SN-2026-1002</a>
+                              
+                                <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-open-user-purchases="vikram.deshmukh@example.com" style="padding:2px 8px;min-height:24px;font-size:0.72rem;">🔍 View Purchases</button>
+                              
+                            </div>
+                          </td>
+                          <td data-label="Lifetime Spend" style="font-family:var(--sn-font-mono);">
+                            <strong style="font-size:0.95rem;color:var(--sn-bg-forest);">₹690</strong><br/>
+                            <span style="font-size:0.7rem;color:var(--sn-status-paid);">Settled: ₹0</span>
+                            <br/><span style="font-size:0.7rem;color:var(--sn-status-warn);">COD: ₹690</span>
+                          </td>
+                        </tr>
+                      
+                    </tbody>
+                  </table>
+                </div>
+                <div id="sn-admin-users-pagination" class="sn-admin-pagination-bar"></div>
+              </div>
+
+              <!-- Sub-Panel 6.2: Saved Delivery Addresses Directory -->
+              <div data-admin-subpanel="customers:addresses" style="display:none;">
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">Saved Customer Delivery Addresses (2 Addresses in Database)</h3>
+                <div class="sn-table-wrap">
+                  <table class="sn-table sn-table-cards" id="sn-admin-addresses-table">
+                    <thead>
+                      <tr><th>Address ID</th><th>Linked User Account</th><th>Label</th><th>Recipient &amp; Mobile</th><th>Street Address</th><th>City, State &amp; PIN</th><th>Default</th></tr>
+                    </thead>
+                    <tbody>
+                      
+                          <tr>
+                            <td data-label="Address ID" style="font-family:var(--sn-font-mono);">#ADDR-1</td>
+                            <td data-label="Linked User" style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                              <strong>USR-6</strong><br/>
+                              ananya.iyer@example.com
+                            </td>
+                            <td data-label="Label"><span class="sn-status sn-status-paid">Home</span></td>
+                            <td data-label="Recipient">
+                              <strong>Ananya Iyer</strong><br/>
+                              <span style="font-family:var(--sn-font-mono);font-size:0.75rem;">+91 98450 22334</span>
+                            </td>
+                            <td data-label="Street Address" style="font-size:0.82rem;">
+                              Flat 402, Banyan Courtyard, Indiranagar 12th Main, HAL 2nd Stage
+                            </td>
+                            <td data-label="City, State &amp; PIN" style="font-family:var(--sn-font-mono);font-size:0.78rem;">
+                              Bengaluru, Karnataka - <strong>560038</strong>
+                            </td>
+                            <td data-label="Default"><span class="sn-status sn-status-paid">✓ Default</span></td>
+                          </tr>
+                        
+                          <tr>
+                            <td data-label="Address ID" style="font-family:var(--sn-font-mono);">#ADDR-2</td>
+                            <td data-label="Linked User" style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                              <strong>USR-6</strong><br/>
+                              ananya.iyer@example.com
+                            </td>
+                            <td data-label="Label"><span class="sn-status sn-status-paid">Parents Residence</span></td>
+                            <td data-label="Recipient">
+                              <strong>Saraswathi &amp; Ramesh Iyer</strong><br/>
+                              <span style="font-family:var(--sn-font-mono);font-size:0.75rem;">+91 98450 99881</span>
+                            </td>
+                            <td data-label="Street Address" style="font-size:0.82rem;">
+                              No. 28, Temple Road, V.V. Mohalla, Near Kalidasa Road
+                            </td>
+                            <td data-label="City, State &amp; PIN" style="font-family:var(--sn-font-mono);font-size:0.78rem;">
+                              Mysuru, Karnataka - <strong>570002</strong>
+                            </td>
+                            <td data-label="Default"><span style="color:var(--sn-text-muted);font-size:0.75rem;">Secondary</span></td>
+                          </tr>
+                        
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Contextual User Purchases & Invoices Modal -->
+              <div id="sn-admin-user-purchases-modal" class="sn-admin-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sn-user-purchases-modal-heading" style="display:none;">
+                <div class="sn-admin-modal-card" style="max-width:780px;">
+                  <div class="sn-admin-modal-header">
+                    <div>
+                      <span id="sn-user-purchases-modal-eyebrow" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">USER PURCHASE LEDGER</span>
+                      <h3 id="sn-user-purchases-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.2rem;color:#FAF6EE;">Customer Purchase History &amp; GST Invoices</h3>
+                    </div>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-user-purchases-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                  </div>
+                  <div class="sn-admin-modal-body" id="sn-user-purchases-modal-body">
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -7916,6 +8109,186 @@
                     <tbody>
                       
                         <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:24:09</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
+                          <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">USER:ananya.iyer@example.com</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;role&quot;:&quot;CUSTOMER&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:24:09</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
+                          <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">USER:ananya.iyer@example.com</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;role&quot;:&quot;CUSTOMER&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:24:09</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
+                          <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_RESET_VIA_OTP</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">USER:ananya.iyer@example.com</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;role&quot;:&quot;CUSTOMER&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:24:08</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">ADMIN_SESSION_LOGIN</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">AUTH:superadmin@sasynaturals.com</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;ip&quot;:&quot;10.0.0.99&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:24:08</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">VAULT_CREDENTIAL_SEALED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">CREDENTIAL_VAULT:SMTP_API_KEY</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;maskedHint&quot;:&quot;re_l••••••••4321 (Hidden)&quot;,&quot;status&quot;:&quot;ENCRYPTED_AND_HIDDEN&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:24:08</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">RBAC_VERIFICATION_GATE_TEST</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">SYSTEM:GATE_4</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;verifiedRoles&quot;:5}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:24:08</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">STORE_SETTINGS:SHIPPING_ENGINE</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;shipping_free_mode&quot;:&quot;THRESHOLD_WITH_WEIGHT_CAP&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:24:08</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">STORE_SETTINGS:SHIPPING_ENGINE</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;shipping_free_mode&quot;:&quot;DISABLED&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:24:08</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">CATEGORY_IMAGE_CHANGED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">CATEGORY:dry-fruits</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;publicUrl&quot;:&quot;/uploads/cat-dry-fruits-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:24:08</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">PRODUCT_GALLERY_IMAGE_ADDED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">PRODUCT:SN-DF-ALM</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;publicUrl&quot;:&quot;/uploads/kashmiri-mamra-almonds-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;,&quot;setAsPrimary&quot;:false}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:23:31</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
+                          <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">USER:ananya.iyer@example.com</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;role&quot;:&quot;CUSTOMER&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:23:30</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
+                          <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">USER:ananya.iyer@example.com</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;role&quot;:&quot;CUSTOMER&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:23:30</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
+                          <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_RESET_VIA_OTP</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">USER:ananya.iyer@example.com</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;role&quot;:&quot;CUSTOMER&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:23:30</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">ADMIN_SESSION_LOGIN</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">AUTH:superadmin@sasynaturals.com</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;ip&quot;:&quot;10.0.0.99&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:23:29</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">VAULT_CREDENTIAL_SEALED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">CREDENTIAL_VAULT:SMTP_API_KEY</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;maskedHint&quot;:&quot;re_l••••••••4321 (Hidden)&quot;,&quot;status&quot;:&quot;ENCRYPTED_AND_HIDDEN&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:23:29</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">RBAC_VERIFICATION_GATE_TEST</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">SYSTEM:GATE_4</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;verifiedRoles&quot;:5}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:23:29</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">STORE_SETTINGS:SHIPPING_ENGINE</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;shipping_free_mode&quot;:&quot;THRESHOLD_WITH_WEIGHT_CAP&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:23:29</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">STORE_SETTINGS:SHIPPING_ENGINE</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;shipping_free_mode&quot;:&quot;DISABLED&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:23:29</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">CATEGORY_IMAGE_CHANGED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">CATEGORY:dry-fruits</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;publicUrl&quot;:&quot;/uploads/cat-dry-fruits-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;}</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 11:23:29</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
+                          <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">PRODUCT_GALLERY_IMAGE_ADDED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">PRODUCT:SN-DF-ALM</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;publicUrl&quot;:&quot;/uploads/kashmiri-mamra-almonds-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;,&quot;setAsPrimary&quot;:false}</td>
+                        </tr>
+                      
+                        <tr>
                           <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:55:00</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
@@ -8003,186 +8376,6 @@
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">PRODUCT_GALLERY_IMAGE_ADDED</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">PRODUCT:SN-DF-ALM</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;publicUrl&quot;:&quot;/uploads/kashmiri-mamra-almonds-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;,&quot;setAsPrimary&quot;:false}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:54:03</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
-                          <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">USER:ananya.iyer@example.com</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;role&quot;:&quot;CUSTOMER&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:54:03</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
-                          <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">USER:ananya.iyer@example.com</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;role&quot;:&quot;CUSTOMER&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:54:03</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
-                          <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_RESET_VIA_OTP</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">USER:ananya.iyer@example.com</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;role&quot;:&quot;CUSTOMER&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:54:02</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">ADMIN_SESSION_LOGIN</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">AUTH:superadmin@sasynaturals.com</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;ip&quot;:&quot;10.0.0.99&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:54:02</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">VAULT_CREDENTIAL_SEALED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">CREDENTIAL_VAULT:SMTP_API_KEY</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;maskedHint&quot;:&quot;re_l••••••••4321 (Hidden)&quot;,&quot;status&quot;:&quot;ENCRYPTED_AND_HIDDEN&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:54:02</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">RBAC_VERIFICATION_GATE_TEST</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">SYSTEM:GATE_4</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;verifiedRoles&quot;:5}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:54:02</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">STORE_SETTINGS:SHIPPING_ENGINE</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;shipping_free_mode&quot;:&quot;THRESHOLD_WITH_WEIGHT_CAP&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:54:02</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">STORE_SETTINGS:SHIPPING_ENGINE</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;shipping_free_mode&quot;:&quot;DISABLED&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:54:02</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">CATEGORY_IMAGE_CHANGED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">CATEGORY:dry-fruits</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;publicUrl&quot;:&quot;/uploads/cat-dry-fruits-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:54:02</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">PRODUCT_GALLERY_IMAGE_ADDED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">PRODUCT:SN-DF-ALM</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;publicUrl&quot;:&quot;/uploads/kashmiri-mamra-almonds-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;,&quot;setAsPrimary&quot;:false}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:53:44</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">ADMIN_SESSION_LOGIN</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">AUTH:superadmin@sasynaturals.com</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;ip&quot;:&quot;10.0.0.99&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:53:44</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">VAULT_CREDENTIAL_SEALED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">CREDENTIAL_VAULT:SMTP_API_KEY</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;maskedHint&quot;:&quot;re_l••••••••4321 (Hidden)&quot;,&quot;status&quot;:&quot;ENCRYPTED_AND_HIDDEN&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:53:44</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">RBAC_VERIFICATION_GATE_TEST</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">SYSTEM:GATE_4</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;verifiedRoles&quot;:5}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:53:44</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">STORE_SETTINGS:SHIPPING_ENGINE</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;shipping_free_mode&quot;:&quot;THRESHOLD_WITH_WEIGHT_CAP&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:53:44</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">STORE_SETTINGS:SHIPPING_ENGINE</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;shipping_free_mode&quot;:&quot;DISABLED&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:53:44</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">CATEGORY_IMAGE_CHANGED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">CATEGORY:dry-fruits</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;publicUrl&quot;:&quot;/uploads/cat-dry-fruits-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:53:44</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">PRODUCT_GALLERY_IMAGE_ADDED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">PRODUCT:SN-DF-ALM</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;publicUrl&quot;:&quot;/uploads/kashmiri-mamra-almonds-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;,&quot;setAsPrimary&quot;:false}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:53:44</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">admin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">ORDER_MANAGER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">ORDER_FULFILMENT_UPDATED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">ORDER:SN-2026-1005</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;previousFulfilment&quot;:&quot;Shipped&quot;,&quot;newFulfilment&quot;:&quot;Refunded&quot;,&quot;courierName&quot;:&quot;&quot;,&quot;trackingNumber&quot;:&quot;&quot;,&quot;stockRestored&quot;:true}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:53:44</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">admin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">ORDER_MANAGER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">ORDER_FULFILMENT_UPDATED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">ORDER:SN-2026-1005</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;previousFulfilment&quot;:&quot;Confirmed&quot;,&quot;newFulfilment&quot;:&quot;Shipped&quot;,&quot;courierName&quot;:&quot;Delhivery Surface&quot;,&quot;trackingNumber&quot;:&quot;DLV99281726IN&quot;,&quot;stockRestored&quot;:false}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-22 10:53:44</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">orders@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">ORDER_MANAGER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">ORDER_DELIVERY_ADDRESS_UPDATED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">ORDER:SN-2026-1005</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;shippingLine1&quot;:&quot;88 Residency Road, 3rd Floor&quot;,&quot;shippingCity&quot;:&quot;Bengaluru&quot;,&quot;shippingState&quot;:&quot;Karnataka&quot;,&quot;shippingPincode&quot;:&quot;560025&quot;,&quot;taxSupplyType&quot;:&quot;CGST_SGST&quot;}</td>
                         </tr>
                       
                     </tbody>
@@ -8347,6 +8540,42 @@
                       <tr><th>Timestamp</th><th>Order No.</th><th>Channel</th><th>Recipient</th><th>Event</th><th>Subject &amp; Preview</th></tr>
                     </thead>
                     <tbody>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-22 11:24:09</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;">AUTH_OTP</td>
+                          <td><span class="sn-status sn-status-paid">EMAIL</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">PASSWORD_RESET_OTP</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 131133 (valid for 10 minutes).</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-22 11:24:08</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;">COD_OTP</td>
+                          <td><span class="sn-status sn-status-paid">SMS_WHATSAPP</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">9845077889</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">COD_OTP_DISPATCHED</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 329946. Valid for 10 minutes.</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-22 11:23:30</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;">AUTH_OTP</td>
+                          <td><span class="sn-status sn-status-paid">EMAIL</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">PASSWORD_RESET_OTP</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 718541 (valid for 10 minutes).</td>
+                        </tr>
+                      
+                        <tr>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-22 11:23:29</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;">COD_OTP</td>
+                          <td><span class="sn-status sn-status-paid">SMS_WHATSAPP</span></td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">9845077889</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">COD_OTP_DISPATCHED</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 366869. Valid for 10 minutes.</td>
+                        </tr>
                       
                         <tr>
                           <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-22 10:54:59</td>
@@ -8537,46 +8766,317 @@
                           <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 227384. Valid for 10 minutes.</td>
                         </tr>
                       
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-22 08:42:05</td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;">AUTH_OTP</td>
-                          <td><span class="sn-status sn-status-paid">EMAIL</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">PASSWORD_RESET_OTP</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 922276 (valid for 10 minutes).</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-22 08:42:04</td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;">COD_OTP</td>
-                          <td><span class="sn-status sn-status-paid">SMS_WHATSAPP</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">9845077889</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">COD_OTP_DISPATCHED</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 397818. Valid for 10 minutes.</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-22 08:19:15</td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;">AUTH_OTP</td>
-                          <td><span class="sn-status sn-status-paid">EMAIL</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">PASSWORD_RESET_OTP</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 491713 (valid for 10 minutes).</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-22 08:19:14</td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;">COD_OTP</td>
-                          <td><span class="sn-status sn-status-paid">SMS_WHATSAPP</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">9845077889</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">COD_OTP_DISPATCHED</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 356087. Valid for 10 minutes.</td>
-                        </tr>
-                      
                     </tbody>
                   </table>
                 </div>
                 <div id="sn-admin-notif-pagination" class="sn-admin-pagination-bar"></div>
+              </div>
+            </div>
+
+            <!-- Panel 9: Storefront Content & SEO Manager (Homepage Hero/Footer, 6 Info Pages & Route SEO Meta + SERP Preview) -->
+            <div class="sn-card" data-admin-panel="content" style="display:none;">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+                <div>
+                  <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Storefront Non-Product Content, Policy Pages &amp; Route SEO Manager</h2>
+                  <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0;">
+                    Authorized for <strong>SUPER_ADMIN</strong>. Edit homepage hero/topbar/footer copy, static info &amp; policy pages (<code>/about</code>, <code>/contact</code>, <code>/faq</code>, <code>/shipping-returns</code>, <code>/privacy</code>, <code>/terms</code>), and route-level SEO meta titles, descriptions &amp; OpenGraph cards. Every save is validated by the <code>humanizer-en</code> &amp; Wikidata Moratorium linter.
+                  </p>
+                </div>
+                <a href="/sasya_naturals/" target="_blank" rel="noopener" class="sn-btn sn-btn-outline sn-btn-sm">↗ Preview Live Storefront</a>
+              </div>
+
+              <!-- In-Panel Segmented Sub-Module Bar (Synced with Desktop Sidebar Accordion) -->
+              <div class="sn-admin-subnav-bar" role="tablist">
+                <button type="button" class="sn-admin-subtab-pill sn-active" data-admin-subtab-btn="content:homepage">🏠 9.1 Homepage Hero, Topbar &amp; Footer</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="content:pages">📄 9.2 Info &amp; Policy Pages (6 Pages)</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="content:seo">🔍 9.3 Route SEO Meta &amp; SERP Preview</button>
+              </div>
+
+              <!-- Sub-Panel 9.1 (Default): Homepage Hero, Topbar Badges, Trust Strip & Footer Copy -->
+              <div data-admin-subpanel="content:homepage">
+                <form id="sn-admin-content-homepage-form" class="sn-card" style="background-color:var(--sn-bg-parchment);padding:16px 18px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">1. Topbar Announcement Badges &amp; Homepage Hero Section</h3>
+
+                  <div class="sn-grid-3" style="gap:10px;margin-bottom:12px;">
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Topbar Badge 1 *</label>
+                      <input type="text" name="topbarBadge1" required value="Unpolished Native Grains" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Topbar Badge 2 *</label>
+                      <input type="text" name="topbarBadge2" required value="Single-Origin Spices" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Topbar Badge 3 *</label>
+                      <input type="text" name="topbarBadge3" required value="Razorpay UPI / Cards &amp; COD" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <div class="sn-grid-2" style="gap:10px;margin-bottom:12px;">
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Eyebrow *</label>
+                      <input type="text" name="heroEyebrow" required value="Direct-To-Customer Indian Pantry • Batch Traceable" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero H1 Main Headline *</label>
+                      <input type="text" name="heroHeading" required value="Single-Origin Dry Fruits, Unpolished Native Millets &amp; Heirloom Spices" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom:12px;">
+                    <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Lead Paragraph (Humanizer-Checked) *</label>
+                    <textarea name="heroLead" rows="2" required class="sn-textarea">Every Sasya Naturals harvest is sourced directly from regional grower cooperatives in Kashmir, Goa, Karnataka, Kerala, and Meghalaya. Packed fresh in 100 g, 250 g, 500 g, and 1 kg pouches with transparent batch labels.</textarea>
+                  </div>
+
+                  <div class="sn-grid-4" style="gap:10px;margin-bottom:16px;">
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Primary CTA Button Text *</label>
+                      <input type="text" name="heroPrimaryCtaLabel" required value="Explore Full Pantry" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Secondary CTA Button Text *</label>
+                      <input type="text" name="heroSecondaryCtaLabel" required value="Track Your Order" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Image Batch Tag *</label>
+                      <input type="text" name="heroBatchCaptionLeft" required value="Harvest Batch: Nov 2026" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Image Dispatch Tag *</label>
+                      <input type="text" name="heroBatchCaptionRight" required value="India-Wide Dispatch from Bengaluru" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">2. Homepage 3 Trust Pillars &amp; Global Footer Copy</h3>
+
+                  <div class="sn-grid-3" style="gap:10px;margin-bottom:12px;">
+                    <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Trust Pillar 1 Title &amp; Subtitle</label>
+                      <input type="text" name="trust1Title" required value="4 Pack Sizes" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="trust1Sub" required value="100 g, 250 g, 500 g &amp; 1 kg options" class="sn-input" />
+                    </div>
+                    <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Trust Pillar 2 Title &amp; Subtitle</label>
+                      <input type="text" name="trust2Title" required value="Zero Chemical Polish" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="trust2Sub" required value="Intact bran millets &amp; unbleached nuts" class="sn-input" />
+                    </div>
+                    <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Trust Pillar 3 Title &amp; Subtitle</label>
+                      <input type="text" name="trust3Title" required value="Verified Payments" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="trust3Sub" required value="Razorpay UPI, Cards, NetBanking &amp; COD" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <div class="sn-grid-2" style="gap:10px;margin-bottom:14px;">
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Global Footer Brand Blurb *</label>
+                      <input type="text" name="footerBlurb" required value="Direct-to-customer Indian pantry delivering unbleached dry fruits, rain-fed unpolished millets, and cold-milled heirloom spices in 100 g, 250 g, 500 g, and 1 kg packs." class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Global Footer Domain &amp; Support Line *</label>
+                      <input type="text" name="footerSupportLine" required value="Domain: sasynaturals.com | Support: care@sasynaturals.com" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <div style="display:flex;justify-content:flex-end;">
+                    <button type="submit" class="sn-btn sn-btn-forest" id="sn-save-homepage-content-btn">Save Homepage &amp; Global Shell Copy</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Sub-Panel 9.2: Static Info & Policy Pages Editor (About, Contact, FAQ, Shipping/Returns, Privacy, Terms) -->
+              <div data-admin-subpanel="content:pages" style="display:none;">
+                <form id="sn-admin-content-page-form" class="sn-card" style="background-color:var(--sn-bg-parchment);padding:16px 18px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+                    <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">Edit Storefront Info &amp; Legal Policy Pages (HTML + Markdown Twin)</h3>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                      <a id="sn-content-page-live-link" href="/sasya_naturals/about" target="_blank" rel="noopener" class="sn-btn sn-btn-outline sn-btn-sm">↗ Open Live Page (/about)</a>
+                      <a id="sn-content-page-md-link" href="/sasya_naturals/about.md" target="_blank" rel="noopener" class="sn-btn sn-btn-outline sn-btn-sm">📄 View Markdown Twin (/about.md)</a>
+                    </div>
+                  </div>
+
+                  <div class="sn-grid-3" style="gap:10px;margin-bottom:12px;">
+                    <div>
+                      <label for="sn-admin-content-page-select" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Select Storefront Page *</label>
+                      <select name="slug" id="sn-admin-content-page-select" class="sn-select">
+                        <option
+                            value="about"
+                            data-page-title="About Sasya Naturals"
+                            data-page-subtitle="Direct-To-Customer Indian Pantry • Pure Dry Fruits, Native Millets &amp; Heirloom Spices"
+                            data-page-paragraphs="Sasya Naturals connects Indian households directly with regional grower cooperatives harvesting unbleached dry fruits, unpolished rain-fed millets, and high-oil single-origin spices.
+Every product is offered in 100 g, 250 g, 500 g, and 1 kg nitrogen-flushed packs with full batch traceability, harvest origin disclosure, and clear allergen labelling."
+                          >/about — About Sasya Naturals</option><option
+                            value="contact"
+                            data-page-title="Contact Customer Support"
+                            data-page-subtitle="Order Assistance, Bulk Enquiries &amp; Dispatch Support"
+                            data-page-paragraphs="Customer Support Email: care@sasynaturals.com | Phone: +91 80 4568 2200 (Monday to Saturday, 9:30 AM to 6:30 PM IST).
+For order tracking queries, please keep your Order Number (for example SN-2026-1001) ready."
+                          >/contact — Contact Customer Support</option><option
+                            value="faq"
+                            data-page-title="Frequently Asked Questions"
+                            data-page-subtitle="Pack Sizes, Payments, Manual Courier Tracking &amp; Storage"
+                            data-page-paragraphs="What pack sizes do you offer? All dry fruits, millets, and spices are available in 100 g, 250 g, 500 g, and 1 kg packs.
+What payment methods are accepted? We accept UPI, credit cards, debit cards, and net banking via Razorpay (verified server-side), as well as Cash on Delivery (COD) across India.
+How do I track my shipment? Once our dispatch staff hands your parcel to Blue Dart, Delhivery, or India Post, the courier name and tracking AWB number appear on the Track Order page."
+                          >/faq — Frequently Asked Questions</option><option
+                            value="shipping-returns"
+                            data-page-title="Shipping, Cancellation, Return &amp; Refund Policy"
+                            data-page-subtitle="4-Zone + 500g Weight-Slab Courier Dispatch, Damaged Parcel Replacement &amp; Refund Timelines"
+                            data-page-paragraphs="Delivery charges are calculated transparently using our 4-Zone (Local Bengaluru, South India, National, and Remote/NE) + 500g billable weight-slab engine (including 150g protective carton tare weight). Orders meeting the active free-delivery threshold and weight cap qualify for complimentary shipping.
+Orders may be cancelled prior to dispatch. If a parcel arrives damaged or tampered, contact care@sasynaturals.com within 48 hours of delivery for a verified replacement or refund to your original payment source."
+                          >/shipping-returns — Shipping, Cancellation, Return &amp; Refund Policy</option><option
+                            value="privacy"
+                            data-page-title="Privacy Policy"
+                            data-page-subtitle="Customer Data Protection &amp; Order Privacy"
+                            data-page-paragraphs="Sasya Naturals collects only the contact, delivery address, and payment reference details required to fulfil your order, issue GST tax invoices, and send shipment updates.
+Payment card and UPI credentials are processed directly by our PCI-DSS compliant gateway partner (Razorpay) and are never stored on Sasya Naturals servers."
+                          >/privacy — Privacy Policy</option><option
+                            value="terms"
+                            data-page-title="Terms of Service"
+                            data-page-subtitle="Ordering, Pricing, Tax &amp; Fulfilment Terms"
+                            data-page-paragraphs="All prices listed on sasynaturals.com are in Indian Rupees (INR) and indicate applicable GST percentages. Orders are confirmed only after server-side payment verification or COD confirmation.
+Pack weights (100 g, 250 g, 500 g, 1 kg) represent net product weight at the time of packing."
+                          >/terms — Terms of Service</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="sn-content-page-title" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Page H1 Heading *</label>
+                      <input type="text" name="title" id="sn-content-page-title" required value="About Sasya Naturals" class="sn-input" />
+                    </div>
+                    <div>
+                      <label for="sn-content-page-subtitle" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Subtitle / Eyebrow *</label>
+                      <input type="text" name="subtitle" id="sn-content-page-subtitle" required value="Direct-To-Customer Indian Pantry • Pure Dry Fruits, Native Millets &amp; Heirloom Spices" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom:14px;">
+                    <label for="sn-content-page-paragraphs" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Page Body Paragraphs (One Paragraph per Line • For FAQ, include "?" to auto-render collapsible Q&amp;A accordions) *</label>
+                    <textarea name="paragraphsText" id="sn-content-page-paragraphs" rows="5" required class="sn-textarea">Sasya Naturals connects Indian households directly with regional grower cooperatives harvesting unbleached dry fruits, unpolished rain-fed millets, and high-oil single-origin spices.
+Every product is offered in 100 g, 250 g, 500 g, and 1 kg nitrogen-flushed packs with full batch traceability, harvest origin disclosure, and clear allergen labelling.</textarea>
+                  </div>
+
+                  <div style="display:flex;justify-content:flex-end;">
+                    <button type="submit" class="sn-btn sn-btn-forest" id="sn-save-info-page-btn">Save Page Content &amp; Update Markdown Twin</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Sub-Panel 9.3: Route SEO Meta Titles, Descriptions, OpenGraph & Live Google SERP Preview -->
+              <div data-admin-subpanel="content:seo" style="display:none;">
+                <form id="sn-admin-content-seo-form" class="sn-card" style="background-color:var(--sn-bg-parchment);padding:16px 18px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">Route-Level SEO Meta Tags, OpenGraph &amp; Live Google SERP Preview</h3>
+
+                  <div class="sn-grid-2" style="gap:10px;margin-bottom:12px;">
+                    <div>
+                      <label for="sn-admin-seo-route-select" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Target Storefront Route *</label>
+                      <select name="routePath" id="sn-admin-seo-route-select" class="sn-select">
+                        
+                          <option
+                            value="/"
+                            data-seo-title="Sasya Naturals | Heirloom Dry Fruits, Unpolished Native Millets &amp; Single-Origin Indian Spices"
+                            data-seo-desc="Shop farm-direct Kashmiri almonds, Goan W240 cashews, unpolished native millets, and cold-milled Lakadong turmeric across India in 100 g to 1 kg packs."
+                            data-seo-og="/images/hero-pantry.jpg"
+                          >Homepage (/)</option>
+                        
+                          <option
+                            value="/shop"
+                            data-seo-title="All Natural Products Catalogue | Sasya Naturals"
+                            data-seo-desc="Browse all Sasya Naturals dry fruits, unpolished millets, and single-origin spices with 100 g, 250 g, 500 g, and 1 kg pack variants."
+                            data-seo-og="/images/hero-pantry.jpg"
+                          >All Catalogue (/shop)</option>
+                        
+                          <option
+                            value="/checkout"
+                            data-seo-title="Secure Checkout — UPI, Cards, NetBanking &amp; COD | Sasya Naturals"
+                            data-seo-desc="Complete your Sasya Naturals order with instant UPI, credit/debit card, net banking, or Cash on Delivery across India."
+                            data-seo-og="/images/hero-pantry.jpg"
+                          >Checkout (/checkout)</option>
+                        
+                          <option
+                            value="/track-order"
+                            data-seo-title="Track Order &amp; Manual Courier Status | Sasya Naturals"
+                            data-seo-desc="Track your Sasya Naturals order status, separate payment and fulfilment states, and manual courier AWB tracking reference."
+                            data-seo-og="/images/hero-pantry.jpg"
+                          >Track Order (/track-order)</option>
+                        
+                          <option
+                            value="/about"
+                            data-seo-title="About Sasya Naturals | Sasya Naturals"
+                            data-seo-desc="Direct-To-Customer Indian Pantry • Pure Dry Fruits, Native Millets &amp; Heirloom Spices"
+                            data-seo-og="/images/hero-pantry.jpg"
+                          >About Us (/about)</option>
+                        
+                          <option
+                            value="/contact"
+                            data-seo-title="Contact Customer Support | Sasya Naturals"
+                            data-seo-desc="Order Assistance, Bulk Enquiries &amp; Dispatch Support"
+                            data-seo-og="/images/hero-pantry.jpg"
+                          >Contact Us (/contact)</option>
+                        
+                          <option
+                            value="/faq"
+                            data-seo-title="Frequently Asked Questions | Sasya Naturals"
+                            data-seo-desc="Pack Sizes, Payments, Manual Courier Tracking &amp; Storage"
+                            data-seo-og="/images/hero-pantry.jpg"
+                          >FAQ (/faq)</option>
+                        
+                          <option
+                            value="/shipping-returns"
+                            data-seo-title="Shipping, Cancellation, Return &amp; Refund Policy | Sasya Naturals"
+                            data-seo-desc="4-Zone + 500g Weight-Slab Courier Dispatch, Damaged Parcel Replacement &amp; Refund Timelines"
+                            data-seo-og="/images/hero-pantry.jpg"
+                          >Shipping &amp; Returns (/shipping-returns)</option>
+                        
+                          <option
+                            value="/privacy"
+                            data-seo-title="Privacy Policy | Sasya Naturals"
+                            data-seo-desc="Customer Data Protection &amp; Order Privacy"
+                            data-seo-og="/images/hero-pantry.jpg"
+                          >Privacy Policy (/privacy)</option>
+                        
+                          <option
+                            value="/terms"
+                            data-seo-title="Terms of Service | Sasya Naturals"
+                            data-seo-desc="Ordering, Pricing, Tax &amp; Fulfilment Terms"
+                            data-seo-og="/images/hero-pantry.jpg"
+                          >Terms of Service (/terms)</option>
+                        
+                      </select>
+                    </div>
+                    <div>
+                      <label for="sn-seo-og-image" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">OpenGraph Social Share Image Path (<code>og:image</code>) *</label>
+                      <input type="text" name="ogImagePath" id="sn-seo-og-image" required value="/images/hero-pantry.jpg" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                    </div>
+                  </div>
+
+                  <div style="margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                      <label for="sn-seo-meta-title" style="font-size:0.73rem;font-weight:700;">SEO Meta Title (<code>&lt;title&gt;</code> &amp; <code>og:title</code>) *</label>
+                      <span id="sn-seo-title-char-count" style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-bg-forest);">93 chars (Optimal: 50–65)</span>
+                    </div>
+                    <input type="text" name="metaTitle" id="sn-seo-meta-title" required value="Sasya Naturals | Heirloom Dry Fruits, Unpolished Native Millets &amp; Single-Origin Indian Spices" class="sn-input" />
+                  </div>
+
+                  <div style="margin-bottom:14px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                      <label for="sn-seo-meta-desc" style="font-size:0.73rem;font-weight:700;">SEO Meta Description (<code>&lt;meta name="description"&gt;</code> &amp; <code>og:description</code>) *</label>
+                      <span id="sn-seo-desc-char-count" style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-bg-forest);">151 chars (Optimal: 120–160)</span>
+                    </div>
+                    <textarea name="metaDescription" id="sn-seo-meta-desc" rows="2" required class="sn-textarea">Shop farm-direct Kashmiri almonds, Goan W240 cashews, unpolished native millets, and cold-milled Lakadong turmeric across India in 100 g to 1 kg packs.</textarea>
+                  </div>
+
+                  <!-- Live Google SERP Snippet Preview -->
+                  <div class="sn-card" id="sn-admin-seo-serp-preview" style="background-color:#FFFFFF;border:1px solid var(--sn-border-strong);padding:14px 16px;margin-bottom:14px;">
+                    <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);text-transform:uppercase;margin-bottom:6px;">🔍 Live Google Search &amp; OpenGraph Snippet Preview</div>
+                    <div id="sn-serp-preview-url" style="font-size:0.78rem;color:#202124;font-family:var(--sn-font-sans);margin-bottom:2px;">https://sasynaturals.com/</div>
+                    <div id="sn-serp-preview-title" style="font-size:1.12rem;color:#1a0dab;font-weight:600;line-height:1.3;margin-bottom:4px;">Sasya Naturals | Heirloom Dry Fruits, Unpolished Native Millets &amp; Single-Origin Indian Spices</div>
+                    <div id="sn-serp-preview-desc" style="font-size:0.84rem;color:#4d5156;line-height:1.45;">Shop farm-direct Kashmiri almonds, Goan W240 cashews, unpolished native millets, and cold-milled Lakadong turmeric across India in 100 g to 1 kg packs.</div>
+                  </div>
+
+                  <div style="display:flex;justify-content:flex-end;">
+                    <button type="submit" class="sn-btn sn-btn-forest" id="sn-save-route-seo-btn">Save Route SEO Meta &amp; OpenGraph Tags</button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>
@@ -8643,7 +9143,7 @@
       </div>
       <div class="sn-footer-bottom">
         <span>© 2026 Sasya Naturals (sasynaturals.com). All rights reserved.</span>
-        <span>Engine: Node.js 22 SSR + Rust WASM Commerce Core (v2.3.0)</span>
+        <span>Engine: Node.js 22 SSR + Rust WASM Commerce Core (v2.4.0)</span>
       </div>
     </div>
   </footer>
@@ -8652,6 +9152,6 @@
     window.__SN_BASE_PATH__ = "/sasya_naturals";
     window.__SN_STATIC_DATA__ = {"variants":[{"variant_id":1,"product_id":1,"sku":"SN-DF-ALM-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":36000,"selling_price_paise":32000,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5},{"variant_id":2,"product_id":1,"sku":"SN-DF-ALM-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":84500,"selling_price_paise":75000,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5},{"variant_id":3,"product_id":1,"sku":"SN-DF-ALM-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":160000,"selling_price_paise":142500,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5},{"variant_id":4,"product_id":1,"sku":"SN-DF-ALM-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":306000,"selling_price_paise":272000,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5},{"variant_id":5,"product_id":2,"sku":"SN-DF-CSH-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":22000,"selling_price_paise":18500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5},{"variant_id":6,"product_id":2,"sku":"SN-DF-CSH-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":51500,"selling_price_paise":43500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5},{"variant_id":7,"product_id":2,"sku":"SN-DF-CSH-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":98000,"selling_price_paise":82500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5},{"variant_id":8,"product_id":2,"sku":"SN-DF-CSH-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":187000,"selling_price_paise":157500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5},{"variant_id":9,"product_id":3,"sku":"SN-DF-PST-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":28000,"selling_price_paise":24500,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12},{"variant_id":10,"product_id":3,"sku":"SN-DF-PST-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":66000,"selling_price_paise":57500,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12},{"variant_id":11,"product_id":3,"sku":"SN-DF-PST-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":124500,"selling_price_paise":109000,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12},{"variant_id":12,"product_id":3,"sku":"SN-DF-PST-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":238000,"selling_price_paise":208500,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12},{"variant_id":13,"product_id":4,"sku":"SN-DF-WLN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":26000,"selling_price_paise":22500,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5},{"variant_id":14,"product_id":4,"sku":"SN-DF-WLN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":61000,"selling_price_paise":53000,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5},{"variant_id":15,"product_id":4,"sku":"SN-DF-WLN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":115500,"selling_price_paise":100000,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5},{"variant_id":16,"product_id":4,"sku":"SN-DF-WLN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":221000,"selling_price_paise":191500,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5},{"variant_id":17,"product_id":5,"sku":"SN-DF-FIG-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":25000,"selling_price_paise":21500,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5},{"variant_id":18,"product_id":5,"sku":"SN-DF-FIG-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":59000,"selling_price_paise":50500,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5},{"variant_id":19,"product_id":5,"sku":"SN-DF-FIG-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":111500,"selling_price_paise":95500,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5},{"variant_id":20,"product_id":5,"sku":"SN-DF-FIG-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":212500,"selling_price_paise":183000,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5},{"variant_id":21,"product_id":6,"sku":"SN-DF-MIX-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":24000,"selling_price_paise":20000,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12},{"variant_id":22,"product_id":6,"sku":"SN-DF-MIX-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":56500,"selling_price_paise":47000,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12},{"variant_id":23,"product_id":6,"sku":"SN-DF-MIX-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":107000,"selling_price_paise":88500,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12},{"variant_id":24,"product_id":6,"sku":"SN-DF-MIX-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":204000,"selling_price_paise":169000,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12},{"variant_id":25,"product_id":7,"sku":"SN-ML-RAG-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":4500,"selling_price_paise":3500,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5},{"variant_id":26,"product_id":7,"sku":"SN-ML-RAG-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":10500,"selling_price_paise":8000,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5},{"variant_id":27,"product_id":7,"sku":"SN-ML-RAG-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":20000,"selling_price_paise":15500,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5},{"variant_id":28,"product_id":7,"sku":"SN-ML-RAG-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":38500,"selling_price_paise":30000,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5},{"variant_id":29,"product_id":8,"sku":"SN-ML-FOX-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":5500,"selling_price_paise":4000,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5},{"variant_id":30,"product_id":8,"sku":"SN-ML-FOX-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":13000,"selling_price_paise":10000,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5},{"variant_id":31,"product_id":8,"sku":"SN-ML-FOX-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":24500,"selling_price_paise":18500,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5},{"variant_id":32,"product_id":8,"sku":"SN-ML-FOX-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":47000,"selling_price_paise":35500,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5},{"variant_id":33,"product_id":9,"sku":"SN-ML-LIT-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":6000,"selling_price_paise":4500,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5},{"variant_id":34,"product_id":9,"sku":"SN-ML-LIT-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":14000,"selling_price_paise":11000,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5},{"variant_id":35,"product_id":9,"sku":"SN-ML-LIT-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":26500,"selling_price_paise":20500,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5},{"variant_id":36,"product_id":9,"sku":"SN-ML-LIT-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":51000,"selling_price_paise":39000,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5},{"variant_id":37,"product_id":10,"sku":"SN-ML-KOD-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":6000,"selling_price_paise":4500,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5},{"variant_id":38,"product_id":10,"sku":"SN-ML-KOD-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":13500,"selling_price_paise":10500,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5},{"variant_id":39,"product_id":10,"sku":"SN-ML-KOD-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":26000,"selling_price_paise":20000,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5},{"variant_id":40,"product_id":10,"sku":"SN-ML-KOD-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":49500,"selling_price_paise":38500,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5},{"variant_id":41,"product_id":11,"sku":"SN-ML-JWR-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":4000,"selling_price_paise":3000,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5},{"variant_id":42,"product_id":11,"sku":"SN-ML-JWR-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":10000,"selling_price_paise":7500,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5},{"variant_id":43,"product_id":11,"sku":"SN-ML-JWR-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":18500,"selling_price_paise":14000,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5},{"variant_id":44,"product_id":11,"sku":"SN-ML-JWR-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":35500,"selling_price_paise":27000,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5},{"variant_id":45,"product_id":12,"sku":"SN-SP-TUR-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":16000,"selling_price_paise":13500,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5},{"variant_id":46,"product_id":12,"sku":"SN-SP-TUR-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":37500,"selling_price_paise":31500,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5},{"variant_id":47,"product_id":12,"sku":"SN-SP-TUR-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":71000,"selling_price_paise":60000,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5},{"variant_id":48,"product_id":12,"sku":"SN-SP-TUR-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":136000,"selling_price_paise":115000,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5},{"variant_id":49,"product_id":13,"sku":"SN-SP-PEP-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":19500,"selling_price_paise":16500,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5},{"variant_id":50,"product_id":13,"sku":"SN-SP-PEP-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":46000,"selling_price_paise":39000,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5},{"variant_id":51,"product_id":13,"sku":"SN-SP-PEP-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":87000,"selling_price_paise":73500,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5},{"variant_id":52,"product_id":13,"sku":"SN-SP-PEP-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":166000,"selling_price_paise":140500,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5},{"variant_id":53,"product_id":14,"sku":"SN-SP-CRD-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":48000,"selling_price_paise":42000,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5},{"variant_id":54,"product_id":14,"sku":"SN-SP-CRD-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":113000,"selling_price_paise":98500,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5},{"variant_id":55,"product_id":14,"sku":"SN-SP-CRD-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":213500,"selling_price_paise":187000,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5},{"variant_id":56,"product_id":14,"sku":"SN-SP-CRD-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":408000,"selling_price_paise":357000,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5},{"variant_id":57,"product_id":15,"sku":"SN-SP-CHL-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":11500,"selling_price_paise":9500,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5},{"variant_id":58,"product_id":15,"sku":"SN-SP-CHL-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":27000,"selling_price_paise":22500,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5},{"variant_id":59,"product_id":15,"sku":"SN-SP-CHL-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":51000,"selling_price_paise":42500,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5},{"variant_id":60,"product_id":15,"sku":"SN-SP-CHL-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":98000,"selling_price_paise":81000,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5},{"variant_id":61,"product_id":16,"sku":"SN-SP-CIN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":29000,"selling_price_paise":24500,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5},{"variant_id":62,"product_id":16,"sku":"SN-SP-CIN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":68000,"selling_price_paise":57500,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5},{"variant_id":63,"product_id":16,"sku":"SN-SP-CIN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":129000,"selling_price_paise":109000,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5},{"variant_id":64,"product_id":16,"sku":"SN-SP-CIN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":246500,"selling_price_paise":208500,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5},{"variant_id":65,"product_id":17,"sku":"SN-DF-RSN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":11000,"selling_price_paise":8500,"product_name":"Nashik Seedless Black Raisins (Kali Kishmish)","gst_percent":5},{"variant_id":66,"product_id":17,"sku":"SN-DF-RSN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":26000,"selling_price_paise":20000,"product_name":"Nashik Seedless Black Raisins (Kali Kishmish)","gst_percent":5},{"variant_id":67,"product_id":17,"sku":"SN-DF-RSN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":49000,"selling_price_paise":38000,"product_name":"Nashik Seedless Black Raisins (Kali Kishmish)","gst_percent":5},{"variant_id":68,"product_id":17,"sku":"SN-DF-RSN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":93500,"selling_price_paise":72500,"product_name":"Nashik Seedless Black Raisins (Kali Kishmish)","gst_percent":5},{"variant_id":69,"product_id":18,"sku":"SN-DF-DAT-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":18500,"selling_price_paise":15500,"product_name":"Soft Pitted Medjool & Kutch Crown Dates (Khajoor)","gst_percent":12},{"variant_id":70,"product_id":18,"sku":"SN-DF-DAT-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":43500,"selling_price_paise":36500,"product_name":"Soft Pitted Medjool & Kutch Crown Dates (Khajoor)","gst_percent":12},{"variant_id":71,"product_id":18,"sku":"SN-DF-DAT-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":82500,"selling_price_paise":69000,"product_name":"Soft Pitted Medjool & Kutch Crown Dates (Khajoor)","gst_percent":12},{"variant_id":72,"product_id":18,"sku":"SN-DF-DAT-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":157500,"selling_price_paise":132000,"product_name":"Soft Pitted Medjool & Kutch Crown Dates (Khajoor)","gst_percent":12},{"variant_id":73,"product_id":19,"sku":"SN-ML-BRN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":6000,"selling_price_paise":5000,"product_name":"Uttarakhand Unpolished Barnyard Millet (Sanwa / Oodalu)","gst_percent":5},{"variant_id":74,"product_id":19,"sku":"SN-ML-BRN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":14500,"selling_price_paise":11500,"product_name":"Uttarakhand Unpolished Barnyard Millet (Sanwa / Oodalu)","gst_percent":5},{"variant_id":75,"product_id":19,"sku":"SN-ML-BRN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":27500,"selling_price_paise":21500,"product_name":"Uttarakhand Unpolished Barnyard Millet (Sanwa / Oodalu)","gst_percent":5},{"variant_id":76,"product_id":19,"sku":"SN-ML-BRN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":52500,"selling_price_paise":41000,"product_name":"Uttarakhand Unpolished Barnyard Millet (Sanwa / Oodalu)","gst_percent":5},{"variant_id":77,"product_id":20,"sku":"SN-ML-BAJ-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":4000,"selling_price_paise":3000,"product_name":"Barmer Deshi Pearl Millet (Bajra / Sajje Whole Grain)","gst_percent":5},{"variant_id":78,"product_id":20,"sku":"SN-ML-BAJ-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":9500,"selling_price_paise":7000,"product_name":"Barmer Deshi Pearl Millet (Bajra / Sajje Whole Grain)","gst_percent":5},{"variant_id":79,"product_id":20,"sku":"SN-ML-BAJ-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":18000,"selling_price_paise":13500,"product_name":"Barmer Deshi Pearl Millet (Bajra / Sajje Whole Grain)","gst_percent":5},{"variant_id":80,"product_id":20,"sku":"SN-ML-BAJ-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":34000,"selling_price_paise":25500,"product_name":"Barmer Deshi Pearl Millet (Bajra / Sajje Whole Grain)","gst_percent":5},{"variant_id":81,"product_id":21,"sku":"SN-SP-CLV-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":24000,"selling_price_paise":19500,"product_name":"Kanyakumari Hand-Picked Whole Cloves (Laung)","gst_percent":5},{"variant_id":82,"product_id":21,"sku":"SN-SP-CLV-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":56500,"selling_price_paise":46000,"product_name":"Kanyakumari Hand-Picked Whole Cloves (Laung)","gst_percent":5},{"variant_id":83,"product_id":21,"sku":"SN-SP-CLV-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":107000,"selling_price_paise":87000,"product_name":"Kanyakumari Hand-Picked Whole Cloves (Laung)","gst_percent":5},{"variant_id":84,"product_id":21,"sku":"SN-SP-CLV-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":204000,"selling_price_paise":166000,"product_name":"Kanyakumari Hand-Picked Whole Cloves (Laung)","gst_percent":5},{"variant_id":85,"product_id":22,"sku":"SN-SP-COR-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":8500,"selling_price_paise":7000,"product_name":"Single-Origin Cold-Milled Coriander Powder (Dhaniya)","gst_percent":5},{"variant_id":86,"product_id":22,"sku":"SN-SP-COR-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":20000,"selling_price_paise":16000,"product_name":"Single-Origin Cold-Milled Coriander Powder (Dhaniya)","gst_percent":5},{"variant_id":87,"product_id":22,"sku":"SN-SP-COR-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":38000,"selling_price_paise":30500,"product_name":"Single-Origin Cold-Milled Coriander Powder (Dhaniya)","gst_percent":5},{"variant_id":88,"product_id":22,"sku":"SN-SP-COR-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":72500,"selling_price_paise":58000,"product_name":"Single-Origin Cold-Milled Coriander Powder (Dhaniya)","gst_percent":5}],"coupons":[{"code":"SASYA10","description":"10% off on orders above Rs. 499","discount_type":"PERCENT","discount_value":10,"min_order_paise":49900,"max_discount_paise":50000,"is_active":1},{"code":"WELCOME15","description":"15% off first pantry order above Rs. 999","discount_type":"PERCENT","discount_value":15,"min_order_paise":99900,"max_discount_paise":75000,"is_active":1},{"code":"PANTRY100","description":"Flat Rs. 100 off on orders above Rs. 799","discount_type":"FLAT_PAISE","discount_value":10000,"min_order_paise":79900,"max_discount_paise":10000,"is_active":1}]};
   </script>
-  <script src="/sasya_naturals/assets/sasya-client.js?v=2.3.0" defer></script>
+  <script src="/sasya_naturals/assets/sasya-client.js?v=2.4.0" defer></script>
 </body>
 </html>

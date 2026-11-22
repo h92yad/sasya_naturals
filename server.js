@@ -57,6 +57,13 @@ const {
 } = require('./src/core/auth/sessionManager');
 const { lintContentText } = require('./src/core/content/contentLinter');
 const {
+  getStorefrontContentAndSeo,
+  updateHomepageContent,
+  updateInfoPageContent,
+  updateRouteSeoMeta,
+  buildUsersAndPurchasesExportCsv
+} = require('./src/core/content/contentStore');
+const {
   renderHomePage,
   renderCatalogPage,
   renderProductDetailPage,
@@ -343,6 +350,19 @@ function createServerHandler() {
           res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
           return res.end(md);
         }
+        const infoSlug = baseRoute.replace(/^\/+/, '');
+        const liveInfoPages = getStorefrontContentAndSeo().infoPages;
+        if (liveInfoPages[infoSlug]) {
+          const pg = liveInfoPages[infoSlug];
+          const md = renderMarkdownTwin({
+            title: pg.title,
+            canonicalPath: `/${infoSlug}`,
+            description: pg.subtitle,
+            sections: pg.paragraphs.map((p, idx) => ({ heading: `Section ${idx + 1}`, body: p }))
+          });
+          res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
+          return res.end(md);
+        }
       }
 
       // 4. REST API Endpoints
@@ -608,6 +628,77 @@ function createServerHandler() {
           'Cache-Control': 'no-store'
         });
         return res.end(csvContent);
+      }
+
+      if (pathname === '/api/admin/users/export.csv' && req.method === 'GET') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'customers.view');
+        const exportType = parsedUrl.searchParams.get('type') === 'user_purchases' ? 'user_purchases' : 'users_summary';
+        const csvContent = buildUsersAndPurchasesExportCsv({
+          customerUsers: db.prepare("SELECT * FROM users WHERE role = 'CUSTOMER' ORDER BY id").all(),
+          customerAddresses: db.prepare('SELECT * FROM customer_addresses ORDER BY id').all(),
+          orders: db.prepare('SELECT * FROM orders ORDER BY id DESC').all(),
+          orderItems: db.prepare('SELECT * FROM order_items ORDER BY id DESC').all(),
+          exportType
+        });
+        res.writeHead(200, {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="sasya-naturals-${exportType}.csv"`,
+          'Cache-Control': 'no-store'
+        });
+        return res.end(csvContent);
+      }
+
+      if (pathname === '/api/admin/content/homepage' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'settings.manage');
+        const body = await readJsonBody(req);
+        const homepage = updateHomepageContent(body, {
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role
+        });
+        return sendJson(res, 200, { homepage });
+      }
+
+      if (pathname === '/api/admin/content/page' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'settings.manage');
+        const body = await readJsonBody(req);
+        const page = updateInfoPageContent(
+          {
+            slug: body.slug,
+            title: body.title,
+            subtitle: body.subtitle,
+            paragraphsText: body.paragraphsText || body.paragraphs
+          },
+          {
+            actorId: adminUser.id,
+            actorEmail: adminUser.email,
+            actorRole: adminUser.role
+          }
+        );
+        return sendJson(res, 200, { page });
+      }
+
+      if (pathname === '/api/admin/content/seo' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'settings.manage');
+        const body = await readJsonBody(req);
+        const seo = updateRouteSeoMeta(
+          {
+            routePath: body.routePath,
+            metaTitle: body.metaTitle,
+            metaDescription: body.metaDescription,
+            ogImagePath: body.ogImagePath
+          },
+          {
+            actorId: adminUser.id,
+            actorEmail: adminUser.email,
+            actorRole: adminUser.role
+          }
+        );
+        return sendJson(res, 200, { seo });
       }
 
       if (pathname === '/api/checkout/cod-otp/request' && req.method === 'POST') {
@@ -1360,8 +1451,9 @@ function createServerHandler() {
       }
 
       const infoKey = pathname.slice(1);
-      if (INFO_PAGES[infoKey]) {
-        const page = INFO_PAGES[infoKey];
+      const liveInfoPages = getStorefrontContentAndSeo().infoPages;
+      if (liveInfoPages[infoKey] || INFO_PAGES[infoKey]) {
+        const page = liveInfoPages[infoKey] || INFO_PAGES[infoKey];
         const html = renderStaticInfoPage({
           slug: infoKey,
           title: page.title,
