@@ -1654,6 +1654,10 @@ img {
     flex-shrink: 0;
   }
 
+  table.sn-table.sn-table-cards tbody tr.sn-row-hidden {
+    display: none !important;
+  }
+
   .sn-admin-staff-update-form {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
@@ -1765,6 +1769,40 @@ img {
   .sn-invoice-meta-right {
     text-align: left;
   }
+
+  #sn-admin-orders-search,
+  #sn-admin-prod-search,
+  #sn-admin-inv-search,
+  #sn-admin-audit-search,
+  #sn-admin-notif-search {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
+.sn-row-hidden {
+  display: none !important;
+}
+
+.sn-admin-pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-top: 12px;
+  background-color: var(--sn-bg-parchment);
+  border: 1px solid var(--sn-border-warm);
+  border-radius: var(--sn-radius-sm);
+  font-family: var(--sn-font-mono);
+  font-size: 0.78rem;
+  color: var(--sn-text-secondary);
+}
+
+.sn-admin-pagination-bar:empty {
+  display: none;
 }
 
 @media print {
@@ -1787,3 +1825,4 @@ img {
     border: 1px solid #CCCCCC !important;
   }
 }
+

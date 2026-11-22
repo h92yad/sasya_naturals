@@ -1352,22 +1352,299 @@
       });
     });
 
-    // Inventory SKU search & low-stock filter
-    const invSearch = document.getElementById('sn-admin-inv-search');
-    const invLowOnly = document.getElementById('sn-admin-inv-low-only');
-    function filterAdminInventoryRows() {
-      const q = (invSearch ? invSearch.value : '').trim().toLowerCase();
-      const lowOnly = invLowOnly ? invLowOnly.checked : false;
-      document.querySelectorAll('#sn-admin-inventory-table tbody tr').forEach(tr => {
-        const sku = tr.getAttribute('data-inv-sku') || '';
-        const isLow = tr.getAttribute('data-inv-low') === '1';
-        const matchQ = !q || sku.includes(q) || tr.textContent.toLowerCase().includes(q);
-        const matchLow = !lowOnly || isLow;
-        tr.style.display = (matchQ && matchLow) ? '' : 'none';
+    // 4C. Smart Collapsible Order Accordions (Individual & Expand/Collapse All)
+    document.querySelectorAll('[data-toggle-order-accordion]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ordNum = btn.getAttribute('data-toggle-order-accordion');
+        const bodyEl = document.querySelector(`[data-order-accordion-body="${ordNum}"]`);
+        if (!bodyEl) return;
+        const isCurrentlyHidden = bodyEl.style.display === 'none';
+        bodyEl.style.display = isCurrentlyHidden ? 'block' : 'none';
+        btn.textContent = isCurrentlyHidden ? '▴ Collapse' : '▾ Manage / Dispatch';
+        btn.className = `sn-btn ${isCurrentlyHidden ? 'sn-btn-outline' : 'sn-btn-forest'} sn-btn-sm`;
+      });
+    });
+
+    const expandAllOrdersBtn = document.getElementById('sn-admin-orders-expand-all-btn');
+    if (expandAllOrdersBtn) {
+      expandAllOrdersBtn.addEventListener('click', () => {
+        const visibleCards = Array.from(document.querySelectorAll('#sn-admin-orders-cards-container [data-order-card]:not(.sn-row-hidden)'));
+        const anyCollapsed = visibleCards.some(card => {
+          const body = card.querySelector('[data-order-accordion-body]');
+          return body && body.style.display === 'none';
+        });
+        visibleCards.forEach(card => {
+          const body = card.querySelector('[data-order-accordion-body]');
+          const toggleBtn = card.querySelector('[data-toggle-order-accordion]');
+          if (body) body.style.display = anyCollapsed ? 'block' : 'none';
+          if (toggleBtn) {
+            toggleBtn.textContent = anyCollapsed ? '▴ Collapse' : '▾ Manage / Dispatch';
+            toggleBtn.className = `sn-btn ${anyCollapsed ? 'sn-btn-outline' : 'sn-btn-forest'} sn-btn-sm`;
+          }
+        });
+        expandAllOrdersBtn.textContent = anyCollapsed ? '▴ Collapse All Orders' : '▾ Expand All Orders';
       });
     }
-    if (invSearch) invSearch.addEventListener('input', filterAdminInventoryRows);
-    if (invLowOnly) invLowOnly.addEventListener('change', filterAdminInventoryRows);
+
+    // 4D. Quick "✏️ Edit" Product Loader in Tab 3 Catalogue Table
+    document.querySelectorAll('[data-load-prod-editor]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const prodId = btn.getAttribute('data-load-prod-editor');
+        const selectEl = document.getElementById('sn-edit-prod-select');
+        if (selectEl && prodId) {
+          selectEl.value = prodId;
+        }
+        const editFormEl = document.getElementById('sn-admin-edit-product-form');
+        const editBodyEl = document.getElementById('sn-admin-edit-product-body');
+        if (editBodyEl) {
+          editBodyEl.classList.add('sn-open');
+          const toggleBtn = document.querySelector('[data-toggle-admin-form="sn-admin-edit-product-body"]');
+          if (toggleBtn) toggleBtn.textContent = '− Hide Form';
+        }
+        if (editFormEl && typeof editFormEl.scrollIntoView === 'function') {
+          editFormEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        showToast(`Loaded Product #${prodId} into Quick-Edit Form`);
+      });
+    });
+
+    // 4E. Unified Admin List Filter, Search & Global Pagination Controller (Tabs 1, 3, 4, 7, 8)
+    function createAdminListController({
+      getItems,
+      matchItem,
+      countBadgeEl,
+      paginationEl,
+      defaultPageSize = 10,
+      unitLabel = 'items'
+    }) {
+      let currentPage = 1;
+      let pageSize = defaultPageSize;
+
+      function render(resetPage = false) {
+        const allItems = Array.from(getItems() || []);
+        if (allItems.length === 0) {
+          if (paginationEl) paginationEl.innerHTML = '';
+          return;
+        }
+        if (resetPage) currentPage = 1;
+
+        const matchedItems = allItems.filter(item => matchItem(item));
+        const totalAll = allItems.length;
+        const totalMatched = matchedItems.length;
+
+        const effectivePageSize = pageSize === 'ALL' ? Math.max(1, totalMatched) : (Number(pageSize) || defaultPageSize);
+        const totalPages = Math.max(1, Math.ceil(totalMatched / effectivePageSize));
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        const startIdx = (currentPage - 1) * effectivePageSize;
+        const endIdx = startIdx + effectivePageSize;
+        const visibleSet = new Set(matchedItems.slice(startIdx, endIdx));
+
+        allItems.forEach(item => {
+          const isVisible = visibleSet.has(item);
+          item.classList.toggle('sn-row-hidden', !isVisible);
+          item.style.display = isVisible ? '' : 'none';
+        });
+
+        if (countBadgeEl) {
+          if (totalMatched === 0) {
+            countBadgeEl.textContent = `Showing 0 of ${totalAll} ${unitLabel}`;
+          } else if (totalMatched <= effectivePageSize) {
+            countBadgeEl.textContent = `Showing ${totalMatched} of ${totalAll} ${unitLabel}`;
+          } else {
+            countBadgeEl.textContent = `Showing ${startIdx + 1}–${Math.min(endIdx, totalMatched)} of ${totalMatched} (Total ${totalAll})`;
+          }
+        }
+
+        if (paginationEl) {
+          paginationEl.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span>Rows per page:</span>
+              <select data-page-size-select class="sn-select" style="width:auto;min-width:74px;padding:4px 8px;font-size:0.75rem;">
+                ${[10, 15, 25, 'ALL'].map(sz => `
+                  <option value="${sz}" ${String(pageSize) === String(sz) ? 'selected' : ''}>${sz === 'ALL' ? 'All (' + totalMatched + ')' : sz}</option>
+                `).join('')}
+              </select>
+              <span>Page <strong>${currentPage}</strong> of <strong>${totalPages}</strong> (${totalMatched} matching)</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button type="button" data-page-prev class="sn-btn sn-btn-outline sn-btn-sm" style="min-height:30px;padding:4px 10px;font-size:0.74rem;" ${currentPage <= 1 ? 'disabled' : ''}>&larr; Prev</button>
+              <button type="button" data-page-next class="sn-btn sn-btn-outline sn-btn-sm" style="min-height:30px;padding:4px 10px;font-size:0.74rem;" ${currentPage >= totalPages ? 'disabled' : ''}>Next &rarr;</button>
+            </div>
+          `;
+
+          const sizeSelect = paginationEl.querySelector('[data-page-size-select]');
+          if (sizeSelect) {
+            sizeSelect.addEventListener('change', () => {
+              pageSize = sizeSelect.value === 'ALL' ? 'ALL' : Number(sizeSelect.value);
+              currentPage = 1;
+              render(false);
+            });
+          }
+          const prevBtn = paginationEl.querySelector('[data-page-prev]');
+          if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+              if (currentPage > 1) {
+                currentPage -= 1;
+                render(false);
+              }
+            });
+          }
+          const nextBtn = paginationEl.querySelector('[data-page-next]');
+          if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+              if (currentPage < totalPages) {
+                currentPage += 1;
+                render(false);
+              }
+            });
+          }
+        }
+      }
+
+      render(true);
+      return { render };
+    }
+
+    // List 1: Tab 1 Orders (Triage Queue Pills + Search + Payment Filter + Pagination)
+    let activeOrderQueue = 'ALL';
+    const orderSearchEl = document.getElementById('sn-admin-orders-search');
+    const orderPaymentFilterEl = document.getElementById('sn-admin-orders-payment-filter');
+    const ordersController = createAdminListController({
+      getItems: () => document.querySelectorAll('#sn-admin-orders-cards-container [data-order-card]'),
+      matchItem: (card) => {
+        const q = (orderSearchEl ? orderSearchEl.value : '').trim().toLowerCase();
+        const payFilter = (orderPaymentFilterEl ? orderPaymentFilterEl.value : 'ALL').toUpperCase();
+        const fStatus = card.getAttribute('data-order-fulfilment') || '';
+        const pStatus = (card.getAttribute('data-order-payment') || '').toUpperCase();
+        const needsDispatch = card.getAttribute('data-order-needs-dispatch') === '1';
+
+        let matchQueue = true;
+        if (activeOrderQueue === 'NEEDS_DISPATCH') matchQueue = needsDispatch;
+        else if (activeOrderQueue === 'SHIPPED') matchQueue = fStatus === 'Shipped';
+        else if (activeOrderQueue === 'DELIVERED') matchQueue = fStatus === 'Delivered';
+        else if (activeOrderQueue === 'COD_PENDING') matchQueue = pStatus === 'COD_PENDING';
+
+        const matchPay = payFilter === 'ALL' || pStatus === payFilter;
+        const matchQ = !q || card.textContent.toLowerCase().includes(q);
+        return matchQueue && matchPay && matchQ;
+      },
+      countBadgeEl: document.getElementById('sn-admin-orders-count-badge'),
+      paginationEl: document.getElementById('sn-admin-orders-pagination'),
+      defaultPageSize: 10,
+      unitLabel: 'orders'
+    });
+
+    document.querySelectorAll('[data-order-queue-pill]').forEach(pill => {
+      pill.addEventListener('click', () => {
+        activeOrderQueue = (pill.getAttribute('data-order-queue-pill') || 'ALL').toUpperCase();
+        document.querySelectorAll('[data-order-queue-pill]').forEach(p => {
+          p.className = p === pill ? 'sn-btn sn-btn-forest sn-btn-sm' : 'sn-btn sn-btn-outline sn-btn-sm';
+        });
+        ordersController.render(true);
+      });
+    });
+    if (orderSearchEl) orderSearchEl.addEventListener('input', () => ordersController.render(true));
+    if (orderPaymentFilterEl) orderPaymentFilterEl.addEventListener('change', () => ordersController.render(true));
+
+    // List 2: Tab 3 Products Catalogue (Search + Category Filter + Flag Filter + Pagination)
+    const prodSearchEl = document.getElementById('sn-admin-prod-search');
+    const prodCatFilterEl = document.getElementById('sn-admin-prod-cat-filter');
+    const prodFlagFilterEl = document.getElementById('sn-admin-prod-flag-filter');
+    const productsController = createAdminListController({
+      getItems: () => document.querySelectorAll('#sn-admin-products-table tbody tr'),
+      matchItem: (tr) => {
+        const q = (prodSearchEl ? prodSearchEl.value : '').trim().toLowerCase();
+        const catFilter = (prodCatFilterEl ? prodCatFilterEl.value : 'ALL').toUpperCase();
+        const flagFilter = (prodFlagFilterEl ? prodFlagFilterEl.value : 'ALL').toUpperCase();
+
+        const matchCat = catFilter === 'ALL' || tr.getAttribute('data-prod-cat-id') === catFilter;
+        let matchFlag = true;
+        if (flagFilter === 'ACTIVE') matchFlag = tr.getAttribute('data-prod-active') === '1';
+        else if (flagFilter === 'INACTIVE') matchFlag = tr.getAttribute('data-prod-active') === '0';
+        else if (flagFilter === 'BESTSELLER') matchFlag = tr.getAttribute('data-prod-bestseller') === '1';
+        else if (flagFilter === 'FEATURED') matchFlag = tr.getAttribute('data-prod-featured') === '1';
+        else if (flagFilter === 'NEW') matchFlag = tr.getAttribute('data-prod-new') === '1';
+
+        const matchQ = !q || tr.textContent.toLowerCase().includes(q);
+        return matchCat && matchFlag && matchQ;
+      },
+      countBadgeEl: document.getElementById('sn-admin-prod-count-badge'),
+      paginationEl: document.getElementById('sn-admin-products-pagination'),
+      defaultPageSize: 10,
+      unitLabel: 'products'
+    });
+    if (prodSearchEl) prodSearchEl.addEventListener('input', () => productsController.render(true));
+    if (prodCatFilterEl) prodCatFilterEl.addEventListener('change', () => productsController.render(true));
+    if (prodFlagFilterEl) prodFlagFilterEl.addEventListener('change', () => productsController.render(true));
+
+    // List 3: Tab 4 Inventory 88-Variant Stock Table (Search + Pack Size Filter + Low Stock Toggle + Pagination)
+    const invSearch = document.getElementById('sn-admin-inv-search');
+    const invPackFilter = document.getElementById('sn-admin-inv-pack-filter');
+    const invLowOnly = document.getElementById('sn-admin-inv-low-only');
+    const inventoryController = createAdminListController({
+      getItems: () => document.querySelectorAll('#sn-admin-inventory-table tbody tr'),
+      matchItem: (tr) => {
+        const q = (invSearch ? invSearch.value : '').trim().toLowerCase();
+        const packVal = invPackFilter ? invPackFilter.value : 'all';
+        const lowOnly = invLowOnly ? invLowOnly.checked : false;
+        const sku = tr.getAttribute('data-inv-sku') || '';
+        const isLow = tr.getAttribute('data-inv-low') === '1';
+        const pack = tr.getAttribute('data-inv-pack') || '';
+        const matchQ = !q || sku.includes(q) || tr.textContent.toLowerCase().includes(q);
+        const matchPack = packVal.toUpperCase() === 'ALL' || pack === packVal;
+        const matchLow = !lowOnly || isLow;
+        return matchQ && matchPack && matchLow;
+      },
+      countBadgeEl: document.getElementById('sn-admin-inv-count-badge'),
+      paginationEl: document.getElementById('sn-admin-inventory-pagination'),
+      defaultPageSize: 15,
+      unitLabel: 'SKUs'
+    });
+    if (invSearch) invSearch.addEventListener('input', () => inventoryController.render(true));
+    if (invPackFilter) invPackFilter.addEventListener('change', () => inventoryController.render(true));
+    if (invLowOnly) invLowOnly.addEventListener('change', () => inventoryController.render(true));
+
+    // List 4: Tab 4 Stock Movement Ledger (Pagination)
+    createAdminListController({
+      getItems: () => document.querySelectorAll('#sn-admin-movements-table tbody tr'),
+      matchItem: () => true,
+      countBadgeEl: null,
+      paginationEl: document.getElementById('sn-admin-movements-pagination'),
+      defaultPageSize: 10,
+      unitLabel: 'movements'
+    });
+
+    // List 5: Tab 7 Immutable Admin Audit Logs (Search + Pagination)
+    const auditSearchEl = document.getElementById('sn-admin-audit-search');
+    const auditController = createAdminListController({
+      getItems: () => document.querySelectorAll('#sn-admin-audit-logs-table tbody tr'),
+      matchItem: (tr) => {
+        const q = (auditSearchEl ? auditSearchEl.value : '').trim().toLowerCase();
+        return !q || tr.textContent.toLowerCase().includes(q);
+      },
+      countBadgeEl: document.getElementById('sn-admin-audit-count-badge'),
+      paginationEl: document.getElementById('sn-admin-audit-pagination'),
+      defaultPageSize: 10,
+      unitLabel: 'logs'
+    });
+    if (auditSearchEl) auditSearchEl.addEventListener('input', () => auditController.render(true));
+
+    // List 6: Tab 8 Customer Notification Dispatch Logs (Search + Pagination)
+    const notifSearchEl = document.getElementById('sn-admin-notif-search');
+    const notifController = createAdminListController({
+      getItems: () => document.querySelectorAll('#sn-admin-notif-logs-table tbody tr'),
+      matchItem: (tr) => {
+        const q = (notifSearchEl ? notifSearchEl.value : '').trim().toLowerCase();
+        return !q || tr.textContent.toLowerCase().includes(q);
+      },
+      countBadgeEl: document.getElementById('sn-admin-notif-count-badge'),
+      paginationEl: document.getElementById('sn-admin-notif-pagination'),
+      defaultPageSize: 10,
+      unitLabel: 'dispatches'
+    });
+    if (notifSearchEl) notifSearchEl.addEventListener('input', () => notifController.render(true));
 
     // 5. Create New Product (with Optional Product Photo)
     const newProdForm = document.getElementById('sn-admin-create-product-form');

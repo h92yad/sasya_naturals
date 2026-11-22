@@ -1825,31 +1825,84 @@ function renderAdminPortalPage({
           <div>
             <!-- Panel 1: Orders & Manual Shipping (Full Delivery Address, Pick & Pack List, Copy Label & Manual Courier Dispatch) -->
             <div class="sn-card" data-admin-panel="orders">
-              <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Orders, Delivery Addresses, Pick-and-Pack &amp; Manual Courier Dispatch</h2>
-              <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 20px;">
-                Authorized for <strong>SUPER_ADMIN</strong>, <strong>ORDER_MANAGER</strong>, and permitted <strong>STAFF</strong>. View the complete ship-to delivery address, delivery instructions, and pack weights, copy the formatted courier label, or enter manual AWB tracking.
-              </p>
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+                <div>
+                  <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Orders, Delivery Addresses, Pick-and-Pack &amp; Manual Courier Dispatch</h2>
+                  <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0;">
+                    Authorized for <strong>SUPER_ADMIN</strong>, <strong>ORDER_MANAGER</strong>, and permitted <strong>STAFF</strong>. Actionable unshipped orders expand automatically; completed/shipped orders collapse into 1-line summary cards.
+                  </p>
+                </div>
+                <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-admin-orders-expand-all-btn">▾ Expand All Orders</button>
+              </div>
+
+              <!-- 1-Tap Triage Queue Pills + Live Multi-Field Order Search & Payment Filter -->
+              <div class="sn-card" id="sn-admin-orders-toolbar" style="background-color:var(--sn-bg-mortar);padding:12px 14px;margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                    <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-order-queue-pill="all">All Orders (${orders.length})</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-order-queue-pill="needs_dispatch">⚡ Needs Dispatch (${orders.filter(o => ['Pending Payment', 'Confirmed', 'Processing', 'Packed'].includes(o.fulfilment_status)).length})</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-order-queue-pill="shipped">🚚 Shipped (${orders.filter(o => o.fulfilment_status === 'Shipped').length})</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-order-queue-pill="delivered">✓ Delivered (${orders.filter(o => o.fulfilment_status === 'Delivered').length})</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-order-queue-pill="cod_pending">💵 COD Pending (${orders.filter(o => o.payment_status === 'COD_PENDING').length})</button>
+                  </div>
+                  <span id="sn-admin-orders-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);">Showing ${orders.length} of ${orders.length} Orders</span>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                  <input type="search" id="sn-admin-orders-search" placeholder="Search Order #, Customer Name, Phone, City, PIN, Courier, or AWB..." class="sn-input" style="flex:1;min-width:190px;" />
+                  <select id="sn-admin-orders-payment-filter" class="sn-select" style="width:auto;min-width:165px;">
+                    <option value="all">Payment: All Statuses</option>
+                    <option value="PAID">PAID (Verified Prepaid)</option>
+                    <option value="COD_PENDING">COD_PENDING (Uncollected)</option>
+                    <option value="COD_COLLECTED">COD_COLLECTED</option>
+                    <option value="REFUNDED">REFUNDED</option>
+                  </select>
+                </div>
+              </div>
+
+              <div id="sn-admin-orders-cards-container">
               ${orders.map(o => {
                 const oItems = orderItems.filter(it => Number(it.order_id) === Number(o.id));
                 const netGrams = oItems.reduce((acc, it) => acc + Number(it.weight_grams || 0) * Number(it.quantity || 0), 0);
                 const grossGrams = netGrams > 0 ? netGrams + 150 : 650;
                 const fullAddressSingleLine = `${o.customer_name} (${o.customer_phone}) | ${o.shipping_line1}${o.shipping_line2 ? ', ' + o.shipping_line2 : ''}, ${o.shipping_city}, ${o.shipping_state} - ${o.shipping_pincode} | Order: ${o.order_number} (${o.payment_method}: ${formatInr(o.total_paise)})`;
+                const isActionable = ['Pending Payment', 'Confirmed', 'Processing', 'Packed'].includes(o.fulfilment_status);
 
                 return `
-                <div class="sn-card" style="margin-bottom:18px;background-color:var(--sn-bg-parchment);" data-order-card="${escapeHtml(o.order_number)}">
-                  <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--sn-border-warm);">
-                    <div style="display:flex;justify-content:space-between;align-items:center;width:100%;flex-wrap:wrap;gap:8px;">
-                      <div>
-                        <strong style="font-family:var(--sn-font-mono);font-size:1.05rem;color:var(--sn-bg-forest);">${escapeHtml(o.order_number)}</strong>
-                        <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);margin-left:6px;">${escapeHtml((o.created_at || '').slice(0, 10))} • ${escapeHtml(o.payment_method)}</span>
-                      </div>
-                      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                        <span class="sn-status ${o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(o.payment_status)}</span>
-                        <span class="sn-status sn-status-paid">${escapeHtml(o.fulfilment_status)}</span>
-                        <strong style="font-family:var(--sn-font-mono);font-size:1.02rem;color:var(--sn-bg-forest);">${formatInr(o.total_paise)}</strong>
-                      </div>
+                <div
+                  class="sn-card"
+                  style="margin-bottom:12px;background-color:var(--sn-bg-parchment);padding:12px 14px;"
+                  data-order-card="${escapeHtml(o.order_number)}"
+                  data-order-fulfilment="${escapeHtml(o.fulfilment_status)}"
+                  data-order-payment="${escapeHtml(o.payment_status)}"
+                  data-order-needs-dispatch="${isActionable ? '1' : '0'}"
+                >
+                  <!-- Always-Visible Rich 1-Line Summary Accordion Header -->
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:210px;">
+                      <strong style="font-family:var(--sn-font-mono);font-size:1rem;color:var(--sn-bg-forest);">${escapeHtml(o.order_number)}</strong>
+                      <span style="font-size:0.84rem;font-weight:600;color:var(--sn-text-primary);">${escapeHtml(o.customer_name)}</span>
+                      <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-secondary);">(${escapeHtml(o.shipping_city)} - ${escapeHtml(o.shipping_pincode)})</span>
+                      <span style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-muted);">• ${oItems.length} SKUs (${grossGrams}g) • ${escapeHtml((o.created_at || '').slice(0, 10))}</span>
                     </div>
-                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;">
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                      <span class="sn-status ${o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(o.payment_status)}</span>
+                      <span class="sn-status ${isActionable ? 'sn-status-warn' : 'sn-status-paid'}">${escapeHtml(o.fulfilment_status)}</span>
+                      <strong style="font-family:var(--sn-font-mono);font-size:0.98rem;color:var(--sn-bg-forest);">${formatInr(o.total_paise)}</strong>
+                      <button
+                        type="button"
+                        class="sn-btn ${isActionable ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
+                        data-toggle-order-accordion="${escapeHtml(o.order_number)}"
+                        aria-expanded="${isActionable ? 'true' : 'false'}"
+                      >${isActionable ? '▴ Collapse' : '▾ Manage / Dispatch'}</button>
+                    </div>
+                  </div>
+
+                  <!-- Collapsible Accordion Body (Expanded by default for Actionable Orders, Collapsed for Shipped/Delivered) -->
+                  <div
+                    data-order-accordion-body="${escapeHtml(o.order_number)}"
+                    style="display:${isActionable ? 'block' : 'none'};margin-top:12px;padding-top:12px;border-top:1px solid var(--sn-border-warm);"
+                  >
+                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
                       <button
                         type="button"
                         class="sn-btn sn-btn-outline sn-btn-sm"
@@ -1862,129 +1915,131 @@ function renderAdminPortalPage({
                       >✏️ Edit Address</button>
                       <a href="${basePath}/orders/${escapeHtml(o.order_number)}/invoice" class="sn-btn sn-btn-outline sn-btn-sm">GST Invoice</a>
                     </div>
+
+                    <!-- Ship-To Delivery Address & Pick-and-Pack Items Grid -->
+                    <div class="sn-grid-2" style="gap:14px;margin-bottom:14px;">
+                      <div class="sn-card" style="padding:12px 14px;background-color:var(--sn-bg-surface);">
+                        <div style="font-family:var(--sn-font-mono);font-size:0.72rem;text-transform:uppercase;color:var(--sn-text-muted);margin-bottom:4px;">
+                          📍 Ship-To Delivery Address &amp; Recipient Contact
+                        </div>
+                        <div style="font-size:0.86rem;line-height:1.45;color:var(--sn-text-primary);overflow-wrap:anywhere;" data-order-address-display="${escapeHtml(o.order_number)}">
+                          <strong>${escapeHtml(o.customer_name)}</strong> • <span style="font-family:var(--sn-font-mono);">${escapeHtml(o.customer_phone)}</span> (${escapeHtml(o.customer_email)})<br/>
+                          ${escapeHtml(o.shipping_line1)}${o.shipping_line2 ? ', ' + escapeHtml(o.shipping_line2) : ''}<br/>
+                          <strong>${escapeHtml(o.shipping_city)}, ${escapeHtml(o.shipping_state)} - <span style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${escapeHtml(o.shipping_pincode)}</span></strong>
+                        </div>
+                        <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--sn-border-warm);font-size:0.78rem;color:var(--sn-text-secondary);">
+                          <strong>Delivery Instructions:</strong> ${escapeHtml(o.delivery_instructions || 'Standard doorstep delivery (no special instructions)')}
+                        </div>
+                      </div>
+
+                      <div class="sn-card" style="padding:12px 14px;background-color:var(--sn-bg-surface);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+                          <span style="font-family:var(--sn-font-mono);font-size:0.72rem;text-transform:uppercase;color:var(--sn-text-muted);">
+                            📦 Pick-and-Pack Items (${oItems.length} SKUs)
+                          </span>
+                          <span style="font-family:var(--sn-font-mono);font-size:0.73rem;font-weight:700;color:var(--sn-bg-forest);">
+                            Net: ${netGrams}g | Gross Parcel: ${grossGrams}g
+                          </span>
+                        </div>
+                        <div style="font-size:0.81rem;line-height:1.45;">
+                          ${oItems.length > 0 ? oItems.map(it => `
+                            <div style="display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:1px dotted var(--sn-border-warm);">
+                              <span><strong style="font-family:var(--sn-font-mono);font-size:0.74rem;">${escapeHtml(it.sku)}</strong> • ${escapeHtml(it.product_name)} (<strong>${escapeHtml(it.pack_label)} × ${it.quantity}</strong>)</span>
+                              <span style="font-family:var(--sn-font-mono);white-space:nowrap;">${formatInr(it.line_total_paise)}</span>
+                            </div>
+                          `).join('') : '<span style="color:var(--sn-text-muted);">Order items recorded in ledger</span>'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Collapsible Inline Pre-Dispatch Delivery Address Editor -->
+                    <form
+                      class="sn-admin-edit-address-form sn-card"
+                      data-edit-addr-form="${escapeHtml(o.order_number)}"
+                      style="display:none;background-color:var(--sn-bg-mortar);padding:12px 14px;margin-bottom:12px;"
+                    >
+                      <div style="font-family:var(--sn-font-mono);font-size:0.74rem;font-weight:700;color:var(--sn-bg-forest);margin-bottom:8px;">
+                        Update Delivery Address &amp; Instructions for ${escapeHtml(o.order_number)}
+                      </div>
+                      <input type="hidden" name="orderNumber" value="${escapeHtml(o.order_number)}" />
+                      <div class="sn-grid-4" style="gap:8px;margin-bottom:8px;">
+                        <div>
+                          <label style="font-size:0.72rem;font-weight:600;">Recipient Name *</label>
+                          <input type="text" name="customerName" required value="${escapeHtml(o.customer_name)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.72rem;font-weight:600;">Mobile Phone *</label>
+                          <input type="text" name="customerPhone" required value="${escapeHtml(o.customer_phone)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.72rem;font-weight:600;">Street Address (Line 1) *</label>
+                          <input type="text" name="shippingLine1" required value="${escapeHtml(o.shipping_line1)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.72rem;font-weight:600;">Landmark / Area (Line 2)</label>
+                          <input type="text" name="shippingLine2" value="${escapeHtml(o.shipping_line2)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                        </div>
+                      </div>
+                      <div class="sn-grid-5" style="gap:8px;align-items:end;">
+                        <div>
+                          <label style="font-size:0.72rem;font-weight:600;">City *</label>
+                          <input type="text" name="shippingCity" required value="${escapeHtml(o.shipping_city)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.72rem;font-weight:600;">State *</label>
+                          <input type="text" name="shippingState" required value="${escapeHtml(o.shipping_state)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.72rem;font-weight:600;">6-Digit PIN *</label>
+                          <input type="text" name="shippingPincode" required pattern="\\d{6}" value="${escapeHtml(o.shipping_pincode)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;font-family:var(--sn-font-mono);" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.72rem;font-weight:600;">Delivery Instructions</label>
+                          <input type="text" name="deliveryInstructions" value="${escapeHtml(o.delivery_instructions)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
+                        </div>
+                        <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Save Address</button>
+                      </div>
+                    </form>
+
+                    <!-- Manual Courier Dispatch Form -->
+                    <form class="sn-admin-ship-form">
+                      <input type="hidden" name="orderNumber" value="${escapeHtml(o.order_number)}" />
+                      <div>
+                        <label style="font-size:0.74rem;font-weight:600;display:block;">Fulfilment Status</label>
+                        <select name="fulfilmentStatus" class="sn-select">
+                          ${ORDER_FULFILMENT_STATUSES.map(st => `
+                            <option value="${escapeHtml(st)}" ${o.fulfilment_status === st ? 'selected' : ''}>${escapeHtml(st)}</option>
+                          `).join('')}
+                        </select>
+                      </div>
+                      <div>
+                        <label style="font-size:0.74rem;font-weight:600;display:block;">Courier Company</label>
+                        <input type="text" name="courierName" value="${escapeHtml(o.courier_name)}" placeholder="e.g. Blue Dart / Delhivery" class="sn-input" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.74rem;font-weight:600;display:block;">Tracking / AWB No.</label>
+                        <input type="text" name="trackingNumber" value="${escapeHtml(o.tracking_number)}" placeholder="e.g. BD804921184IN" class="sn-input" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.74rem;font-weight:600;display:block;">Tracking URL</label>
+                        <input type="text" name="trackingUrl" value="${escapeHtml(o.tracking_url)}" placeholder="https://..." class="sn-input" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.74rem;font-weight:600;display:block;">Dispatch Date</label>
+                        <input type="date" name="dispatchDate" value="${escapeHtml(o.dispatch_date || '2026-11-21')}" class="sn-input" />
+                      </div>
+                      <div>
+                        <label style="font-size:0.74rem;font-weight:600;display:block;">Shipping Charge (₹)</label>
+                        <input type="number" name="manualShippingChargeInr" value="${Math.round((o.manual_shipping_charge_paise || o.shipping_paise || 0) / 100)}" min="0" class="sn-input" />
+                      </div>
+                      <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Save &amp; Notify</button>
+                    </form>
                   </div>
-
-                  <!-- Ship-To Delivery Address & Pick-and-Pack Items Grid -->
-                  <div class="sn-grid-2" style="gap:14px;margin-bottom:14px;">
-                    <div class="sn-card" style="padding:12px 14px;background-color:var(--sn-bg-surface);">
-                      <div style="font-family:var(--sn-font-mono);font-size:0.72rem;text-transform:uppercase;color:var(--sn-text-muted);margin-bottom:4px;">
-                        📍 Ship-To Delivery Address &amp; Recipient Contact
-                      </div>
-                      <div style="font-size:0.86rem;line-height:1.45;color:var(--sn-text-primary);overflow-wrap:anywhere;" data-order-address-display="${escapeHtml(o.order_number)}">
-                        <strong>${escapeHtml(o.customer_name)}</strong> • <span style="font-family:var(--sn-font-mono);">${escapeHtml(o.customer_phone)}</span> (${escapeHtml(o.customer_email)})<br/>
-                        ${escapeHtml(o.shipping_line1)}${o.shipping_line2 ? ', ' + escapeHtml(o.shipping_line2) : ''}<br/>
-                        <strong>${escapeHtml(o.shipping_city)}, ${escapeHtml(o.shipping_state)} - <span style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${escapeHtml(o.shipping_pincode)}</span></strong>
-                      </div>
-                      <div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--sn-border-warm);font-size:0.78rem;color:var(--sn-text-secondary);">
-                        <strong>Delivery Instructions:</strong> ${escapeHtml(o.delivery_instructions || 'Standard doorstep delivery (no special instructions)')}
-                      </div>
-                    </div>
-
-                    <div class="sn-card" style="padding:12px 14px;background-color:var(--sn-bg-surface);">
-                      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
-                        <span style="font-family:var(--sn-font-mono);font-size:0.72rem;text-transform:uppercase;color:var(--sn-text-muted);">
-                          📦 Pick-and-Pack Items (${oItems.length} SKUs)
-                        </span>
-                        <span style="font-family:var(--sn-font-mono);font-size:0.73rem;font-weight:700;color:var(--sn-bg-forest);">
-                          Net: ${netGrams}g | Gross Parcel: ${grossGrams}g
-                        </span>
-                      </div>
-                      <div style="font-size:0.81rem;line-height:1.45;">
-                        ${oItems.length > 0 ? oItems.map(it => `
-                          <div style="display:flex;justify-content:space-between;gap:8px;padding:2px 0;border-bottom:1px dotted var(--sn-border-warm);">
-                            <span><strong style="font-family:var(--sn-font-mono);font-size:0.74rem;">${escapeHtml(it.sku)}</strong> • ${escapeHtml(it.product_name)} (<strong>${escapeHtml(it.pack_label)} × ${it.quantity}</strong>)</span>
-                            <span style="font-family:var(--sn-font-mono);white-space:nowrap;">${formatInr(it.line_total_paise)}</span>
-                          </div>
-                        `).join('') : '<span style="color:var(--sn-text-muted);">Order items recorded in ledger</span>'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Collapsible Inline Pre-Dispatch Delivery Address Editor -->
-                  <form
-                    class="sn-admin-edit-address-form sn-card"
-                    data-edit-addr-form="${escapeHtml(o.order_number)}"
-                    style="display:none;background-color:var(--sn-bg-mortar);padding:12px 14px;margin-bottom:12px;"
-                  >
-                    <div style="font-family:var(--sn-font-mono);font-size:0.74rem;font-weight:700;color:var(--sn-bg-forest);margin-bottom:8px;">
-                      Update Delivery Address &amp; Instructions for ${escapeHtml(o.order_number)}
-                    </div>
-                    <input type="hidden" name="orderNumber" value="${escapeHtml(o.order_number)}" />
-                    <div class="sn-grid-4" style="gap:8px;margin-bottom:8px;">
-                      <div>
-                        <label style="font-size:0.72rem;font-weight:600;">Recipient Name *</label>
-                        <input type="text" name="customerName" required value="${escapeHtml(o.customer_name)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.72rem;font-weight:600;">Mobile Phone *</label>
-                        <input type="text" name="customerPhone" required value="${escapeHtml(o.customer_phone)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.72rem;font-weight:600;">Street Address (Line 1) *</label>
-                        <input type="text" name="shippingLine1" required value="${escapeHtml(o.shipping_line1)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.72rem;font-weight:600;">Landmark / Area (Line 2)</label>
-                        <input type="text" name="shippingLine2" value="${escapeHtml(o.shipping_line2)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
-                      </div>
-                    </div>
-                    <div class="sn-grid-5" style="gap:8px;align-items:end;">
-                      <div>
-                        <label style="font-size:0.72rem;font-weight:600;">City *</label>
-                        <input type="text" name="shippingCity" required value="${escapeHtml(o.shipping_city)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.72rem;font-weight:600;">State *</label>
-                        <input type="text" name="shippingState" required value="${escapeHtml(o.shipping_state)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.72rem;font-weight:600;">6-Digit PIN *</label>
-                        <input type="text" name="shippingPincode" required pattern="\\d{6}" value="${escapeHtml(o.shipping_pincode)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;font-family:var(--sn-font-mono);" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.72rem;font-weight:600;">Delivery Instructions</label>
-                        <input type="text" name="deliveryInstructions" value="${escapeHtml(o.delivery_instructions)}" class="sn-input" style="padding:5px 8px;font-size:0.78rem;" />
-                      </div>
-                      <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Save Address</button>
-                    </div>
-                  </form>
-
-                  <!-- Manual Courier Dispatch Form -->
-                  <form class="sn-admin-ship-form">
-                    <input type="hidden" name="orderNumber" value="${escapeHtml(o.order_number)}" />
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;display:block;">Fulfilment Status</label>
-                      <select name="fulfilmentStatus" class="sn-select">
-                        ${ORDER_FULFILMENT_STATUSES.map(st => `
-                          <option value="${escapeHtml(st)}" ${o.fulfilment_status === st ? 'selected' : ''}>${escapeHtml(st)}</option>
-                        `).join('')}
-                      </select>
-                    </div>
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;display:block;">Courier Company</label>
-                      <input type="text" name="courierName" value="${escapeHtml(o.courier_name)}" placeholder="e.g. Blue Dart / Delhivery" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;display:block;">Tracking / AWB No.</label>
-                      <input type="text" name="trackingNumber" value="${escapeHtml(o.tracking_number)}" placeholder="e.g. BD804921184IN" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;display:block;">Tracking URL</label>
-                      <input type="text" name="trackingUrl" value="${escapeHtml(o.tracking_url)}" placeholder="https://..." class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;display:block;">Dispatch Date</label>
-                      <input type="date" name="dispatchDate" value="${escapeHtml(o.dispatch_date || '2026-11-21')}" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;display:block;">Shipping Charge (₹)</label>
-                      <input type="number" name="manualShippingChargeInr" value="${Math.round((o.manual_shipping_charge_paise || o.shipping_paise || 0) / 100)}" min="0" class="sn-input" />
-                    </div>
-                    <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Save &amp; Notify</button>
-                  </form>
                 </div>
                 `;
               }).join('')}
+              </div>
+              <div id="sn-admin-orders-pagination" class="sn-admin-pagination-bar"></div>
             </div>
 
             <!-- Panel 2: Write-Only API & Razorpay Credential Vault -->
@@ -2276,16 +2331,46 @@ function renderAdminPortalPage({
                 </div>
               </form>
 
-              <div class="sn-table-wrap sn-table-scroll-y" id="sn-admin-products-catalogue-table">
-                <table class="sn-table sn-table-cards">
+              <!-- Product Catalogue Filter, Search & Pagination Toolbar -->
+              <div class="sn-card" id="sn-admin-products-filter-bar" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:14px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+                  <strong style="font-family:var(--sn-font-serif);font-size:1rem;color:var(--sn-bg-forest);">5. Storefront Product Catalogue (${products.length} Products • ${variants.length} Pack Variants)</strong>
+                  <span id="sn-admin-prod-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);">Showing ${products.length} of ${products.length} Products</span>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                  <input type="search" id="sn-admin-prod-search" placeholder="Search Product Name, SKU (SN-DF/ML/SP), HSN, or Region..." class="sn-input" style="flex:1;min-width:185px;" />
+                  <select id="sn-admin-prod-cat-filter" class="sn-select" style="width:auto;min-width:150px;">
+                    <option value="all">Category: All (${categories.length})</option>
+                    ${categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+                  </select>
+                  <select id="sn-admin-prod-flag-filter" class="sn-select" style="width:auto;min-width:150px;">
+                    <option value="all">Filter: All Statuses</option>
+                    <option value="active">Published (Active)</option>
+                    <option value="inactive">Deactivated</option>
+                    <option value="bestseller">★ Bestsellers</option>
+                    <option value="featured">Featured</option>
+                    <option value="new">New Harvests</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="sn-table-wrap" id="sn-admin-products-catalogue-table">
+                <table class="sn-table sn-table-cards" id="sn-admin-products-table">
                   <thead>
-                    <tr><th>Photo</th><th>SKU, HSN &amp; Flags</th><th>Product Name &amp; Origin</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th><th>Status</th><th>Quick Change Photo</th></tr>
+                    <tr><th>Photo</th><th>SKU, HSN &amp; Flags</th><th>Product Name &amp; Origin</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th><th>Status &amp; Quick Edit</th><th>Quick Change Photo</th></tr>
                   </thead>
                   <tbody>
                     ${products.map(p => {
                       const pVars = variants.filter(v => v.product_id === p.id);
                       return `
-                        <tr data-admin-prod-row="${p.id}">
+                        <tr
+                          data-admin-prod-row="${p.id}"
+                          data-prod-cat-id="${p.category_id}"
+                          data-prod-active="${p.is_active ? '1' : '0'}"
+                          data-prod-bestseller="${p.is_bestseller ? '1' : '0'}"
+                          data-prod-featured="${p.is_featured ? '1' : '0'}"
+                          data-prod-new="${p.is_new_arrival ? '1' : '0'}"
+                        >
                           <td data-label="Photo">
                             <img src="${basePath}${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" data-product-img-id="${p.id}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
                           </td>
@@ -2306,13 +2391,20 @@ function renderAdminPortalPage({
                           <td data-label="Pack Variants" style="font-family:var(--sn-font-mono);font-size:0.73rem;">
                             <span>${pVars.map(v => `${escapeHtml(v.pack_label)}: ${formatInr(v.selling_price_paise)} (${v.stock_qty})`).join(' | ')}</span>
                           </td>
-                          <td data-label="Storefront Status">
-                            <button
-                              type="button"
-                              class="sn-btn ${p.is_active ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
-                              data-toggle-prod-id="${p.id}"
-                              data-toggle-prod-active="${p.is_active ? '1' : '0'}"
-                            >${p.is_active ? 'Active' : 'Inactive'}</button>
+                          <td data-label="Status &amp; Edit">
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                              <button
+                                type="button"
+                                class="sn-btn ${p.is_active ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
+                                data-toggle-prod-id="${p.id}"
+                                data-toggle-prod-active="${p.is_active ? '1' : '0'}"
+                              >${p.is_active ? 'Active' : 'Inactive'}</button>
+                              <button
+                                type="button"
+                                class="sn-btn sn-btn-outline sn-btn-sm"
+                                data-load-prod-editor="${p.id}"
+                              >✏️ Edit</button>
+                            </div>
                           </td>
                           <td data-label="Quick Change Photo">
                             <form class="sn-admin-inline-prod-img-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;width:100%;">
@@ -2327,33 +2419,47 @@ function renderAdminPortalPage({
                   </tbody>
                 </table>
               </div>
+              <div id="sn-admin-products-pagination" class="sn-admin-pagination-bar"></div>
             </div>
 
             <!-- Panel 4: Complete Inventory & Stock Movements (All 88 Pack Variants + Low-Stock Threshold Editor) -->
             <div class="sn-card" data-admin-panel="inventory" style="display:none;">
-              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
                 <div>
                   <h2 style="font-family:var(--sn-font-serif);margin:0 0 4px;color:var(--sn-bg-forest);">Inventory Control &amp; Atomic Stock Movement Ledger (All ${variants.length} Pack Variants)</h2>
                   <p style="font-size:0.84rem;color:var(--sn-text-secondary);margin:0;">
                     Stock is automatically decremented on order confirmation and restored on order cancellation or refund.
                   </p>
                 </div>
-                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%;max-width:420px;">
-                  <input type="search" id="sn-admin-inv-search" placeholder="Search SKU or pack size..." class="sn-input" style="flex:1;min-width:170px;" />
-                  <label style="font-size:0.78rem;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;font-weight:600;">
-                    <input type="checkbox" id="sn-admin-inv-low-only" /> Low-Stock Only
-                  </label>
-                </div>
+                <span id="sn-admin-inv-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);">Showing ${variants.length} of ${variants.length} Variants</span>
               </div>
 
-              <div class="sn-table-wrap" style="margin-bottom:24px;max-height:540px;overflow-y:auto;">
+              <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:10px 14px;margin-bottom:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <input type="search" id="sn-admin-inv-search" placeholder="Search SKU or pack size..." class="sn-input" style="flex:1;min-width:170px;" />
+                <select id="sn-admin-inv-pack-filter" class="sn-select" style="width:auto;min-width:140px;">
+                  <option value="all">Pack: All Sizes (${variants.length})</option>
+                  <option value="100 g">100 g Packs</option>
+                  <option value="250 g">250 g Packs</option>
+                  <option value="500 g">500 g Packs</option>
+                  <option value="1 kg">1 kg Packs</option>
+                </select>
+                <label style="font-size:0.78rem;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;font-weight:600;">
+                  <input type="checkbox" id="sn-admin-inv-low-only" /> Low-Stock Only
+                </label>
+              </div>
+
+              <div class="sn-table-wrap">
                 <table class="sn-table sn-table-cards" id="sn-admin-inventory-table">
                   <thead>
                     <tr><th>Variant SKU</th><th>Pack Size</th><th>Selling Price</th><th>MRP</th><th>Current Stock</th><th>Alert Threshold</th><th>Update Stock &amp; Threshold</th></tr>
                   </thead>
                   <tbody>
                     ${variants.map(v => `
-                      <tr data-inv-sku="${escapeHtml(v.sku.toLowerCase())}" data-inv-low="${v.stock_qty <= v.low_stock_threshold ? '1' : '0'}">
+                      <tr
+                        data-inv-sku="${escapeHtml(v.sku.toLowerCase())}"
+                        data-inv-pack="${escapeHtml(v.pack_label)}"
+                        data-inv-low="${v.stock_qty <= v.low_stock_threshold ? '1' : '0'}"
+                      >
                         <td data-label="Variant SKU" style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-bg-forest);">${escapeHtml(v.sku)}</td>
                         <td data-label="Pack Size" style="font-family:var(--sn-font-mono);">${escapeHtml(v.pack_label)}</td>
                         <td data-label="Selling Price" style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(v.selling_price_paise)}</td>
@@ -2373,10 +2479,11 @@ function renderAdminPortalPage({
                   </tbody>
                 </table>
               </div>
+              <div id="sn-admin-inventory-pagination" class="sn-admin-pagination-bar" style="margin-bottom:24px;"></div>
 
               <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;">Recent Stock Movements Ledger</h3>
               <div class="sn-table-wrap">
-                <table class="sn-table">
+                <table class="sn-table" id="sn-admin-movements-table">
                   <thead>
                     <tr><th>Timestamp</th><th>Variant ID</th><th>Delta</th><th>Prev -> New</th><th>Reason</th><th>Reference</th></tr>
                   </thead>
@@ -2394,6 +2501,7 @@ function renderAdminPortalPage({
                   </tbody>
                 </table>
               </div>
+              <div id="sn-admin-movements-pagination" class="sn-admin-pagination-bar"></div>
             </div>
 
             <!-- Panel 5: Payments, COD Settlement, Refunds & Sales/Product Reports (Section 5.1 & Section 6) -->
@@ -2847,9 +2955,15 @@ function renderAdminPortalPage({
                 </table>
               </div>
 
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;">Immutable Admin Audit Logs (Section 10)</h3>
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 10px;">
+                <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;">Immutable Admin Audit Logs (Section 10)</h3>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                  <input type="search" id="sn-admin-audit-search" placeholder="Search actor email, role, action, or entity..." class="sn-input" style="max-width:260px;padding:6px 10px;font-size:0.78rem;" />
+                  <span id="sn-admin-audit-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">Showing ${auditLogs.length} of ${auditLogs.length}</span>
+                </div>
+              </div>
               <div class="sn-table-wrap">
-                <table class="sn-table">
+                <table class="sn-table" id="sn-admin-audit-logs-table">
                   <thead>
                     <tr><th>Timestamp</th><th>Actor Email</th><th>Role</th><th>Action</th><th>Entity</th><th>Details</th></tr>
                   </thead>
@@ -2867,6 +2981,7 @@ function renderAdminPortalPage({
                   </tbody>
                 </table>
               </div>
+              <div id="sn-admin-audit-pagination" class="sn-admin-pagination-bar"></div>
             </div>
 
             <!-- Panel 8: Delivery Pricing, Editable GST/FSSAI Business Compliance & Editable Notification Templates -->
@@ -3016,9 +3131,15 @@ function renderAdminPortalPage({
                 `;
               })()}
 
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">Recent Customer Notification Dispatch Logs (Section 8)</h3>
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 10px;">
+                <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">Recent Customer Notification Dispatch Logs (Section 8)</h3>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                  <input type="search" id="sn-admin-notif-search" placeholder="Search order no., recipient, event, or subject..." class="sn-input" style="max-width:260px;padding:6px 10px;font-size:0.78rem;" />
+                  <span id="sn-admin-notif-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">Showing ${notificationLogs.length} of ${notificationLogs.length}</span>
+                </div>
+              </div>
               <div class="sn-table-wrap">
-                <table class="sn-table">
+                <table class="sn-table" id="sn-admin-notif-logs-table">
                   <thead>
                     <tr><th>Timestamp</th><th>Order No.</th><th>Channel</th><th>Recipient</th><th>Event</th><th>Subject &amp; Preview</th></tr>
                   </thead>
@@ -3036,6 +3157,7 @@ function renderAdminPortalPage({
                   </tbody>
                 </table>
               </div>
+              <div id="sn-admin-notif-pagination" class="sn-admin-pagination-bar"></div>
             </div>
           </div>
         </div>
