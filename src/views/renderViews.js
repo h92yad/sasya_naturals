@@ -2077,31 +2077,34 @@ function renderAdminPortalPage({
               </div>
             </div>
 
-            <!-- Panel 3: Categories, Products, Edit/Publish/Deactivate & Media Manager -->
+            <!-- Panel 3: Categories, Products, Contextual Edit Modal & Media Manager -->
             <div class="sn-card" data-admin-panel="products" style="display:none;">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
                 <div>
                   <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Categories, Products, Pack Variants &amp; Media Manager</h2>
                   <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0;">
-                    Authorized for <strong>SUPER_ADMIN</strong> and <strong>PRODUCT_MANAGER</strong>. Create, edit, publish/deactivate categories and products, update pack prices, and upload magic-byte verified images.
+                    Authorized for <strong>SUPER_ADMIN</strong> and <strong>PRODUCT_MANAGER</strong>. Click <strong>✏️ Edit</strong> on any product row to open its pre-populated details, pack pricing, flags, and photo/gallery editor.
                   </p>
                 </div>
-                <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                  <a href="#sn-admin-create-category-form" data-admin-jump-form="sn-admin-create-category-form" class="sn-btn sn-btn-outline sn-btn-sm">+ Category</a>
-                  <a href="#sn-admin-image-upload-form" data-admin-jump-form="sn-admin-image-upload-form" class="sn-btn sn-btn-outline sn-btn-sm">📸 Upload Media</a>
-                  <a href="#sn-admin-create-product-form" data-admin-jump-form="sn-admin-create-product-form" class="sn-btn sn-btn-outline sn-btn-sm">+ New Product</a>
-                  <a href="#sn-admin-edit-product-form" data-admin-jump-form="sn-admin-edit-product-form" class="sn-btn sn-btn-outline sn-btn-sm">✏️ Edit &amp; Price</a>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-toggle-admin-form="sn-admin-create-category-form" data-toggle-open-text="− Hide Category Form" data-toggle-closed-text="+ New Category">+ New Category</button>
+                  <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" data-toggle-admin-form="sn-admin-create-product-body" data-toggle-open-text="− Hide Product Form" data-toggle-closed-text="+ Add New Product">+ Add New Product</button>
                   <a href="#sn-admin-products-catalogue-table" class="sn-btn sn-btn-forest sn-btn-sm">📋 Jump to ${products.length}-Product Table &darr;</a>
                 </div>
               </div>
 
-              <!-- 3A. Create New Category + Category Image & Status Manager -->
+              <!-- 3A. Product Categories & On-Demand Create Category Form -->
               <div class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:20px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;">
-                  <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.08rem;color:var(--sn-bg-forest);">1. Product Categories &amp; Category Banner Photos</h3>
-                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-mobile-form-toggle" data-toggle-admin-form="sn-admin-create-category-form">+ New Category Form</button>
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+                  <div>
+                    <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.08rem;color:var(--sn-bg-forest);">1. Product Categories &amp; Category Banner Photos (${categories.length})</h3>
+                    <span style="font-size:0.78rem;color:var(--sn-text-secondary);">Manage storefront category status and banner photos, or expand <strong>+ New Category</strong> to add a new aisle.</span>
+                  </div>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-toggle-admin-form="sn-admin-create-category-form" data-toggle-open-text="− Hide Category Form" data-toggle-closed-text="+ New Category">+ New Category</button>
                 </div>
-                <form id="sn-admin-create-category-form" class="sn-admin-collapsible-form" style="margin-bottom:18px;">
+
+                <form id="sn-admin-create-category-form" class="sn-admin-collapsible-all" style="margin-bottom:18px;padding:14px;background-color:var(--sn-bg-surface);border:1px solid var(--sn-border-warm);border-radius:var(--sn-radius-sm);">
+                  <div style="font-family:var(--sn-font-serif);font-weight:700;font-size:0.95rem;color:var(--sn-bg-forest);margin-bottom:10px;">Create New Storefront Category</div>
                   <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
                     <div>
                       <label style="font-size:0.75rem;font-weight:600;">Category Name *</label>
@@ -2125,7 +2128,6 @@ function renderAdminPortalPage({
                   </div>
                 </form>
 
-                <h4 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1rem;color:var(--sn-bg-forest);">Existing Categories, Publish Status &amp; Category Image Updater</h4>
                 <div class="sn-table-wrap">
                   <table class="sn-table sn-table-cards" id="sn-admin-categories-table">
                     <thead>
@@ -2166,47 +2168,13 @@ function renderAdminPortalPage({
                 </div>
               </div>
 
-              <!-- 3B. Dedicated Product Image Uploader (Primary Photo or Secondary Gallery) -->
-              <form id="sn-admin-image-upload-form" class="sn-card" style="background-color:var(--sn-bg-mortar);margin-bottom:16px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
-                  <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.02rem;">2. Change Product Photo or Add FSSAI Nutrition Label to Gallery</h3>
-                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-mobile-form-toggle" data-toggle-admin-form="sn-admin-image-upload-body">📸 Expand Form</button>
-                </div>
-                <div id="sn-admin-image-upload-body" class="sn-admin-collapsible-form">
-                  <div class="sn-grid-5" style="gap:10px;align-items:end;">
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">Select Product *</label>
-                      <select name="productId" class="sn-select" id="sn-upload-prod-select">
-                        ${products.map(p => `<option value="${p.id}">${escapeHtml(p.sku_base)} - ${escapeHtml(p.name)}</option>`).join('')}
-                      </select>
-                    </div>
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">Photo Target Role *</label>
-                      <select name="setAsPrimary" class="sn-select">
-                        <option value="true" selected>Replace Primary Storefront Photo</option>
-                        <option value="false">Add to Secondary Gallery (Back Label)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">Image File (Magic-Byte Checked) *</label>
-                      <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input sn-file-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.75rem;font-weight:600;">Image Caption</label>
-                      <input type="text" name="caption" value="Front Pack / FSSAI Nutrition Label" class="sn-input" />
-                    </div>
-                    <button type="submit" class="sn-btn sn-btn-forest">Save Product Photo</button>
+              <!-- 3B. On-Demand Add New Product Collapsible Card (Collapsed by Default) -->
+              <div id="sn-admin-create-product-body" class="sn-admin-collapsible-all" style="margin-bottom:18px;">
+                <form id="sn-admin-create-product-form" class="sn-card" style="background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-strong);">
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
+                    <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.05rem;color:var(--sn-bg-forest);">Add New Product (with Auto-Generated 100g, 250g, 500g, 1kg Variants)</h3>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-toggle-admin-form="sn-admin-create-product-body" data-toggle-open-text="− Hide Product Form" data-toggle-closed-text="+ Add New Product">✕ Close</button>
                   </div>
-                </div>
-              </form>
-
-              <!-- 3C. Add New Product (with Initial Product Photo) -->
-              <form id="sn-admin-create-product-form" class="sn-card" style="background-color:var(--sn-bg-parchment);margin-bottom:16px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
-                  <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.05rem;">3. Add New Product (with Auto-Generated 100g, 250g, 500g, 1kg Variants)</h3>
-                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-mobile-form-toggle" data-toggle-admin-form="sn-admin-create-product-body">+ Expand Form</button>
-                </div>
-                <div id="sn-admin-create-product-body" class="sn-admin-collapsible-form">
                   <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
                     <div>
                       <label style="font-size:0.75rem;font-weight:600;">Product Name *</label>
@@ -2249,93 +2217,17 @@ function renderAdminPortalPage({
                     <input type="text" name="shortDescription" required value="Aromatic whole cumin seeds stone-ground in small batches without filler husk." class="sn-input" />
                   </div>
                   <button type="submit" class="sn-btn sn-btn-primary">Create Product &amp; 4 Pack Variants</button>
-                </div>
-              </form>
+                </form>
+              </div>
 
-              <!-- 3D. Edit Existing Product, Prices, Flags & Publish/Deactivate (Section 3.2, 5.1 & 14) -->
-              <form id="sn-admin-edit-product-form" class="sn-card" style="background-color:var(--sn-bg-mortar);margin-bottom:24px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">
-                  <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.05rem;">4. Edit Existing Product Details, Pack Prices, Flags &amp; Publish Status</h3>
-                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-mobile-form-toggle" data-toggle-admin-form="sn-admin-edit-product-body">✏️ Expand Form</button>
-                </div>
-                <div id="sn-admin-edit-product-body" class="sn-admin-collapsible-form">
-                  <div class="sn-grid-5" style="gap:10px;margin-bottom:10px;">
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;">Select Product to Edit *</label>
-                      <select name="productId" class="sn-select" id="sn-edit-prod-select">
-                        ${products.map(p => `<option value="${p.id}">${escapeHtml(p.sku_base)} - ${escapeHtml(p.name)} (${p.is_active ? 'Active' : 'Inactive'})</option>`).join('')}
-                      </select>
-                    </div>
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;">New Product Title (Optional)</label>
-                      <input type="text" name="name" placeholder="Leave blank to keep current title" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;">100g Selling Price (₹)</label>
-                      <input type="number" name="base100gSellInr" min="10" placeholder="e.g. 310" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;">100g MRP (₹)</label>
-                      <input type="number" name="base100gMrpInr" min="10" placeholder="e.g. 360" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;">GST % / HSN</label>
-                      <div style="display:flex;gap:4px;">
-                        <select name="gstPercent" class="sn-select" style="width:72px;">
-                          <option value="">Keep</option>
-                          <option value="5">5%</option>
-                          <option value="12">12%</option>
-                        </select>
-                        <input type="text" name="hsnCode" placeholder="HSN" class="sn-input" style="width:82px;" />
-                      </div>
-                    </div>
-                  </div>
-                  <div class="sn-grid-6" style="gap:10px;align-items:end;">
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;">Updated Short Description (Optional)</label>
-                      <input type="text" name="shortDescription" placeholder="Leave blank to keep current description" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;">Featured Flag</label>
-                      <select name="isFeatured" class="sn-select">
-                        <option value="">Keep Current</option>
-                        <option value="1">Featured: Yes</option>
-                        <option value="0">Featured: No</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;">Bestseller Flag</label>
-                      <select name="isBestseller" class="sn-select">
-                        <option value="">Keep Current</option>
-                        <option value="1">Bestseller: Yes</option>
-                        <option value="0">Bestseller: No</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;">New Harvest Flag</label>
-                      <select name="isNewArrival" class="sn-select">
-                        <option value="">Keep Current</option>
-                        <option value="1">New Harvest: Yes</option>
-                        <option value="0">New Harvest: No</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style="font-size:0.74rem;font-weight:600;">Storefront Status</label>
-                      <select name="isActive" class="sn-select">
-                        <option value="1">Published (Active)</option>
-                        <option value="0">Deactivated (Hidden)</option>
-                      </select>
-                    </div>
-                    <button type="submit" class="sn-btn sn-btn-forest">Save Product Edits</button>
-                  </div>
-                </div>
-              </form>
-
-              <!-- Product Catalogue Filter, Search & Pagination Toolbar -->
+              <!-- 3C. Product Catalogue Filter, Search & Pagination Toolbar -->
               <div class="sn-card" id="sn-admin-products-filter-bar" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:14px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-                  <strong style="font-family:var(--sn-font-serif);font-size:1rem;color:var(--sn-bg-forest);">5. Storefront Product Catalogue (${products.length} Products • ${variants.length} Pack Variants)</strong>
-                  <span id="sn-admin-prod-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);">Showing ${products.length} of ${products.length} Products</span>
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                  <strong style="font-family:var(--sn-font-serif);font-size:1.05rem;color:var(--sn-bg-forest);">2. Storefront Product Catalogue (${products.length} Products • ${variants.length} Pack Variants)</strong>
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span id="sn-admin-prod-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);">Showing ${products.length} of ${products.length} Products</span>
+                    <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" data-toggle-admin-form="sn-admin-create-product-body" data-toggle-open-text="− Hide Product Form" data-toggle-closed-text="+ Add New Product">+ Add New Product</button>
+                  </div>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                   <input type="search" id="sn-admin-prod-search" placeholder="Search Product Name, SKU (SN-DF/ML/SP), HSN, or Region..." class="sn-input" style="flex:1;min-width:185px;" />
@@ -2362,10 +2254,23 @@ function renderAdminPortalPage({
                   <tbody>
                     ${products.map(p => {
                       const pVars = variants.filter(v => v.product_id === p.id);
+                      const v100 = pVars.find(v => Number(v.weight_grams) === 100) || pVars[0] || { selling_price_paise: 14000, mrp_paise: 17000 };
+                      const base100SellInr = Math.round(Number(v100.selling_price_paise || 14000) / 100);
+                      const base100MrpInr = Math.round(Number(v100.mrp_paise || 17000) / 100);
                       return `
                         <tr
                           data-admin-prod-row="${p.id}"
+                          data-prod-id="${p.id}"
+                          data-prod-sku="${escapeHtml(p.sku_base)}"
+                          data-prod-name="${escapeHtml(p.name)}"
                           data-prod-cat-id="${p.category_id}"
+                          data-prod-100g-sell="${base100SellInr}"
+                          data-prod-100g-mrp="${base100MrpInr}"
+                          data-prod-gst="${p.gst_percent}"
+                          data-prod-hsn="${escapeHtml(p.hsn_code || '080290')}"
+                          data-prod-origin="${escapeHtml(p.origin_region || '')}"
+                          data-prod-desc="${escapeHtml(p.short_description || '')}"
+                          data-prod-img="${basePath}${escapeHtml(p.image_url)}"
                           data-prod-active="${p.is_active ? '1' : '0'}"
                           data-prod-bestseller="${p.is_bestseller ? '1' : '0'}"
                           data-prod-featured="${p.is_featured ? '1' : '0'}"
@@ -2420,6 +2325,131 @@ function renderAdminPortalPage({
                 </table>
               </div>
               <div id="sn-admin-products-pagination" class="sn-admin-pagination-bar"></div>
+
+              <!-- 3D. Contextual Product Edit, Pack Pricing, Flags & Gallery Media Modal (Opens on ✏️ Edit Click) -->
+              <div id="sn-admin-edit-product-modal" class="sn-admin-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sn-edit-modal-heading" style="display:none;">
+                <div class="sn-admin-modal-card">
+                  <div class="sn-admin-modal-header">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                      <img id="sn-edit-modal-thumb" src="${basePath}/images/cat-dryfruits.jpg" alt="Product Preview" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
+                      <div>
+                        <span id="sn-edit-modal-sku" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">SN-DF-ALM</span>
+                        <h3 id="sn-edit-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF6EE;">Edit Product Details, Pack Pricing &amp; Media</h3>
+                      </div>
+                    </div>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-prod-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                  </div>
+
+                  <div class="sn-admin-modal-body">
+                    <form id="sn-admin-edit-product-form" style="margin-bottom:18px;">
+                      <input type="hidden" name="productId" id="sn-edit-prod-select" value="${products[0] ? products[0].id : 1}" />
+
+                      <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
+                        <div>
+                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Product Title *</label>
+                          <input type="text" name="name" id="sn-edit-prod-name" required class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">100g Base Selling Price (₹) *</label>
+                          <input type="number" name="base100gSellInr" id="sn-edit-prod-sell" min="10" required class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">100g Base MRP (₹) *</label>
+                          <input type="number" name="base100gMrpInr" id="sn-edit-prod-mrp" min="10" required class="sn-input" />
+                        </div>
+                      </div>
+
+                      <!-- Live 4-Pack Variant Price Preview Bar -->
+                      <div id="sn-edit-prod-pack-preview" style="padding:8px 12px;margin-bottom:12px;background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-warm);border-radius:var(--sn-radius-sm);font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-bg-forest);">
+                        Auto-Scaled Pack Variants: 100 g • 250 g (2.35×) • 500 g (4.45×) • 1 kg (8.50×)
+                      </div>
+
+                      <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
+                        <div>
+                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">GST Slab (%)</label>
+                          <select name="gstPercent" id="sn-edit-prod-gst" class="sn-select">
+                            <option value="5">5% GST (Natural Staples)</option>
+                            <option value="12">12% GST (Processed / Blended)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">HSN Code *</label>
+                          <input type="text" name="hsnCode" id="sn-edit-prod-hsn" required class="sn-input" style="font-family:var(--sn-font-mono);" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Storefront Status</label>
+                          <select name="isActive" id="sn-edit-prod-active" class="sn-select">
+                            <option value="1">Published (Active)</option>
+                            <option value="0">Deactivated (Hidden)</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style="margin-bottom:12px;">
+                        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Short Description (Humanizer-Checked) *</label>
+                        <input type="text" name="shortDescription" id="sn-edit-prod-desc" required class="sn-input" />
+                      </div>
+
+                      <div class="sn-grid-3" style="gap:12px;margin-bottom:16px;">
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Featured Flag</label>
+                          <select name="isFeatured" id="sn-edit-prod-featured" class="sn-select">
+                            <option value="1">Featured: Yes</option>
+                            <option value="0">Featured: No</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Bestseller Flag</label>
+                          <select name="isBestseller" id="sn-edit-prod-bestseller" class="sn-select">
+                            <option value="1">Bestseller: Yes</option>
+                            <option value="0">Bestseller: No</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">New Harvest Flag</label>
+                          <select name="isNewArrival" id="sn-edit-prod-new" class="sn-select">
+                            <option value="1">New Harvest: Yes</option>
+                            <option value="0">New Harvest: No</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
+                        <button type="button" class="sn-btn sn-btn-outline" data-close-prod-modal>Cancel</button>
+                        <button type="submit" class="sn-btn sn-btn-forest">Save Product Edits</button>
+                      </div>
+                    </form>
+
+                    <!-- Integrated Primary Photo & FSSAI Back-Label Gallery Uploader inside the Modal -->
+                    <form id="sn-admin-image-upload-form" style="padding-top:14px;border-top:1px dashed var(--sn-border-strong);">
+                      <input type="hidden" name="productId" id="sn-upload-prod-select" value="${products[0] ? products[0].id : 1}" />
+                      <div style="font-family:var(--sn-font-serif);font-weight:700;font-size:0.95rem;color:var(--sn-bg-forest);margin-bottom:8px;">
+                        📸 Upload Primary Photo or Add FSSAI Nutrition Label to Gallery
+                      </div>
+                      <div class="sn-grid-3" style="gap:10px;align-items:end;">
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:600;display:block;margin-bottom:3px;">Photo Target Role</label>
+                          <select name="setAsPrimary" class="sn-select">
+                            <option value="true" selected>Replace Primary Storefront Photo</option>
+                            <option value="false">Add to Secondary Gallery (Back Label)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:600;display:block;margin-bottom:3px;">Image Caption</label>
+                          <input type="text" name="caption" value="Front Pack / FSSAI Nutrition Label" class="sn-input" />
+                        </div>
+                        <div>
+                          <label style="font-size:0.73rem;font-weight:600;display:block;margin-bottom:3px;">Image File (JPEG/PNG/WebP) *</label>
+                          <div class="sn-admin-file-action-group">
+                            <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input sn-file-input sn-file-input-sm" />
+                            <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Upload</button>
+                          </div>
+                        </div>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Panel 4: Complete Inventory & Stock Movements (All 88 Pack Variants + Low-Stock Threshold Editor) -->

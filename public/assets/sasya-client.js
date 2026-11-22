@@ -900,7 +900,15 @@
         const targetEl = document.getElementById(targetId);
         if (targetEl) {
           const isOpen = targetEl.classList.toggle('sn-open');
-          btn.textContent = isOpen ? '− Hide Form' : '+ Expand Form';
+          document.querySelectorAll(`[data-toggle-admin-form="${targetId}"]`).forEach(b => {
+            if (b.textContent.trim() === '✕ Close') return;
+            const openTxt = b.getAttribute('data-toggle-open-text') || '− Hide Form';
+            const closedTxt = b.getAttribute('data-toggle-closed-text') || '+ Expand Form';
+            b.textContent = isOpen ? openTxt : closedTxt;
+          });
+          if (isOpen && typeof targetEl.scrollIntoView === 'function') {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
         }
       });
     });
@@ -1009,6 +1017,13 @@
       document.querySelectorAll(`[data-product-img-id="${productId}"]`).forEach(img => {
         img.src = imgSrc;
       });
+      const tr = document.querySelector(`[data-admin-prod-row="${productId}"]`);
+      if (tr) tr.setAttribute('data-prod-img', imgSrc);
+      const modalThumb = document.getElementById('sn-edit-modal-thumb');
+      const modalProdId = document.getElementById('sn-edit-prod-select')?.value;
+      if (modalThumb && String(modalProdId) === String(productId)) {
+        modalThumb.src = imgSrc;
+      }
     }
 
     function updateDomCategoryImages(categoryId, imgSrc) {
@@ -1386,25 +1401,103 @@
       });
     }
 
-    // 4D. Quick "✏️ Edit" Product Loader in Tab 3 Catalogue Table
+    // 4D. Contextual Product Edit & Media Modal Controller (Opens on "✏️ Edit" in Tab 3 Table)
+    const editProdModal = document.getElementById('sn-admin-edit-product-modal');
+    const editSellInput = document.getElementById('sn-edit-prod-sell');
+    const editMrpInput = document.getElementById('sn-edit-prod-mrp');
+    const editPackPreview = document.getElementById('sn-edit-prod-pack-preview');
+
+    function updateEditModalPackPreview() {
+      if (!editPackPreview) return;
+      const baseSell = Math.max(10, Number(editSellInput ? editSellInput.value : 140) || 140);
+      const baseMrp = Math.max(baseSell, Number(editMrpInput ? editMrpInput.value : baseSell + 30) || (baseSell + 30));
+      const p100 = Math.round(baseSell);
+      const p250 = Math.round(baseSell * 2.35);
+      const p500 = Math.round(baseSell * 4.45);
+      const p1000 = Math.round(baseSell * 8.5);
+      editPackPreview.innerHTML = `<strong>Auto-Scaled 4-Pack Prices:</strong> 100 g: <strong>₹${p100}</strong> (MRP ₹${Math.round(baseMrp)}) &bull; 250 g: <strong>₹${p250}</strong> &bull; 500 g: <strong>₹${p500}</strong> &bull; 1 kg: <strong>₹${p1000}</strong>`;
+    }
+
+    if (editSellInput) editSellInput.addEventListener('input', updateEditModalPackPreview);
+    if (editMrpInput) editMrpInput.addEventListener('input', updateEditModalPackPreview);
+
+    function closeEditProductModal() {
+      if (editProdModal) {
+        editProdModal.style.display = 'none';
+      }
+    }
+
+    document.querySelectorAll('[data-close-prod-modal]').forEach(btn => {
+      btn.addEventListener('click', closeEditProductModal);
+    });
+
+    if (editProdModal) {
+      editProdModal.addEventListener('click', (e) => {
+        if (e.target === editProdModal) closeEditProductModal();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && editProdModal && editProdModal.style.display !== 'none') {
+        closeEditProductModal();
+      }
+    });
+
     document.querySelectorAll('[data-load-prod-editor]').forEach(btn => {
       btn.addEventListener('click', () => {
         const prodId = btn.getAttribute('data-load-prod-editor');
+        const tr = document.querySelector(`[data-admin-prod-row="${prodId}"]`);
+
         const selectEl = document.getElementById('sn-edit-prod-select');
-        if (selectEl && prodId) {
-          selectEl.value = prodId;
+        if (selectEl && prodId) selectEl.value = prodId;
+        const uploadSelectEl = document.getElementById('sn-upload-prod-select');
+        if (uploadSelectEl && prodId) uploadSelectEl.value = prodId;
+
+        if (tr) {
+          const sku = tr.getAttribute('data-prod-sku') || '';
+          const name = tr.getAttribute('data-prod-name') || '';
+          const sell100 = tr.getAttribute('data-prod-100g-sell') || '140';
+          const mrp100 = tr.getAttribute('data-prod-100g-mrp') || '170';
+          const gst = tr.getAttribute('data-prod-gst') || '5';
+          const hsn = tr.getAttribute('data-prod-hsn') || '080290';
+          const desc = tr.getAttribute('data-prod-desc') || '';
+          const img = tr.getAttribute('data-prod-img') || '';
+          const isActive = tr.getAttribute('data-prod-active') || '1';
+          const isFeatured = tr.getAttribute('data-prod-featured') || '0';
+          const isBestseller = tr.getAttribute('data-prod-bestseller') || '0';
+          const isNew = tr.getAttribute('data-prod-new') || '0';
+
+          const thumbEl = document.getElementById('sn-edit-modal-thumb');
+          const skuEl = document.getElementById('sn-edit-modal-sku');
+          const headingEl = document.getElementById('sn-edit-modal-heading');
+          const nameInput = document.getElementById('sn-edit-prod-name');
+          const gstSelect = document.getElementById('sn-edit-prod-gst');
+          const hsnInput = document.getElementById('sn-edit-prod-hsn');
+          const descInput = document.getElementById('sn-edit-prod-desc');
+          const activeSelect = document.getElementById('sn-edit-prod-active');
+          const featSelect = document.getElementById('sn-edit-prod-featured');
+          const bestSelect = document.getElementById('sn-edit-prod-bestseller');
+          const newSelect = document.getElementById('sn-edit-prod-new');
+
+          if (thumbEl && img) thumbEl.src = img;
+          if (skuEl) skuEl.textContent = `${sku} • Product #${prodId} • HSN ${hsn}`;
+          if (headingEl) headingEl.textContent = `Edit ${name}`;
+          if (nameInput) nameInput.value = name;
+          if (editSellInput) editSellInput.value = sell100;
+          if (editMrpInput) editMrpInput.value = mrp100;
+          if (gstSelect) gstSelect.value = gst;
+          if (hsnInput) hsnInput.value = hsn;
+          if (descInput) descInput.value = desc;
+          if (activeSelect) activeSelect.value = isActive;
+          if (featSelect) featSelect.value = isFeatured;
+          if (bestSelect) bestSelect.value = isBestseller;
+          if (newSelect) newSelect.value = isNew;
+          updateEditModalPackPreview();
         }
-        const editFormEl = document.getElementById('sn-admin-edit-product-form');
-        const editBodyEl = document.getElementById('sn-admin-edit-product-body');
-        if (editBodyEl) {
-          editBodyEl.classList.add('sn-open');
-          const toggleBtn = document.querySelector('[data-toggle-admin-form="sn-admin-edit-product-body"]');
-          if (toggleBtn) toggleBtn.textContent = '− Hide Form';
+
+        if (editProdModal) {
+          editProdModal.style.display = 'flex';
         }
-        if (editFormEl && typeof editFormEl.scrollIntoView === 'function') {
-          editFormEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-        showToast(`Loaded Product #${prodId} into Quick-Edit Form`);
       });
     });
 
@@ -1712,7 +1805,8 @@
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can edit products.');
             return;
           }
-          showToast(`[Showcase Verified] Updated product #${payload.productId} settings & pack prices!`);
+          closeEditProductModal();
+          showToast(`[Showcase Verified] Updated product #${payload.productId} ("${payload.name}") & pack prices!`);
           return;
         }
         const res = await fetch('/api/admin/products/update', {
@@ -1728,8 +1822,9 @@
           showToast(data.error || 'Product update failed');
           return;
         }
+        closeEditProductModal();
         showToast(`Updated product "${data.name}"!`);
-        setTimeout(() => window.location.reload(), 700);
+        setTimeout(() => window.location.reload(), 600);
       });
     }
 

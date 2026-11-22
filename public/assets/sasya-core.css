@@ -1915,6 +1915,57 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
   display: none;
 }
 
+.sn-admin-collapsible-all {
+  display: none;
+}
+
+.sn-admin-collapsible-all.sn-open {
+  display: block;
+}
+
+.sn-admin-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 210;
+  background-color: rgba(20, 35, 25, 0.62);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.sn-admin-modal-card {
+  width: 100%;
+  max-width: 780px;
+  max-height: calc(100vh - 32px);
+  background-color: var(--sn-bg-surface);
+  border: 1px solid var(--sn-border-strong);
+  border-radius: var(--sn-radius-md);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sn-admin-modal-header {
+  padding: 14px 20px;
+  background-color: var(--sn-bg-forest);
+  color: #FAF6EE;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.sn-admin-modal-body {
+  padding: 18px 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
 @media print {
   body {
     background: #FFFFFF !important;
@@ -1924,7 +1975,8 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
   .sn-footer,
   .sn-no-print,
   .sn-toast,
-  .sn-drawer-backdrop {
+  .sn-drawer-backdrop,
+  .sn-admin-modal-backdrop {
     display: none !important;
   }
   .sn-section {
@@ -1935,4 +1987,5 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
     border: 1px solid #CCCCCC !important;
   }
 }
+
 
