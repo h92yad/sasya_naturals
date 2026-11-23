@@ -33,9 +33,10 @@ function getDynamicShippingCopy() {
     const pol = getShippingPolicyFromDb();
     const threshInr = Math.round(pol.freeThresholdPaise / 100);
     if (pol.freeMode === 'DISABLED') {
+      const zoneABaseInr = Math.round(((pol.zones && pol.zones.ZONE_A && pol.zones.ZONE_A.base500gPaise) || 4000) / 100);
       return {
-        topbarHtml: `Pan-India 4-Zone + 500g Weight-Slab Delivery (from ₹${Math.round(pol.zoneA.base500gPaise / 100)}) | Use code <strong>SASYA10</strong> for 10% off`,
-        pdpShortText: `4-Zone Weight-Slab Delivery (from ₹${Math.round(pol.zoneA.base500gPaise / 100)} / 500g)`
+        topbarHtml: `Pan-India 4-Zone + 500g Weight-Slab Delivery (from ₹${zoneABaseInr}) | Use code <strong>SASYA10</strong> for 10% off`,
+        pdpShortText: `4-Zone Weight-Slab Delivery (from ₹${zoneABaseInr} / 500g)`
       };
     }
     if (pol.freeMode === 'UNCONDITIONAL_THRESHOLD') {
@@ -1695,7 +1696,7 @@ function renderAdminPortalPage({
     .filter(o => o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED')
     .reduce((acc, o) => acc + o.total_paise, 0);
   const codPendingPaise = orders
-    .filter(o => o.payment_status === 'COD_PENDING')
+    .filter(o => o.payment_status === 'COD_PENDING' && o.fulfilment_status !== 'Cancelled')
     .reduce((acc, o) => acc + o.total_paise, 0);
   const refundedPaise = orders
     .filter(o => o.payment_status === 'REFUNDED')
@@ -1772,13 +1773,16 @@ function renderAdminPortalPage({
     const oItems = orderItems.filter(it => Number(it.order_id) === Number(ord.id));
     const ordPacks = oItems.reduce((acc, it) => acc + Number(it.quantity || 0), 0);
     existing.orderNumbers.push(ord.order_number);
-    existing.totalPacksBought += ordPacks;
+    const isCancelledOrReversed = ord.payment_status === 'REFUNDED' || ord.payment_status === 'FAILED' || ord.fulfilment_status === 'Cancelled';
+    if (!isCancelledOrReversed) {
+      existing.totalPacksBought += ordPacks;
+      existing.totalSpendPaise += Number(ord.total_paise || 0);
+    }
     if (ord.payment_status === 'PAID' || ord.payment_status === 'COD_COLLECTED') {
       existing.settledSpendPaise += Number(ord.total_paise || 0);
-    } else if (ord.payment_status === 'COD_PENDING') {
+    } else if (ord.payment_status === 'COD_PENDING' && ord.fulfilment_status !== 'Cancelled') {
       existing.codPendingPaise += Number(ord.total_paise || 0);
     }
-    existing.totalSpendPaise += Number(ord.total_paise || 0);
     const ordDate = (ord.created_at || '').slice(0, 10);
     if (existing.lastOrderDate === 'No orders yet' || ordDate > existing.lastOrderDate) {
       existing.lastOrderDate = ordDate;
@@ -2016,7 +2020,7 @@ function renderAdminPortalPage({
                     <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-order-queue-pill="needs_dispatch">⚡ Needs Dispatch (${orders.filter(o => ['Pending Payment', 'Confirmed', 'Processing', 'Packed'].includes(o.fulfilment_status)).length})</button>
                     <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-order-queue-pill="shipped">🚚 Shipped (${orders.filter(o => o.fulfilment_status === 'Shipped').length})</button>
                     <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-order-queue-pill="delivered">✓ Delivered (${orders.filter(o => o.fulfilment_status === 'Delivered').length})</button>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-order-queue-pill="cod_pending">💵 COD Pending (${orders.filter(o => o.payment_status === 'COD_PENDING').length})</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-order-queue-pill="cod_pending">💵 COD Pending (${orders.filter(o => o.payment_status === 'COD_PENDING' && o.fulfilment_status !== 'Cancelled').length})</button>
                   </div>
                   <span id="sn-admin-orders-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);">Showing ${orders.length} of ${orders.length} Orders</span>
                 </div>
@@ -2025,9 +2029,11 @@ function renderAdminPortalPage({
                   <select id="sn-admin-orders-payment-filter" class="sn-select" style="width:auto;min-width:165px;">
                     <option value="all">Payment: All Statuses</option>
                     <option value="PAID">PAID (Verified Prepaid)</option>
+                    <option value="PENDING_PAYMENT">PENDING_PAYMENT (Awaiting Transfer)</option>
                     <option value="COD_PENDING">COD_PENDING (Uncollected)</option>
                     <option value="COD_COLLECTED">COD_COLLECTED</option>
                     <option value="REFUNDED">REFUNDED</option>
+                    <option value="FAILED">FAILED</option>
                   </select>
                 </div>
               </div>
@@ -2702,7 +2708,7 @@ function renderAdminPortalPage({
                 <div class="sn-admin-modal-card">
                   <div class="sn-admin-modal-header">
                     <div style="display:flex;align-items:center;gap:12px;">
-                      <img id="sn-edit-modal-thumb" src="${basePath}/images/cat-dryfruits.jpg" alt="Product Preview" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
+                      <img id="sn-edit-modal-thumb" src="${basePath}/images/cat-dry-fruits.jpg" alt="Product Preview" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
                       <div>
                         <span id="sn-edit-modal-sku" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">SN-DF-ALM</span>
                         <h3 id="sn-edit-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF6EE;">Edit Product Details, Category, Pack Pricing &amp; Media</h3>
@@ -2837,7 +2843,7 @@ function renderAdminPortalPage({
                 <div class="sn-admin-modal-card" style="max-width:660px;">
                   <div class="sn-admin-modal-header">
                     <div style="display:flex;align-items:center;gap:12px;">
-                      <img id="sn-edit-cat-modal-thumb" src="${basePath}/images/cat-dryfruits.jpg" alt="Category Banner Preview" style="width:60px;height:42px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
+                      <img id="sn-edit-cat-modal-thumb" src="${basePath}/images/cat-dry-fruits.jpg" alt="Category Banner Preview" style="width:60px;height:42px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
                       <div>
                         <span id="sn-edit-cat-modal-slug" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">/category/dry-fruits</span>
                         <h3 id="sn-edit-cat-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF6EE;">Edit Category Details &amp; Banner Photo</h3>
@@ -2926,21 +2932,26 @@ function renderAdminPortalPage({
                 <div class="sn-table-wrap">
                   <table class="sn-table sn-table-cards" id="sn-admin-inventory-table">
                     <thead>
-                      <tr><th>Variant SKU</th><th>Pack Size</th><th>Selling Price</th><th>MRP</th><th>Current Stock</th><th>Alert Threshold</th><th>Update Stock &amp; Threshold</th></tr>
+                      <tr><th>Variant SKU</th><th>Product</th><th>Pack Size</th><th>Selling Price</th><th>MRP</th><th>Current Stock</th><th>Alert Threshold</th><th>Update Stock &amp; Threshold</th></tr>
                     </thead>
                     <tbody>
-                      ${variants.map(v => `
+                      ${variants.map(v => {
+                        const parentProd = products.find(p => Number(p.id) === Number(v.product_id));
+                        const prodName = parentProd ? parentProd.name : `Product #${v.product_id}`;
+                        return `
                         <tr
-                          data-inv-sku="${escapeHtml(v.sku.toLowerCase())}"
+                          data-inv-variant-row="${v.id}"
+                          data-inv-sku="${escapeHtml((v.sku + ' ' + prodName).toLowerCase())}"
                           data-inv-pack="${escapeHtml(v.pack_label)}"
                           data-inv-low="${v.stock_qty <= v.low_stock_threshold ? '1' : '0'}"
                         >
                           <td data-label="Variant SKU" style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-bg-forest);">${escapeHtml(v.sku)}</td>
+                          <td data-label="Product" style="font-size:0.82rem;font-weight:600;">${escapeHtml(prodName)}</td>
                           <td data-label="Pack Size" style="font-family:var(--sn-font-mono);">${escapeHtml(v.pack_label)}</td>
                           <td data-label="Selling Price" style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(v.selling_price_paise)}</td>
                           <td data-label="MRP" style="font-family:var(--sn-font-mono);color:var(--sn-text-muted);">${formatInr(v.mrp_paise)}</td>
-                          <td data-label="Current Stock"><span class="sn-status ${v.stock_qty <= v.low_stock_threshold ? 'sn-status-danger' : 'sn-status-paid'}">${v.stock_qty} packs</span></td>
-                          <td data-label="Alert Threshold" style="font-family:var(--sn-font-mono);">&le; ${v.low_stock_threshold} packs</td>
+                          <td data-label="Current Stock"><span class="sn-status ${v.stock_qty <= v.low_stock_threshold ? 'sn-status-danger' : 'sn-status-paid'}" data-inv-stock-badge="${v.id}">${v.stock_qty} packs</span></td>
+                          <td data-label="Alert Threshold" style="font-family:var(--sn-font-mono);" data-inv-threshold-cell="${v.id}">&le; ${v.low_stock_threshold} packs</td>
                           <td data-label="Update Stock &amp; Min Alert">
                             <form class="sn-admin-stock-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                               <input type="hidden" name="variantId" value="${v.id}" />
@@ -2950,7 +2961,8 @@ function renderAdminPortalPage({
                             </form>
                           </td>
                         </tr>
-                      `).join('')}
+                      `;
+                      }).join('')}
                     </tbody>
                   </table>
                 </div>
@@ -2963,19 +2975,23 @@ function renderAdminPortalPage({
                 <div class="sn-table-wrap">
                   <table class="sn-table" id="sn-admin-movements-table">
                     <thead>
-                      <tr><th>Timestamp</th><th>Variant ID</th><th>Delta</th><th>Prev -> New</th><th>Reason</th><th>Reference</th></tr>
+                      <tr><th>Timestamp</th><th>Variant SKU &amp; ID</th><th>Delta</th><th>Prev -&gt; New</th><th>Reason</th><th>Reference</th></tr>
                     </thead>
                     <tbody>
-                      ${movements.map(m => `
+                      ${movements.map(m => {
+                        const mvVar = variants.find(v => Number(v.id) === Number(m.variant_id));
+                        const skuLabel = mvVar ? `${mvVar.sku} (${mvVar.pack_label})` : `Variant #${m.variant_id}`;
+                        return `
                         <tr>
                           <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">${escapeHtml(m.created_at)}</td>
-                          <td style="font-family:var(--sn-font-mono);">#${m.variant_id}</td>
+                          <td style="font-family:var(--sn-font-mono);"><strong>${escapeHtml(skuLabel)}</strong> <span style="color:var(--sn-text-muted);font-size:0.72rem;">#${m.variant_id}</span></td>
                           <td style="font-family:var(--sn-font-mono);color:${m.delta_qty < 0 ? 'var(--sn-status-danger)' : 'var(--sn-status-paid)'};">${m.delta_qty > 0 ? '+' + m.delta_qty : m.delta_qty}</td>
-                          <td style="font-family:var(--sn-font-mono);">${m.previous_qty} -> ${m.new_qty}</td>
+                          <td style="font-family:var(--sn-font-mono);">${m.previous_qty} -&gt; ${m.new_qty}</td>
                           <td>${escapeHtml(m.reason)}</td>
                           <td style="font-family:var(--sn-font-mono);">${escapeHtml(m.reference_id)}</td>
                         </tr>
-                      `).join('')}
+                      `;
+                      }).join('')}
                     </tbody>
                   </table>
                 </div>
@@ -3024,9 +3040,10 @@ function renderAdminPortalPage({
                               ${pay.status === 'COD_PENDING' ? `
                                 <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-payment-action="MARK_COD_COLLECTED" data-order-number="${escapeHtml(pay.order_number)}">Mark COD Collected</button>
                               ` : ''}
-                              ${pay.status !== 'REFUNDED' ? `
+                              ${(pay.status === 'PAID' || pay.status === 'COD_COLLECTED') ? `
                                 <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-payment-action="RECORD_REFUND" data-order-number="${escapeHtml(pay.order_number)}">Record Refund</button>
-                              ` : `<span style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);">Refunded (${formatInr(pay.refund_amount_paise || pay.amount_paise)})</span>`}
+                              ` : ''}
+                              ${pay.status === 'REFUNDED' ? `<span style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);">Refunded (${formatInr(pay.refund_amount_paise || pay.amount_paise)})</span>` : ''}
                             </div>
                           </td>
                         </tr>

@@ -43,6 +43,15 @@
     updateCartBadges();
   }
 
+  function escapeHtmlClient(str) {
+    return String(str ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function showToast(msg, options = {}) {
     const toast = document.getElementById('sn-toast');
     if (!toast) return;
@@ -907,8 +916,18 @@
     }
 
     function activateAdminModule(target, { toggleIfAlreadyActive = false } = {}) {
+      if (!target) return;
       const targetBtn = document.querySelector(`[data-admin-tab-btn="${target}"]`);
       const wasAlreadyActive = targetBtn ? targetBtn.classList.contains('sn-active') : false;
+
+      try {
+        sessionStorage.setItem('sn_admin_active_module', target);
+        if (!wasAlreadyActive) {
+          sessionStorage.removeItem('sn_admin_active_subtab');
+        }
+      } catch {
+        // ignore storage errors
+      }
 
       document.querySelectorAll('[data-admin-tab-btn]').forEach(b => {
         const isMatch = b.getAttribute('data-admin-tab-btn') === target;
@@ -948,6 +967,13 @@
       const [moduleKey] = subtabKey.split(':');
       activateAdminModule(moduleKey, { toggleIfAlreadyActive: false });
 
+      try {
+        sessionStorage.setItem('sn_admin_active_module', moduleKey);
+        sessionStorage.setItem('sn_admin_active_subtab', subtabKey);
+      } catch {
+        // ignore storage errors
+      }
+
       document.querySelectorAll(`[data-admin-subpanel^="${moduleKey}:"]`).forEach(subPanel => {
         subPanel.style.display = subPanel.getAttribute('data-admin-subpanel') === subtabKey ? 'block' : 'none';
       });
@@ -978,6 +1004,19 @@
         activateAdminSubTab(subBtn.getAttribute('data-admin-subtab-link'));
       });
     });
+
+    // Restore previously active Admin Module & Sub-Tab after reloads
+    try {
+      const savedSubtab = sessionStorage.getItem('sn_admin_active_subtab');
+      const savedMod = sessionStorage.getItem('sn_admin_active_module');
+      if (savedSubtab && document.querySelector(`[data-admin-subpanel="${savedSubtab}"]`)) {
+        activateAdminSubTab(savedSubtab);
+      } else if (savedMod && document.querySelector(`[data-admin-panel="${savedMod}"]`)) {
+        activateAdminModule(savedMod, { toggleIfAlreadyActive: false });
+      }
+    } catch {
+      // ignore storage errors
+    }
 
     document.querySelectorAll('[data-toggle-admin-form]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1356,9 +1395,9 @@
           const displayEl = document.querySelector(`[data-order-address-display="${payload.orderNumber}"]`);
           if (displayEl) {
             displayEl.innerHTML = `
-              <strong>${payload.customerName}</strong> • <span style="font-family:var(--sn-font-mono);">${payload.customerPhone}</span><br/>
-              ${payload.shippingLine1}${payload.shippingLine2 ? ', ' + payload.shippingLine2 : ''}<br/>
-              <strong>${payload.shippingCity}, ${payload.shippingState} - <span style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${payload.shippingPincode}</span></strong>
+              <strong>${escapeHtmlClient(payload.customerName)}</strong> • <span style="font-family:var(--sn-font-mono);">${escapeHtmlClient(payload.customerPhone)}</span><br/>
+              ${escapeHtmlClient(payload.shippingLine1)}${payload.shippingLine2 ? ', ' + escapeHtmlClient(payload.shippingLine2) : ''}<br/>
+              <strong>${escapeHtmlClient(payload.shippingCity)}, ${escapeHtmlClient(payload.shippingState)} - <span style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${escapeHtmlClient(payload.shippingPincode)}</span></strong>
             `;
           }
           form.style.display = 'none';
@@ -1388,13 +1427,35 @@
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const fd = new FormData(form);
+        const variantId = Number(fd.get('variantId'));
+        const newStockQty = Number(fd.get('newStockQty'));
+        const lowStockThreshold = Number(fd.get('lowStockThreshold') || 10);
+
+        const updateRowInPlace = (qtyVal, threshVal) => {
+          const badgeEl = document.querySelector(`[data-inv-stock-badge="${variantId}"]`);
+          const threshEl = document.querySelector(`[data-inv-threshold-cell="${variantId}"]`);
+          const rowEl = document.querySelector(`[data-inv-variant-row="${variantId}"]`);
+          const isLow = qtyVal <= threshVal;
+          if (badgeEl) {
+            badgeEl.textContent = `${qtyVal} packs`;
+            badgeEl.className = `sn-status ${isLow ? 'sn-status-danger' : 'sn-status-paid'}`;
+          }
+          if (threshEl) {
+            threshEl.innerHTML = `&le; ${threshVal} packs`;
+          }
+          if (rowEl) {
+            rowEl.setAttribute('data-inv-low', isLow ? '1' : '0');
+          }
+        };
+
         if (IS_STATIC_SHOWCASE) {
           const email = getActiveAdminEmail();
           if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
             showToast(`RBAC Permission Denied: ${email} cannot modify inventory.`);
             return;
           }
-          showToast(`[Showcase RBAC Verified] Updated stock & threshold for variant #${fd.get('variantId')}`);
+          updateRowInPlace(newStockQty, lowStockThreshold);
+          showToast(`[Showcase RBAC Verified] Updated stock & threshold for variant #${variantId}`);
           return;
         }
 
@@ -1405,9 +1466,9 @@
             'x-admin-email': getActiveAdminEmail()
           },
           body: JSON.stringify({
-            variantId: Number(fd.get('variantId')),
-            newStockQty: Number(fd.get('newStockQty')),
-            lowStockThreshold: Number(fd.get('lowStockThreshold') || 10),
+            variantId,
+            newStockQty,
+            lowStockThreshold,
             reason: fd.get('reason') || 'ADMIN_STOCK_UPDATE'
           })
         });
@@ -1416,8 +1477,8 @@
           showToast(data.error || 'RBAC denied');
           return;
         }
-        showToast(`Stock & threshold updated for variant #${fd.get('variantId')}`);
-        setTimeout(() => window.location.reload(), 600);
+        updateRowInPlace(Number(data.newStockQty ?? newStockQty), Number(data.lowStockThreshold ?? lowStockThreshold));
+        showToast(`Stock & threshold updated for variant #${variantId} (${data.newStockQty ?? newStockQty} packs)`);
       });
     });
 
@@ -1538,16 +1599,23 @@
             })
           });
           const data = await res.json();
+          if (!res.ok && data && data.error) {
+            createOrderLivePreview.innerHTML = `<div style="color:var(--sn-status-danger);font-weight:700;">⚠️ ${escapeHtmlClient(data.error)}</div>`;
+            return;
+          }
           if (res.ok && data.pricing) {
             const p = data.pricing;
             const taxLabel = p.taxSupplyType === 'IGST'
               ? `Inter-State IGST: ${formatInr(p.igstPaise)}`
               : `Intra-State CGST: ${formatInr(p.cgstPaise)} + SGST: ${formatInr(p.sgstPaise)}`;
+            const couponNoticeHtml = p.couponMessage
+              ? `<br/><span style="font-size:0.75rem;color:${p.discountPaise > 0 ? 'var(--sn-status-paid)' : 'var(--sn-accent-terracotta)'};font-weight:600;">${escapeHtmlClient(p.couponMessage)}</span>`
+              : '';
             createOrderLivePreview.innerHTML = `
               <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;">
                 <div>
-                  <strong>Live GST Tax Invoice Preview (${p.shippingZoneLabel || p.shippingZone})</strong><br/>
-                  <span>Subtotal: ${formatInr(p.subtotalPaise)}${p.discountPaise > 0 ? ` • Discount (${p.appliedCoupon}): -${formatInr(p.discountPaise)}` : ''}</span><br/>
+                  <strong>Live GST Tax Invoice Preview (${escapeHtmlClient(p.shippingZoneLabel || p.shippingZone)})</strong><br/>
+                  <span>Subtotal: ${formatInr(p.subtotalPaise)}${p.discountPaise > 0 ? ` • Discount (${escapeHtmlClient(p.appliedCoupon)}): -${formatInr(p.discountPaise)}` : ''}</span>${couponNoticeHtml}<br/>
                   <span>Inclusive GST: ${formatInr(p.gstPaise)} (${taxLabel})</span><br/>
                   <span>Shipping (${p.grossWeightGrams}g / ${p.billable500gSlabs} slabs${p.codFeePaise > 0 ? ' + COD Fee' : ''}): ${formatInr(p.shippingPaise)}</span>
                 </div>
@@ -1633,10 +1701,15 @@
     }
 
     const customerPresetSelect = document.getElementById('sn-admin-order-customer-preset');
+    const ordEmailInput = document.getElementById('sn-admin-ord-email');
     if (customerPresetSelect) {
       customerPresetSelect.addEventListener('change', () => {
         const opt = customerPresetSelect.options[customerPresetSelect.selectedIndex];
-        if (!opt || !opt.value) return;
+        if (!opt || !opt.value) {
+          const uidEl = document.getElementById('sn-admin-ord-user-id');
+          if (uidEl) uidEl.value = '';
+          return;
+        }
         const setVal = (id, attr) => {
           const el = document.getElementById(id);
           if (el) el.value = opt.getAttribute(attr) || '';
@@ -1651,6 +1724,15 @@
         setVal('sn-admin-ord-state', 'data-state');
         setVal('sn-admin-ord-pincode', 'data-pincode');
         recalculateAdminManualOrderPreview();
+      });
+    }
+    if (ordEmailInput) {
+      ordEmailInput.addEventListener('input', () => {
+        const uidEl = document.getElementById('sn-admin-ord-user-id');
+        if (customerPresetSelect && customerPresetSelect.value && customerPresetSelect.value.toLowerCase() !== ordEmailInput.value.trim().toLowerCase()) {
+          if (uidEl) uidEl.value = '';
+          customerPresetSelect.value = '';
+        }
       });
     }
 
@@ -1772,16 +1854,16 @@
           newCard.innerHTML = `
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:210px;">
-                <strong style="font-family:var(--sn-font-mono);font-size:1rem;color:var(--sn-bg-forest);">${data.orderNumber}</strong>
-                <span style="font-size:0.84rem;font-weight:600;color:var(--sn-text-primary);">${payload.customerName}</span>
-                <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-secondary);">(${payload.shippingCity} - ${payload.shippingPincode})</span>
+                <strong style="font-family:var(--sn-font-mono);font-size:1rem;color:var(--sn-bg-forest);">${escapeHtmlClient(data.orderNumber)}</strong>
+                <span style="font-size:0.84rem;font-weight:600;color:var(--sn-text-primary);">${escapeHtmlClient(payload.customerName)}</span>
+                <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-secondary);">(${escapeHtmlClient(payload.shippingCity)} - ${escapeHtmlClient(payload.shippingPincode)})</span>
                 <span class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.7rem;">NEW MANUAL ORDER</span>
               </div>
               <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                <span class="sn-status ${data.paymentStatus === 'PAID' || data.paymentStatus === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${data.paymentStatus}</span>
-                <span class="sn-status sn-status-warn">${data.fulfilmentStatus}</span>
+                <span class="sn-status ${data.paymentStatus === 'PAID' || data.paymentStatus === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtmlClient(data.paymentStatus)}</span>
+                <span class="sn-status sn-status-warn">${escapeHtmlClient(data.fulfilmentStatus)}</span>
                 <strong style="font-family:var(--sn-font-mono);font-size:0.98rem;color:var(--sn-bg-forest);">${formatInr(data.pricing.totalPaise)}</strong>
-                <a href="${invoiceHref}" target="_blank" rel="noopener" class="sn-btn sn-btn-forest sn-btn-sm">🧾 GST Invoice</a>
+                <a href="${escapeHtmlClient(invoiceHref)}" target="_blank" rel="noopener" class="sn-btn sn-btn-forest sn-btn-sm">🧾 GST Invoice</a>
               </div>
             </div>
           `;
@@ -1851,6 +1933,11 @@
         if (editProdModal && editProdModal.style.display !== 'none') closeEditProductModal();
         if (editCatModal && editCatModal.style.display !== 'none') closeEditCategoryModal();
         if (createOrderModal && createOrderModal.style.display !== 'none') closeCreateOrderModal();
+        const upModal = document.getElementById('sn-admin-user-purchases-modal');
+        if (upModal && upModal.style.display !== 'none') {
+          upModal.style.display = 'none';
+          document.body.style.overflow = '';
+        }
       }
     });
 
@@ -2741,7 +2828,7 @@
         const ordersHtml = (userObj.detailedOrders || []).map(ord => {
           const itemsRows = (ord.items || []).map(it => `
             <div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px dotted var(--sn-border-warm);font-size:0.82rem;">
-              <span><strong style="font-family:var(--sn-font-mono);">${it.sku}</strong> • ${it.product_name} (<strong>${it.pack_label} &times; ${it.quantity}</strong>)</span>
+              <span><strong style="font-family:var(--sn-font-mono);">${escapeHtmlClient(it.sku)}</strong> • ${escapeHtmlClient(it.product_name)} (<strong>${escapeHtmlClient(it.pack_label)} &times; ${Number(it.quantity || 0)}</strong>)</span>
               <span style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(it.line_total_paise)}</span>
             </div>
           `).join('');
@@ -2749,12 +2836,12 @@
             <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:10px;">
               <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--sn-border-warm);">
                 <div>
-                  <strong style="font-family:var(--sn-font-mono);font-size:0.96rem;color:var(--sn-bg-forest);">${ord.orderNumber}</strong>
-                  <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);margin-left:6px;">${ord.orderDate} • ${ord.shippingCity}, ${ord.shippingState} - ${ord.shippingPincode}</span>
+                  <strong style="font-family:var(--sn-font-mono);font-size:0.96rem;color:var(--sn-bg-forest);">${escapeHtmlClient(ord.orderNumber)}</strong>
+                  <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);margin-left:6px;">${escapeHtmlClient(ord.orderDate)} • ${escapeHtmlClient(ord.shippingCity)}, ${escapeHtmlClient(ord.shippingState)} - ${escapeHtmlClient(ord.shippingPincode)}</span>
                 </div>
                 <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                  <span class="sn-status ${ord.paymentStatus === 'PAID' || ord.paymentStatus === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${ord.paymentStatus}</span>
-                  <span class="sn-status sn-status-paid">${ord.fulfilmentStatus}</span>
+                  <span class="sn-status ${ord.paymentStatus === 'PAID' || ord.paymentStatus === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtmlClient(ord.paymentStatus)}</span>
+                  <span class="sn-status sn-status-paid">${escapeHtmlClient(ord.fulfilmentStatus)}</span>
                   <strong style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${formatInr(ord.totalPaise)}</strong>
                   <a href="${BASE_PATH}/orders/${encodeURIComponent(ord.orderNumber)}/invoice" target="_blank" rel="noopener" class="sn-btn sn-btn-forest sn-btn-sm">🧾 GST Invoice</a>
                 </div>
@@ -2768,7 +2855,7 @@
           <div class="sn-grid-3" style="gap:10px;margin-bottom:14px;">
             <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-mortar);">
               <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">TOTAL ORDERS &amp; PACKS</div>
-              <strong style="font-family:var(--sn-font-mono);font-size:1.05rem;color:var(--sn-bg-forest);">${(userObj.orderNumbers || []).length} Orders (${userObj.totalPacksBought || 0} Packs)</strong>
+              <strong style="font-family:var(--sn-font-mono);font-size:1.05rem;color:var(--sn-bg-forest);">${(userObj.orderNumbers || []).length} Orders (${Number(userObj.totalPacksBought || 0)} Packs)</strong>
             </div>
             <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-mortar);">
               <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">SETTLED SPEND</div>
@@ -2776,7 +2863,7 @@
             </div>
             <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-mortar);">
               <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">DEFAULT LOCATION</div>
-              <strong style="font-size:0.86rem;color:var(--sn-bg-forest);">${userObj.defaultCity}, ${userObj.defaultState} - ${userObj.defaultPincode}</strong>
+              <strong style="font-size:0.86rem;color:var(--sn-bg-forest);">${escapeHtmlClient(userObj.defaultCity)}, ${escapeHtmlClient(userObj.defaultState)} - ${escapeHtmlClient(userObj.defaultPincode)}</strong>
             </div>
           </div>
           ${ordersHtml || '<p>No orders placed yet.</p>'}

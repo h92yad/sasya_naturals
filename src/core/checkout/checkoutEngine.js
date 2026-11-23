@@ -191,6 +191,12 @@ function updateShippingPolicySettings(updates = {}, actorEmail = 'superadmin@sas
   for (const key of allowedKeys) {
     if (updates[key] !== undefined && updates[key] !== null && String(updates[key]).trim() !== '') {
       const val = String(updates[key]).trim();
+      if (key !== 'shipping_free_mode') {
+        const numVal = Number(val);
+        if (!Number.isFinite(numVal) || numVal < 0) {
+          throw new Error(`Invalid numeric value for ${key}: "${val}" (must be a non-negative number).`);
+        }
+      }
       stmt.run(key, val);
       applied[key] = val;
     }
@@ -270,6 +276,17 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
     throw new Error('Cart is empty. Please add at least one product pack.');
   }
 
+  // Consolidate duplicate variantId rows so combined quantity is validated against available stock (EC-001 / EC-002)
+  const consolidatedMap = new Map();
+  for (const rawItem of items) {
+    const variantId = Number(rawItem && rawItem.variantId);
+    const qty = Math.max(1, Math.min(50, Math.floor(Number((rawItem && rawItem.quantity) || 1))));
+    if (!Number.isFinite(variantId) || variantId <= 0) {
+      throw new Error('Invalid product variant selection.');
+    }
+    consolidatedMap.set(variantId, Math.min(50, (consolidatedMap.get(variantId) || 0) + qty));
+  }
+
   const variantStmt = db.prepare(`
     SELECT
       v.id AS variant_id,
@@ -300,12 +317,7 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
   let totalWeightGrams = 0;
   const lineItems = [];
 
-  for (const rawItem of items) {
-    const variantId = Number(rawItem.variantId);
-    const quantity = Math.max(1, Math.min(50, Math.floor(Number(rawItem.quantity || 1))));
-    if (!Number.isFinite(variantId) || variantId <= 0) {
-      throw new Error('Invalid product variant selection.');
-    }
+  for (const [variantId, quantity] of consolidatedMap.entries()) {
     const row = variantStmt.get(variantId);
     if (!row || !row.variant_active || !row.product_active) {
       throw new Error(`Product variant #${variantId} is unavailable.`);
@@ -458,6 +470,15 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
   };
 }
 
+function allocateNextOrderNumber(db) {
+  const row = db.prepare('SELECT COALESCE(MAX(id), 0) AS maxId, COUNT(*) AS cnt FROM orders').get();
+  let candidateSeq = 1000 + Math.max(Number(row ? row.maxId : 0), Number(row ? row.cnt : 0)) + 1;
+  while (db.prepare('SELECT id FROM orders WHERE order_number = ?').get(`SN-2026-${candidateSeq}`)) {
+    candidateSeq += 1;
+  }
+  return `SN-2026-${candidateSeq}`;
+}
+
 function createOrder({
   userId = null,
   customerName,
@@ -475,12 +496,23 @@ function createOrder({
   codOtpCode = '',
   requireCodOtp = false
 }) {
-  if (!customerName || !customerEmail || !customerPhone || !shippingLine1 || !shippingCity || !shippingState || !shippingPincode) {
+  const cleanName = String(customerName || '').trim();
+  const cleanEmail = String(customerEmail || '').trim();
+  const cleanPhone = String(customerPhone || '').trim();
+  const cleanLine1 = String(shippingLine1 || '').trim();
+  const cleanCity = String(shippingCity || '').trim();
+  const cleanState = String(shippingState || '').trim();
+  const cleanPincode = String(shippingPincode || '').trim();
+
+  if (!cleanName || !cleanEmail || !cleanPhone || !cleanLine1 || !cleanCity || !cleanState || !cleanPincode) {
     throw new Error('Please complete all required customer contact and Indian delivery address fields.');
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    throw new Error('Please provide a valid customer email address.');
   }
 
   // Validate PIN code serviceability & high-RTO COD rules
-  validatePincodeServiceability(shippingPincode, paymentMethod);
+  validatePincodeServiceability(cleanPincode, paymentMethod);
 
   const validMethods = ['ONLINE_UPI', 'ONLINE_CARD', 'ONLINE_NETBANKING', 'COD'];
   if (!validMethods.includes(paymentMethod)) {
@@ -492,21 +524,19 @@ function createOrder({
 
   if (isCod) {
     if (codOtpCode) {
-      verifyCodOtp(customerPhone, codOtpCode);
+      verifyCodOtp(cleanPhone, codOtpCode);
       codOtpVerified = 1;
-    } else if (isPhoneCodVerified(customerPhone)) {
+    } else if (isPhoneCodVerified(cleanPhone)) {
       codOtpVerified = 1;
     } else if (requireCodOtp) {
       throw new Error('Cash on Delivery requires 6-digit Mobile OTP verification to prevent RTO fraud.');
     }
   }
 
-  const pricing = calculateCartPricing(items, couponCode, paymentMethod, shippingState, shippingPincode);
+  const pricing = calculateCartPricing(items, couponCode, paymentMethod, cleanState, cleanPincode);
   const db = getDb();
 
-  const seqRow = db.prepare('SELECT COUNT(*) AS cnt FROM orders').get();
-  const nextSeq = 1001 + Number(seqRow ? seqRow.cnt : 0);
-  const orderNumber = `SN-2026-${nextSeq}`;
+  const orderNumber = allocateNextOrderNumber(db);
   const gatewayOrderId = isCod
     ? `cod_${orderNumber.replace(/-/g, '')}`
     : `order_rzp_${orderNumber.replace(/-/g, '')}_${crypto.randomBytes(3).toString('hex')}`;
@@ -530,14 +560,14 @@ function createOrder({
     const ordResult = insertOrderStmt.run(
       orderNumber,
       userId,
-      String(customerName).trim(),
-      String(customerEmail).trim(),
-      String(customerPhone).trim(),
-      String(shippingLine1).trim(),
+      cleanName,
+      cleanEmail,
+      cleanPhone,
+      cleanLine1,
       String(shippingLine2 || '').trim(),
-      String(shippingCity).trim(),
-      String(shippingState).trim(),
-      String(shippingPincode).trim(),
+      cleanCity,
+      cleanState,
+      cleanPincode,
       String(deliveryInstructions || '').trim(),
       pricing.subtotalPaise,
       pricing.discountPaise,
@@ -607,7 +637,7 @@ function createOrder({
           remainingStock,
           'ORDER_PLACED_COD',
           orderNumber,
-          customerName
+          cleanName
         );
         if (remainingStock <= item.lowStockThreshold) {
           db.prepare(`
@@ -642,7 +672,7 @@ function createOrder({
       VALUES (?, 'EMAIL', ?, ?, ?, ?)
     `).run(
       orderNumber,
-      String(customerEmail).trim(),
+      cleanEmail,
       isCod ? 'ORDER_CONFIRMED_COD' : 'ORDER_CREATED_AWAITING_PAYMENT',
       `Sasya Naturals Order ${orderNumber} (${fulfilmentStatus})`,
       `Order total Rs. ${(pricing.totalPaise / 100).toFixed(2)} via ${paymentMethod}. Tax Invoice: /orders/${orderNumber}/invoice`
@@ -690,31 +720,49 @@ function createAdminOrder({
   actorEmail = 'superadmin@sasynaturals.com',
   actorRole = 'SUPER_ADMIN'
 }) {
-  if (!customerName || !customerEmail || !customerPhone || !shippingLine1 || !shippingCity || !shippingState || !shippingPincode) {
+  const cleanName = String(customerName || '').trim();
+  const cleanEmail = String(customerEmail || '').trim();
+  const cleanPhone = String(customerPhone || '').trim();
+  const cleanLine1 = String(shippingLine1 || '').trim();
+  const cleanCity = String(shippingCity || '').trim();
+  const cleanState = String(shippingState || '').trim();
+  const cleanPincode = String(shippingPincode || '').trim();
+
+  if (!cleanName || !cleanEmail || !cleanPhone || !cleanLine1 || !cleanCity || !cleanState || !cleanPincode) {
     throw new Error('Please complete all required customer contact and Indian delivery address fields.');
   }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+    throw new Error('Please provide a valid customer email address.');
+  }
 
-  validatePincodeServiceability(shippingPincode, paymentMethod);
+  validatePincodeServiceability(cleanPincode, paymentMethod);
 
   const validMethods = ['ONLINE_UPI', 'ONLINE_CARD', 'ONLINE_NETBANKING', 'COD'];
   if (!validMethods.includes(paymentMethod)) {
     throw new Error(`Unsupported payment method: ${paymentMethod}`);
   }
 
-  const pricing = calculateCartPricing(items, couponCode, paymentMethod, shippingState, shippingPincode);
+  const isCod = paymentMethod === 'COD';
+  if (isCod && paymentStatus && !['COD_PENDING', 'COD_COLLECTED'].includes(paymentStatus)) {
+    throw new Error(`Invalid payment status "${paymentStatus}" for Cash on Delivery (must be COD_PENDING or COD_COLLECTED).`);
+  }
+  if (!isCod && paymentStatus && !['PAID', 'PENDING_PAYMENT'].includes(paymentStatus)) {
+    throw new Error(`Invalid payment status "${paymentStatus}" for Online Payment (must be PAID or PENDING_PAYMENT).`);
+  }
+
+  const pricing = calculateCartPricing(items, couponCode, paymentMethod, cleanState, cleanPincode);
   const db = getDb();
 
   let resolvedUserId = userId ? Number(userId) : null;
-  if (!resolvedUserId && customerEmail) {
+  if (!resolvedUserId && cleanEmail) {
     const existingCustomer = db
       .prepare("SELECT id FROM users WHERE lower(email) = lower(?) AND role = 'CUSTOMER' LIMIT 1")
-      .get(String(customerEmail).trim());
+      .get(cleanEmail);
     if (existingCustomer) {
       resolvedUserId = existingCustomer.id;
     }
   }
 
-  const isCod = paymentMethod === 'COD';
   let finalPaymentStatus;
   let fulfilmentStatus;
   let shouldDeductStock = false;
@@ -729,13 +777,11 @@ function createAdminOrder({
     shouldDeductStock = finalPaymentStatus === 'PAID';
   }
 
-  const seqRow = db.prepare('SELECT COUNT(*) AS cnt FROM orders').get();
-  const nextSeq = 1001 + Number(seqRow ? seqRow.cnt : 0);
-  const orderNumber = `SN-2026-${nextSeq}`;
+  const orderNumber = allocateNextOrderNumber(db);
   const gatewayOrderId = isCod
     ? `cod_admin_${orderNumber.replace(/-/g, '')}`
     : `order_admin_${orderNumber.replace(/-/g, '')}_${crypto.randomBytes(2).toString('hex')}`;
-  const cleanRef = String(gatewayPaymentId || '').trim();
+  const cleanRef = String(gatewayPaymentId || '').trim().slice(0, 64);
   const finalGatewayPaymentId = cleanRef || (finalPaymentStatus === 'PAID' ? `utr_admin_${orderNumber.replace(/-/g, '')}` : '');
 
   db.exec('BEGIN IMMEDIATE TRANSACTION;');
@@ -1042,7 +1088,7 @@ function updateOrderFulfilmentAndShipping({
   trackingNumber = '',
   trackingUrl = '',
   dispatchDate = '',
-  manualShippingChargePaise = 0,
+  manualShippingChargePaise = null,
   actorEmail = 'admin@sasynaturals.com',
   actorRole = 'ORDER_MANAGER'
 }) {
@@ -1053,13 +1099,45 @@ function updateOrderFulfilmentAndShipping({
   const order = db.prepare('SELECT * FROM orders WHERE order_number = ?').get(orderNumber);
   if (!order) throw new Error(`Order ${orderNumber} not found.`);
 
-  if (fulfilmentStatus === 'Shipped' && (!courierName || !trackingNumber)) {
+  const cleanCourier = String(courierName || '').trim();
+  const cleanTracking = String(trackingNumber || '').trim();
+  const cleanTrackingUrl = String(trackingUrl || '').trim();
+  const cleanDispatchDate = String(dispatchDate || '').trim();
+
+  if (cleanTrackingUrl && !/^https?:\/\//i.test(cleanTrackingUrl)) {
+    throw new Error('Tracking URL must begin with https:// or http://.');
+  }
+
+  if (fulfilmentStatus === 'Shipped' && (!cleanCourier || !cleanTracking)) {
     throw new Error('Dispatched orders require Courier Name and Tracking Number (Manual Shipping Workflow Section 7).');
+  }
+
+  if (order.payment_status === 'REFUNDED' && fulfilmentStatus !== 'Refunded') {
+    throw new Error(`Order ${orderNumber} has already been refunded and cannot be transitioned back to ${fulfilmentStatus}.`);
+  }
+
+  if (
+    ['Packed', 'Shipped', 'Delivered'].includes(fulfilmentStatus) &&
+    ['PENDING_PAYMENT', 'FAILED'].includes(order.payment_status)
+  ) {
+    throw new Error(`Cannot mark order ${orderNumber} as ${fulfilmentStatus} while payment status is ${order.payment_status}.`);
+  }
+
+  if (
+    fulfilmentStatus === 'Pending Payment' &&
+    ['PAID', 'COD_COLLECTED'].includes(order.payment_status)
+  ) {
+    throw new Error(`Cannot revert order ${orderNumber} to Pending Payment after payment is already ${order.payment_status}.`);
   }
 
   const shouldRestoreStock =
     (fulfilmentStatus === 'Cancelled' || fulfilmentStatus === 'Refunded') &&
     order.stock_deducted === 1;
+
+  const shouldRedeductStock =
+    ['Confirmed', 'Processing', 'Packed', 'Shipped', 'Delivered'].includes(fulfilmentStatus) &&
+    order.stock_deducted === 0 &&
+    !['PENDING_PAYMENT', 'FAILED', 'REFUNDED'].includes(order.payment_status);
 
   db.exec('BEGIN IMMEDIATE TRANSACTION;');
   try {
@@ -1086,13 +1164,38 @@ function updateOrderFulfilmentAndShipping({
           actorEmail
         );
       }
+    } else if (shouldRedeductStock) {
+      const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+      const getVarStmt = db.prepare('SELECT stock_qty FROM product_variants WHERE id = ?');
+      const deductStmt = db.prepare('UPDATE product_variants SET stock_qty = stock_qty - ? WHERE id = ? AND stock_qty >= ?');
+      const moveStmt = db.prepare(`
+        INSERT INTO inventory_movements (variant_id, delta_qty, previous_qty, new_qty, reason, reference_id, actor_name)
+        VALUES (?, ?, ?, ?, 'ORDER_REOPENED_DEDUCT', ?, ?)
+      `);
+
+      for (const item of items) {
+        const vRow = getVarStmt.get(item.variant_id);
+        const prevQty = vRow ? vRow.stock_qty : 0;
+        const res = deductStmt.run(item.quantity, item.variant_id, item.quantity);
+        if (res.changes !== 1) {
+          throw new Error(`Insufficient stock to reopen order ${orderNumber} for SKU ${item.sku}.`);
+        }
+        moveStmt.run(item.variant_id, -item.quantity, prevQty, prevQty - item.quantity, orderNumber, actorEmail);
+      }
     }
 
-    const nextStockDeducted = shouldRestoreStock ? 0 : order.stock_deducted;
-    const nextPaymentStatus =
-      fulfilmentStatus === 'Delivered' && order.payment_status === 'COD_PENDING'
-        ? 'COD_COLLECTED'
-        : (fulfilmentStatus === 'Refunded' ? 'REFUNDED' : order.payment_status);
+    const nextStockDeducted = shouldRestoreStock ? 0 : (shouldRedeductStock ? 1 : order.stock_deducted);
+    let nextPaymentStatus = order.payment_status;
+    if (fulfilmentStatus === 'Delivered' && order.payment_status === 'COD_PENDING') {
+      nextPaymentStatus = 'COD_COLLECTED';
+    } else if (fulfilmentStatus === 'Refunded') {
+      nextPaymentStatus = 'REFUNDED';
+    }
+
+    const hasExplicitShipCharge = manualShippingChargePaise !== null && manualShippingChargePaise !== undefined;
+    const nextManualShippingChargePaise = hasExplicitShipCharge
+      ? Math.max(0, Math.round(Number(manualShippingChargePaise) || 0))
+      : order.manual_shipping_charge_paise;
 
     db.prepare(`
       UPDATE orders
@@ -1102,24 +1205,23 @@ function updateOrderFulfilmentAndShipping({
           tracking_number = COALESCE(NULLIF(?, ''), tracking_number),
           tracking_url = COALESCE(NULLIF(?, ''), tracking_url),
           dispatch_date = COALESCE(NULLIF(?, ''), dispatch_date),
-          manual_shipping_charge_paise = CASE WHEN ? > 0 THEN ? ELSE manual_shipping_charge_paise END,
+          manual_shipping_charge_paise = ?,
           stock_deducted = ?,
           updated_at = datetime('now')
       WHERE id = ?
     `).run(
       fulfilmentStatus,
       nextPaymentStatus,
-      courierName,
-      trackingNumber,
-      trackingUrl,
-      dispatchDate,
-      Number(manualShippingChargePaise || 0),
-      Number(manualShippingChargePaise || 0),
+      cleanCourier,
+      cleanTracking,
+      cleanTrackingUrl,
+      cleanDispatchDate,
+      nextManualShippingChargePaise,
       nextStockDeducted,
       order.id
     );
 
-    if (nextPaymentStatus === 'COD_COLLECTED') {
+    if (nextPaymentStatus === 'COD_COLLECTED' && order.payment_status !== 'COD_COLLECTED') {
       db.prepare(`
         UPDATE payments SET status = 'COD_COLLECTED', cod_collected_at = datetime('now'), updated_at = datetime('now')
         WHERE order_id = ?
@@ -1141,11 +1243,30 @@ function updateOrderFulfilmentAndShipping({
       JSON.stringify({
         previousFulfilment: order.fulfilment_status,
         newFulfilment: fulfilmentStatus,
-        courierName,
-        trackingNumber,
-        stockRestored: shouldRestoreStock
+        courierName: cleanCourier,
+        trackingNumber: cleanTracking,
+        stockRestored: shouldRestoreStock,
+        stockRededucted: shouldRedeductStock
       })
     );
+
+    // Interpolate configured notification template from store_settings if present (EC-092 to EC-094)
+    const templateKeyMap = {
+      Confirmed: 'email_template_order_confirmed',
+      Shipped: 'email_template_order_shipped',
+      Delivered: 'email_template_order_delivered',
+      Cancelled: 'email_template_order_cancelled'
+    };
+    const tplKey = templateKeyMap[fulfilmentStatus];
+    const tplRow = tplKey ? db.prepare('SELECT value FROM store_settings WHERE key = ?').get(tplKey) : null;
+    let bodyPreview = cleanCourier ? `Courier: ${cleanCourier}, Tracking: ${cleanTracking}` : `Status: ${fulfilmentStatus}`;
+    if (tplRow && tplRow.value) {
+      bodyPreview = String(tplRow.value)
+        .replace(/\{\{order_number\}\}/g, orderNumber)
+        .replace(/\{\{customer_name\}\}/g, order.customer_name)
+        .replace(/\{\{courier_name\}\}/g, cleanCourier || order.courier_name || 'Courier Partner')
+        .replace(/\{\{tracking_number\}\}/g, cleanTracking || order.tracking_number || 'AWB Pending');
+    }
 
     db.prepare(`
       INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
@@ -1155,7 +1276,7 @@ function updateOrderFulfilmentAndShipping({
       order.customer_email,
       `ORDER_${fulfilmentStatus.toUpperCase().replace(/\s+/g, '_')}`,
       `Order ${orderNumber} status updated to ${fulfilmentStatus}`,
-      courierName ? `Courier: ${courierName}, Tracking: ${trackingNumber}` : `Status: ${fulfilmentStatus}`
+      bodyPreview
     );
 
     db.exec('COMMIT;');
@@ -1181,6 +1302,13 @@ function recordPaymentAdminAction({
   }
 
   if (actionType === 'MARK_COD_COLLECTED') {
+    if (order.payment_status === 'COD_COLLECTED') {
+      throw new Error(`Order ${order.order_number} COD payment has already been marked collected.`);
+    }
+    if (order.payment_status !== 'COD_PENDING' || ['Cancelled', 'Refunded'].includes(order.fulfilment_status)) {
+      throw new Error(`Order ${order.order_number} cannot be marked COD collected (current status: ${order.payment_status} / ${order.fulfilment_status}).`);
+    }
+
     db.exec('BEGIN IMMEDIATE TRANSACTION;');
     try {
       db.prepare(`
@@ -1212,6 +1340,13 @@ function recordPaymentAdminAction({
   }
 
   if (actionType === 'RECORD_REFUND') {
+    if (order.payment_status === 'REFUNDED') {
+      throw new Error(`Order ${order.order_number} has already been refunded.`);
+    }
+    if (!['PAID', 'COD_COLLECTED'].includes(order.payment_status)) {
+      throw new Error(`Cannot record a refund on order ${order.order_number} because payment was never collected (status: ${order.payment_status}).`);
+    }
+
     const finalRefundPaise = refundAmountPaise !== null && Number(refundAmountPaise) > 0
       ? Math.min(order.total_paise, Math.round(Number(refundAmountPaise)))
       : order.total_paise;
@@ -1269,17 +1404,23 @@ function updateOrderDeliveryAddress({
     throw new Error(`Order ${orderNumber} not found.`);
   }
 
-  const nextName = String(customerName || order.customer_name).trim();
-  const nextPhone = String(customerPhone || order.customer_phone).trim();
-  const nextLine1 = String(shippingLine1 || order.shipping_line1).trim();
+  if (['Shipped', 'Delivered', 'Cancelled', 'Refunded'].includes(order.fulfilment_status)) {
+    throw new Error(`Delivery address cannot be modified after order ${order.order_number} is ${order.fulfilment_status}.`);
+  }
+
+  const trimmedName = customerName !== undefined ? String(customerName).trim() : order.customer_name;
+  const trimmedPhone = customerPhone !== undefined ? String(customerPhone).trim() : order.customer_phone;
+  const nextName = trimmedName || order.customer_name;
+  const nextPhone = trimmedPhone || order.customer_phone;
+  const nextLine1 = String(shippingLine1 !== undefined ? shippingLine1 : order.shipping_line1).trim();
   const nextLine2 = shippingLine2 !== undefined ? String(shippingLine2).trim() : order.shipping_line2;
-  const nextCity = String(shippingCity || order.shipping_city).trim();
-  const nextState = String(shippingState || order.shipping_state).trim();
-  const nextPin = String(shippingPincode || order.shipping_pincode).trim();
+  const nextCity = String(shippingCity !== undefined ? shippingCity : order.shipping_city).trim();
+  const nextState = String(shippingState !== undefined ? shippingState : order.shipping_state).trim();
+  const nextPin = String(shippingPincode !== undefined ? shippingPincode : order.shipping_pincode).trim();
   const nextNotes = deliveryInstructions !== undefined ? String(deliveryInstructions).trim() : order.delivery_instructions;
 
-  if (!nextLine1 || !nextCity || !nextState || !/^\d{6}$/.test(nextPin)) {
-    throw new Error('Street address, city, state, and a valid 6-digit Indian PIN code are required.');
+  if (!trimmedName || !trimmedPhone || !nextLine1 || !nextCity || !nextState || !/^\d{6}$/.test(nextPin)) {
+    throw new Error('Recipient name, phone, street address, city, state, and a valid 6-digit Indian PIN code are required.');
   }
 
   const gstSplit = computeStateGstSplit(order.gst_paise || 0, nextState, nextPin);

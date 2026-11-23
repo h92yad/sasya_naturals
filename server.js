@@ -255,7 +255,13 @@ function createServerHandler() {
         return fs.createReadStream(filePath).pipe(res);
       }
 
-      // 2. Discovery Endpoints (/robots.txt, /sitemap.xml, /llms.txt)
+      // 2. Discovery Endpoints (/favicon.ico, /robots.txt, /sitemap.xml, /llms.txt)
+      if (pathname === '/favicon.ico') {
+        const svgFavicon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#143022"/><text x="16" y="22" font-family="Georgia,serif" font-size="18" font-weight="bold" fill="#FAF6EE" text-anchor="middle">S</text></svg>';
+        res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' });
+        return res.end(svgFavicon);
+      }
+
       if (pathname === '/robots.txt') {
         const txt = [
           'User-agent: *',
@@ -760,9 +766,14 @@ function createServerHandler() {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'shipping.update');
         const body = await readJsonBody(req);
+        if (body.fulfilmentStatus === 'Refunded') {
+          assertAdminPermission(adminUser, 'payments.refund');
+        }
         const manualShippingChargePaise = body.manualShippingChargePaise !== undefined
           ? Number(body.manualShippingChargePaise)
-          : (body.manualShippingChargeInr !== undefined ? Math.round(Number(body.manualShippingChargeInr) * 100) : 0);
+          : (body.manualShippingChargeInr !== undefined && String(body.manualShippingChargeInr).trim() !== ''
+            ? Math.round(Number(body.manualShippingChargeInr) * 100)
+            : null);
         const updated = updateOrderFulfilmentAndShipping({
           ...body,
           manualShippingChargePaise,
@@ -804,20 +815,36 @@ function createServerHandler() {
         assertAdminPermission(adminUser, 'inventory.write');
         const body = await readJsonBody(req);
         const variantId = Number(body.variantId);
-        const newStockQty = Math.max(0, Number(body.newStockQty));
+        if (!Number.isFinite(Number(body.newStockQty))) {
+          return sendJson(res, 400, { error: 'Valid numeric stock quantity is required.' });
+        }
+        const newStockQty = Math.max(0, Math.floor(Number(body.newStockQty)));
         const variant = db.prepare('SELECT * FROM product_variants WHERE id = ?').get(variantId);
         if (!variant) return sendJson(res, 404, { error: 'Variant not found' });
 
-        const lowStockThreshold = body.lowStockThreshold !== undefined
-          ? Math.max(1, Number(body.lowStockThreshold))
+        const lowStockThreshold = body.lowStockThreshold !== undefined && Number.isFinite(Number(body.lowStockThreshold))
+          ? Math.max(1, Math.floor(Number(body.lowStockThreshold)))
           : variant.low_stock_threshold;
 
         const delta = newStockQty - variant.stock_qty;
         db.prepare('UPDATE product_variants SET stock_qty = ?, low_stock_threshold = ? WHERE id = ?').run(newStockQty, lowStockThreshold, variantId);
-        db.prepare(`
-          INSERT INTO inventory_movements (variant_id, delta_qty, previous_qty, new_qty, reason, reference_id, actor_name)
-          VALUES (?, ?, ?, ?, ?, 'ADMIN_PORTAL', ?)
-        `).run(variantId, delta, variant.stock_qty, newStockQty, body.reason || 'ADMIN_STOCK_UPDATE', adminUser.email);
+
+        if (delta !== 0) {
+          db.prepare(`
+            INSERT INTO inventory_movements (variant_id, delta_qty, previous_qty, new_qty, reason, reference_id, actor_name)
+            VALUES (?, ?, ?, ?, ?, 'ADMIN_PORTAL', ?)
+          `).run(variantId, delta, variant.stock_qty, newStockQty, body.reason || 'ADMIN_STOCK_UPDATE', adminUser.email);
+        }
+
+        if (newStockQty <= lowStockThreshold && variant.stock_qty > lowStockThreshold) {
+          db.prepare(`
+            INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
+            VALUES ('ADMIN_PORTAL', 'ADMIN_ALERT', 'catalog@sasynaturals.com', 'LOW_STOCK_ALERT', ?, ?)
+          `).run(
+            `Low Stock Alert: ${variant.sku} (${newStockQty} remaining)`,
+            `Variant ${variant.sku} (${variant.pack_label}) adjusted to ${newStockQty} units (threshold: ${lowStockThreshold}).`
+          );
+        }
 
         recordAuditLog({
           actorId: adminUser.id,
@@ -826,10 +853,16 @@ function createServerHandler() {
           action: 'INVENTORY_ADJUSTED',
           entityType: 'VARIANT',
           entityId: variant.sku,
-          details: { previousQty: variant.stock_qty, newQty: newStockQty, lowStockThreshold }
+          details: { previousQty: variant.stock_qty, newQty: newStockQty, lowStockThreshold, delta }
         });
 
-        return sendJson(res, 200, { variantId, newStockQty, lowStockThreshold });
+        return sendJson(res, 200, {
+          variantId,
+          sku: variant.sku,
+          newStockQty,
+          lowStockThreshold,
+          isLowStock: newStockQty <= lowStockThreshold
+        });
       }
 
       if (pathname === '/api/admin/categories/create' && req.method === 'POST') {
@@ -849,10 +882,15 @@ function createServerHandler() {
           return sendJson(res, 400, { error: lintCheck.issues.join(' ') });
         }
 
-        const slug = name
+        const rawSlug = name
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-|-$/g, '');
+        const slug = rawSlug || `category-${Date.now()}`;
+        const existingCat = db.prepare('SELECT id FROM categories WHERE slug = ? OR lower(name) = lower(?)').get(slug, name);
+        if (existingCat) {
+          return sendJson(res, 400, { error: `A category matching "${name}" (/${slug}) already exists.` });
+        }
 
         let imageUrl = '/images/cat-spices.jpg';
         if (body.imageBase64) {
@@ -1003,21 +1041,55 @@ function createServerHandler() {
         assertAdminPermission(adminUser, 'products.write');
         const body = await readJsonBody(req);
 
-        const lintCheck = lintContentText(`${body.name || ''} ${body.shortDescription || ''}`, 'new_product');
+        const rawName = String(body.name || '').trim();
+        const rawShortDesc = String(body.shortDescription || '').trim();
+        if (!rawName || !rawShortDesc) {
+          return sendJson(res, 400, { error: 'Product name and short description are required.' });
+        }
+
+        const lintCheck = lintContentText(`${rawName} ${rawShortDesc}`, 'new_product');
         if (!lintCheck.valid) {
           return sendJson(res, 400, { error: lintCheck.issues.join(' ') });
         }
 
-        const slug = String(body.name || 'new-product')
+        let slug = rawName
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-|-$/g, '');
+        if (!slug) {
+          slug = `product-${Date.now()}`;
+        }
         const skuBase = String(body.skuBase || 'SN-NEW').trim().toUpperCase();
-        const catId = Number(body.categoryId || 3);
-        const base100gPaise = Math.max(1000, Math.round(Number(body.base100gInr || 150) * 100));
-        const gstPercent = Number(body.gstPercent || 5);
+        if (!skuBase) {
+          return sendJson(res, 400, { error: 'SKU Base is required.' });
+        }
 
-        let imageUrl = '/images/cat-spices.jpg';
+        const dupProd = db.prepare('SELECT id, sku_base, slug FROM products WHERE upper(sku_base) = ? OR slug = ?').get(skuBase, slug);
+        if (dupProd) {
+          return sendJson(res, 400, { error: `A product with SKU Base "${skuBase}" or slug "${slug}" already exists.` });
+        }
+
+        const catId = Number(body.categoryId || 3);
+        const catRow = db.prepare('SELECT * FROM categories WHERE id = ?').get(catId);
+        if (!catRow) {
+          return sendJson(res, 400, { error: 'Selected category does not exist.' });
+        }
+
+        const base100gInr = Number(body.base100gInr ?? 150);
+        if (!Number.isFinite(base100gInr) || base100gInr < 10) {
+          return sendJson(res, 400, { error: 'Base 100g price must be at least ₹10.' });
+        }
+        const base100gPaise = Math.round(base100gInr * 100);
+        const gstPercent = Number(body.gstPercent ?? 5);
+        if (![0, 5, 12, 18, 28].includes(gstPercent)) {
+          return sendJson(res, 400, { error: 'GST slab must be one of 0%, 5%, 12%, 18%, or 28%.' });
+        }
+
+        const defaultHsnByCat = { 1: '080290', 2: '100829', 3: '091030' };
+        const defaultImgByCat = { 1: '/images/cat-dry-fruits.jpg', 2: '/images/cat-millets-grains.jpg', 3: '/images/cat-spices.jpg' };
+        const hsnCode = String(body.hsnCode || defaultHsnByCat[catId] || '091030').trim();
+
+        let imageUrl = catRow.hero_image_url || defaultImgByCat[catId] || '/images/cat-spices.jpg';
         if (body.imageBase64) {
           const savedImg = saveVerifiedImageToUploads(body.imageBase64, slug);
           imageUrl = savedImg.publicUrl;
@@ -1029,19 +1101,20 @@ function createServerHandler() {
             origin_region, harvest_batch, shelf_life_months, fssai_notes,
             ingredients, allergen_info, gst_percent, hsn_code, image_url, image_caption,
             is_featured, is_new_arrival, is_bestseller, is_active
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'SN-BATCH-2611', 12, 'Store in a cool, dry container.', ?, 'Packed in a facility handling tree nuts.', ?, '091030', ?, ?, 0, 1, 0, 1)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'SN-BATCH-2611', 12, 'Store in a cool, dry container.', ?, 'Packed in a facility handling tree nuts.', ?, ?, ?, ?, 0, 1, 0, 1)
         `).run(
           skuBase,
           slug,
-          body.name,
+          rawName,
           catId,
-          body.shortDescription,
-          body.shortDescription,
-          body.originRegion || 'India',
-          `100% Pure ${body.name}`,
+          rawShortDesc,
+          rawShortDesc,
+          String(body.originRegion || 'India').trim() || 'India',
+          `100% Pure ${rawName}`,
           gstPercent,
+          hsnCode,
           imageUrl,
-          body.name
+          rawName
         );
 
         const newProdId = Number(prodRes.lastInsertRowid);
@@ -1052,8 +1125,8 @@ function createServerHandler() {
           { label: '1 kg',  grams: 1000, suffix: '1KG', mult: 8.5 }
         ];
         for (const pm of packs) {
-          const sell = Math.round(base100gPaise * pm.mult);
-          const mrp = Math.round(sell * 1.15);
+          const sell = Math.round((base100gPaise / 100) * pm.mult) * 100;
+          const mrp = Math.round(((sell / 100) * 1.15)) * 100;
           db.prepare(`
             INSERT INTO product_variants (product_id, sku, pack_label, weight_grams, mrp_paise, selling_price_paise, promo_price_paise, stock_qty)
             VALUES (?, ?, ?, ?, ?, ?, ?, 40)
@@ -1067,10 +1140,10 @@ function createServerHandler() {
           action: 'PRODUCT_CREATED',
           entityType: 'PRODUCT',
           entityId: skuBase,
-          details: { name: body.name, slug, imageUrl }
+          details: { name: rawName, slug, imageUrl, hsnCode }
         });
 
-        return sendJson(res, 201, { product: { id: newProdId, name: body.name, slug, imageUrl } });
+        return sendJson(res, 201, { product: { id: newProdId, name: rawName, slug, imageUrl } });
       }
 
       if (pathname === '/api/admin/products/update' && req.method === 'POST') {
@@ -1085,6 +1158,9 @@ function createServerHandler() {
         const nextShortDesc = body.shortDescription && String(body.shortDescription).trim()
           ? String(body.shortDescription).trim()
           : prod.short_description;
+        const nextDesc = body.description && String(body.description).trim()
+          ? String(body.description).trim()
+          : nextShortDesc;
         const nextOrigin = body.originRegion && String(body.originRegion).trim()
           ? String(body.originRegion).trim()
           : prod.origin_region;
@@ -1104,6 +1180,9 @@ function createServerHandler() {
         }
 
         const nextGst = body.gstPercent !== undefined && body.gstPercent !== '' ? Number(body.gstPercent) : prod.gst_percent;
+        if (![0, 5, 12, 18, 28].includes(nextGst)) {
+          return sendJson(res, 400, { error: 'GST slab must be one of 0%, 5%, 12%, 18%, or 28%.' });
+        }
         const nextHsn = body.hsnCode && String(body.hsnCode).trim() ? String(body.hsnCode).trim() : prod.hsn_code;
         const nextFeatured = body.isFeatured !== undefined && body.isFeatured !== '' ? (Number(body.isFeatured) ? 1 : 0) : prod.is_featured;
         const nextBestseller = body.isBestseller !== undefined && body.isBestseller !== '' ? (Number(body.isBestseller) ? 1 : 0) : prod.is_bestseller;
@@ -1116,6 +1195,7 @@ function createServerHandler() {
               category_id = ?,
               origin_region = ?,
               short_description = ?,
+              description = ?,
               gst_percent = ?,
               hsn_code = ?,
               is_featured = ?,
@@ -1123,20 +1203,32 @@ function createServerHandler() {
               is_new_arrival = ?,
               is_active = ?
           WHERE id = ?
-        `).run(nextName, nextCatId, nextOrigin, nextShortDesc, nextGst, nextHsn, nextFeatured, nextBestseller, nextNewArrival, nextActive, productId);
+        `).run(nextName, nextCatId, nextOrigin, nextShortDesc, nextDesc, nextGst, nextHsn, nextFeatured, nextBestseller, nextNewArrival, nextActive, productId);
 
-        if (body.base100gSellInr && Number(body.base100gSellInr) >= 10) {
-          const baseSellPaise = Math.round(Number(body.base100gSellInr) * 100);
-          const baseMrpPaise = body.base100gMrpInr && Number(body.base100gMrpInr) >= Number(body.base100gSellInr)
-            ? Math.round(Number(body.base100gMrpInr) * 100)
-            : Math.round(baseSellPaise * 1.15);
-          const multMap = { 100: 1.0, 250: 2.35, 500: 4.45, 1000: 8.5 };
-          const pVars = db.prepare('SELECT * FROM product_variants WHERE product_id = ?').all(productId);
-          for (const v of pVars) {
-            const mult = multMap[v.weight_grams] || (v.weight_grams / 100);
-            const newSell = Math.round((baseSellPaise * mult) / 500) * 500;
-            const newMrp = Math.round((baseMrpPaise * mult) / 500) * 500;
-            db.prepare('UPDATE product_variants SET selling_price_paise = ?, promo_price_paise = ?, mrp_paise = ? WHERE id = ?').run(newSell, newSell, newMrp, v.id);
+        if (body.base100gSellInr !== undefined && body.base100gSellInr !== '') {
+          const sellInrNum = Number(body.base100gSellInr);
+          if (!Number.isFinite(sellInrNum) || sellInrNum < 10) {
+            return sendJson(res, 400, { error: 'Base 100g selling price must be at least ₹10.' });
+          }
+          const baseSellPaise = Math.round(sellInrNum * 100);
+          const mrpInrNum = body.base100gMrpInr !== undefined && body.base100gMrpInr !== ''
+            ? Number(body.base100gMrpInr)
+            : Math.round(sellInrNum * 1.15);
+          if (!Number.isFinite(mrpInrNum) || mrpInrNum < sellInrNum) {
+            return sendJson(res, 400, { error: 'Base 100g MRP cannot be lower than the selling price.' });
+          }
+          const baseMrpPaise = Math.round(mrpInrNum * 100);
+          const pVars = db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY weight_grams ASC').all(productId);
+          const v100 = pVars.find(v => v.weight_grams === 100) || pVars[0];
+          const priceChanged = !v100 || v100.selling_price_paise !== baseSellPaise || v100.mrp_paise !== baseMrpPaise;
+          if (priceChanged) {
+            const multMap = { 100: 1.0, 250: 2.35, 500: 4.45, 1000: 8.5 };
+            for (const v of pVars) {
+              const mult = multMap[v.weight_grams] || (v.weight_grams / 100);
+              const newSell = Math.round((baseSellPaise / 100) * mult) * 100;
+              const newMrp = Math.max(newSell, Math.round((baseMrpPaise / 100) * mult) * 100);
+              db.prepare('UPDATE product_variants SET selling_price_paise = ?, promo_price_paise = ?, mrp_paise = ? WHERE id = ?').run(newSell, newSell, newMrp, v.id);
+            }
           }
         }
 
@@ -1162,13 +1254,27 @@ function createServerHandler() {
         const phone = String(body.phone || '').trim();
         const password = String(body.password || 'Sasya@2026');
         const role = String(body.role || 'STAFF').trim().toUpperCase();
-        if (!fullName || !email || !email.includes('@')) {
-          return sendJson(res, 400, { error: 'Staff full name and valid email address are required.' });
+        const allowedStaffRoles = ['SUPER_ADMIN', 'PRODUCT_MANAGER', 'ORDER_MANAGER', 'ACCOUNTS_MANAGER', 'STAFF'];
+        if (!fullName || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          return sendJson(res, 400, { error: 'Staff full name and a valid email address are required.' });
         }
-        const permsArray = String(body.permissionsCsv || 'orders.view, shipping.update')
+        if (!allowedStaffRoles.includes(role)) {
+          return sendJson(res, 400, { error: `Invalid staff role "${role}".` });
+        }
+        if (password.length < 8) {
+          return sendJson(res, 400, { error: 'Temporary password must be at least 8 characters.' });
+        }
+        const existingUser = db.prepare('SELECT id FROM users WHERE lower(email) = ?').get(email);
+        if (existingUser) {
+          return sendJson(res, 400, { error: `A user account with email "${email}" already exists.` });
+        }
+        let permsArray = String(body.permissionsCsv || 'orders.view, shipping.update')
           .split(',')
           .map(s => s.trim())
           .filter(Boolean);
+        if (role !== 'SUPER_ADMIN') {
+          permsArray = permsArray.filter(p => p !== '*' && p !== 'staff.manage' && p !== 'settings.manage');
+        }
         const passHash = hashPassword(password);
         const resStaff = db.prepare(`
           INSERT INTO users (email, full_name, phone, password_hash, role, permissions_json, is_active)
@@ -1196,19 +1302,51 @@ function createServerHandler() {
         const body = await readJsonBody(req);
         const userId = Number(body.userId);
         const targetUser = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
-        if (!targetUser) return sendJson(res, 404, { error: 'Staff user not found' });
+        if (!targetUser || targetUser.role === 'CUSTOMER') {
+          return sendJson(res, 404, { error: 'Staff user not found' });
+        }
 
+        const allowedStaffRoles = ['SUPER_ADMIN', 'PRODUCT_MANAGER', 'ORDER_MANAGER', 'ACCOUNTS_MANAGER', 'STAFF'];
         const nextRole = String(body.role || targetUser.role).trim().toUpperCase();
+        if (!allowedStaffRoles.includes(nextRole)) {
+          return sendJson(res, 400, { error: `Invalid staff role "${nextRole}".` });
+        }
         const nextActive = body.isActive !== undefined ? (Number(body.isActive) ? 1 : 0) : targetUser.is_active;
+
+        // Guard against self-deactivation or self-demotion from SUPER_ADMIN
+        if (targetUser.id === adminUser.id) {
+          if (!nextActive) {
+            return sendJson(res, 400, { error: 'You cannot deactivate your own active admin account.' });
+          }
+          if (targetUser.role === 'SUPER_ADMIN' && nextRole !== 'SUPER_ADMIN') {
+            return sendJson(res, 400, { error: 'You cannot demote your own Super Admin account.' });
+          }
+        }
+
+        // Guard against removing the last active SUPER_ADMIN
+        if (targetUser.role === 'SUPER_ADMIN' && (nextRole !== 'SUPER_ADMIN' || !nextActive)) {
+          const otherSuperAdmins = db.prepare(
+            "SELECT COUNT(*) AS cnt FROM users WHERE role = 'SUPER_ADMIN' AND is_active = 1 AND id != ?"
+          ).get(targetUser.id);
+          if (!otherSuperAdmins || Number(otherSuperAdmins.cnt) < 1) {
+            return sendJson(res, 400, { error: 'Cannot demote or deactivate the last active Super Admin account.' });
+          }
+        }
+
         let nextPermsJson = targetUser.permissions_json;
         if (body.permissionsJson !== undefined) {
           const raw = String(body.permissionsJson).trim();
+          let arr = [];
           try {
             const parsed = JSON.parse(raw);
-            nextPermsJson = JSON.stringify(Array.isArray(parsed) ? parsed : [String(parsed)]);
+            arr = Array.isArray(parsed) ? parsed.map(String) : [String(parsed)];
           } catch {
-            nextPermsJson = JSON.stringify(raw.split(',').map(s => s.trim()).filter(Boolean));
+            arr = raw.split(',').map(s => s.trim()).filter(Boolean);
           }
+          if (nextRole !== 'SUPER_ADMIN') {
+            arr = arr.filter(p => p !== '*' && p !== 'staff.manage' && p !== 'settings.manage');
+          }
+          nextPermsJson = JSON.stringify(arr);
         }
 
         db.prepare('UPDATE users SET role = ?, permissions_json = ?, is_active = ? WHERE id = ?').run(
@@ -1355,7 +1493,9 @@ function createServerHandler() {
           res.writeHead(404);
           return res.end('Product not found');
         }
-        const category = categories.find(c => c.id === product.category_id) || categories[0];
+        const category = categories.find(c => c.id === product.category_id)
+          || db.prepare('SELECT * FROM categories WHERE id = ?').get(product.category_id)
+          || categories[0];
         const prodVariants = allVariants.filter(v => v.product_id === product.id);
         const relatedProducts = allProducts
           .filter(p => p.category_id === product.category_id && p.id !== product.id)
@@ -1424,10 +1564,10 @@ function createServerHandler() {
         const staffUsers = db.prepare("SELECT * FROM users WHERE role != 'CUSTOMER' ORDER BY id").all();
         const customerUsers = db.prepare("SELECT * FROM users WHERE role = 'CUSTOMER' ORDER BY id").all();
         const customerAddresses = db.prepare('SELECT * FROM customer_addresses ORDER BY id').all();
-        const auditLogs = db.prepare('SELECT * FROM audit_logs ORDER BY id DESC LIMIT 35').all();
-        const notificationLogs = db.prepare('SELECT * FROM notification_logs ORDER BY id DESC LIMIT 25').all();
+        const auditLogs = db.prepare('SELECT * FROM audit_logs ORDER BY id DESC LIMIT 250').all();
+        const notificationLogs = db.prepare('SELECT * FROM notification_logs ORDER BY id DESC LIMIT 250').all();
         const settings = db.prepare('SELECT * FROM store_settings ORDER BY key').all();
-        const movements = db.prepare('SELECT * FROM inventory_movements ORDER BY id DESC LIMIT 30').all();
+        const movements = db.prepare('SELECT * FROM inventory_movements ORDER BY id DESC LIMIT 250').all();
         const vaultStatus = listVaultStatus();
 
         const html = renderAdminPortalPage({

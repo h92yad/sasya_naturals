@@ -275,7 +275,129 @@ function runVerifyRbacAndAudit() {
   db.prepare("DELETE FROM store_settings WHERE key IN ('content_homepage_json', 'content_pages_json', 'content_seo_json')").run();
   db.prepare("DELETE FROM audit_logs WHERE action IN ('HOMEPAGE_CONTENT_UPDATED', 'INFO_PAGE_CONTENT_UPDATED', 'ROUTE_SEO_META_UPDATED')").run();
 
-  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager & immutable audit_logs');
+  // 11. Verify v2.5.0 500-Edge-Case Adversarial Audit Remediations (F-02, F-05, F-09, F-10, EC-001..EC-411)
+  const {
+    calculateCartPricing,
+    updateOrderFulfilmentAndShipping,
+    updateOrderDeliveryAddress
+  } = require('../src/core/checkout/checkoutEngine');
+
+  // F-02 / EC-001: Duplicate variantId rows in cart must be consolidated and checked against available stock
+  const consolidatedPricing = calculateCartPricing([
+    { variantId: firstVariant.id, quantity: 2 },
+    { variantId: firstVariant.id, quantity: 3 }
+  ]);
+  assert.strictEqual(consolidatedPricing.lineItems.length, 1, 'Duplicate variantId rows must consolidate into 1 line item');
+  assert.strictEqual(consolidatedPricing.lineItems[0].quantity, 5, 'Consolidated line item quantity must equal sum of duplicate rows');
+  assert.throws(
+    () => calculateCartPricing([
+      { variantId: firstVariant.id, quantity: Math.floor(firstVariant.stock_qty / 2) + 1 },
+      { variantId: firstVariant.id, quantity: Math.floor(firstVariant.stock_qty / 2) + 5 }
+    ]),
+    /Insufficient stock/,
+    'Duplicate variant rows exceeding total stock must be rejected'
+  );
+
+  // F-09 / EC-004 / EC-005: Strict paymentMethod <-> paymentStatus compatibility in createAdminOrder
+  assert.throws(
+    () => createAdminOrder({
+      customerName: 'Mismatch Test',
+      customerEmail: 'mismatch@example.in',
+      customerPhone: '9845012345',
+      shippingLine1: '12 MG Road',
+      shippingCity: 'Bengaluru',
+      shippingState: 'Karnataka',
+      shippingPincode: '560001',
+      items: [{ variantId: firstVariant.id, quantity: 1 }],
+      paymentMethod: 'COD',
+      paymentStatus: 'PAID'
+    }),
+    /Invalid payment status "PAID" for Cash on Delivery/,
+    'COD with PAID status must be rejected'
+  );
+  assert.throws(
+    () => createAdminOrder({
+      customerName: 'Mismatch Test 2',
+      customerEmail: 'mismatch2@example.in',
+      customerPhone: '9845012345',
+      shippingLine1: '12 MG Road',
+      shippingCity: 'Bengaluru',
+      shippingState: 'Karnataka',
+      shippingPincode: '560001',
+      items: [{ variantId: firstVariant.id, quantity: 1 }],
+      paymentMethod: 'ONLINE_UPI',
+      paymentStatus: 'COD_PENDING'
+    }),
+    /Invalid payment status "COD_PENDING" for Online Payment/,
+    'Prepaid method with COD_PENDING status must be rejected'
+  );
+
+  // F-05 / EC-051: Marking order Shipped without Courier or AWB Tracking must throw
+  assert.throws(
+    () => updateOrderFulfilmentAndShipping({
+      orderNumber: 'SN-2026-1002',
+      fulfilmentStatus: 'Shipped',
+      courierName: '',
+      trackingNumber: ''
+    }),
+    /Dispatched orders require Courier Name and Tracking Number/,
+    'Shipping an order without courier name must be blocked'
+  );
+
+  // F-10 / EC-059: Editing delivery address of an already Shipped or Delivered order must throw
+  assert.throws(
+    () => updateOrderDeliveryAddress({
+      orderNumber: 'SN-2026-1001', // Shipped in seed data
+      customerName: 'Ananya Iyer',
+      customerPhone: '9845011223',
+      shippingLine1: 'New Street',
+      shippingCity: 'Bengaluru',
+      shippingState: 'Karnataka',
+      shippingPincode: '560038'
+    }),
+    /Delivery address cannot be modified after order SN-2026-1001 is Shipped/,
+    'Post-dispatch address modification must be blocked'
+  );
+
+  // EC-403: Reject external http/https URLs in ogImagePath
+  assert.throws(
+    () => updateRouteSeoMeta(
+      {
+        routePath: '/shop',
+        metaTitle: 'Valid Shop Title | Sasya Naturals',
+        metaDescription: 'Valid Shop Description',
+        ogImagePath: 'https://evil.example.com/tracker.png'
+      },
+      { actorId: superAdmin.id, actorEmail: superAdmin.email, actorRole: superAdmin.role }
+    ),
+    /OpenGraph image path must be a local storefront path starting with "\/"/,
+    'External URLs in ogImagePath must be rejected'
+  );
+
+  // EC-354: CSV formula injection guard
+  const formulaCsv = buildUsersAndPurchasesExportCsv({
+    customerUsers: [],
+    customerAddresses: [],
+    orders: [{
+      id: 9999,
+      order_number: 'SN-2026-9999',
+      customer_name: '=CMD("calc")',
+      customer_email: 'formula@example.in',
+      customer_phone: '+919845012345',
+      shipping_city: 'Bengaluru',
+      shipping_state: 'Karnataka',
+      shipping_pincode: '560001',
+      payment_status: 'PAID',
+      fulfilment_status: 'Confirmed',
+      total_paise: 25000,
+      created_at: '2026-11-22'
+    }],
+    orderItems: [],
+    exportType: 'users_summary'
+  });
+  assert(formulaCsv.includes('\'=CMD'), 'CSV export must prefix formula-triggering cells with a single quote');
+
+  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager, v2.5.0 Adversarial Edge-Case Guards & immutable audit_logs');
 }
 
 if (require.main === module) {
@@ -283,3 +405,4 @@ if (require.main === module) {
 }
 
 module.exports = { runVerifyRbacAndAudit };
+

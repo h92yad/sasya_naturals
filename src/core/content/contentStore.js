@@ -202,15 +202,24 @@ function getStorefrontContentAndSeo() {
   const seoRoutes = {};
   for (const [routePath, defSeo] of Object.entries(DEFAULT_SEO_ROUTES)) {
     const custom = savedSeo[routePath];
+    const slugKey = routePath.replace(/^\/+/, '');
+    const linkedInfoPage = slugKey && infoPages[slugKey] ? infoPages[slugKey] : null;
+    const baseMetaTitle = linkedInfoPage ? `${linkedInfoPage.title} | ${BRAND_NAME}` : defSeo.metaTitle;
+    const baseMetaDesc = linkedInfoPage ? linkedInfoPage.subtitle : defSeo.metaDescription;
+
     if (custom && typeof custom === 'object') {
       seoRoutes[routePath] = {
         label: defSeo.label,
-        metaTitle: String(custom.metaTitle || defSeo.metaTitle).trim(),
-        metaDescription: String(custom.metaDescription || defSeo.metaDescription).trim(),
+        metaTitle: String(custom.metaTitle || baseMetaTitle).trim(),
+        metaDescription: String(custom.metaDescription || baseMetaDesc).trim(),
         ogImagePath: String(custom.ogImagePath || defSeo.ogImagePath).trim()
       };
     } else {
-      seoRoutes[routePath] = { ...defSeo };
+      seoRoutes[routePath] = {
+        ...defSeo,
+        metaTitle: baseMetaTitle,
+        metaDescription: baseMetaDesc
+      };
     }
   }
 
@@ -315,7 +324,11 @@ function updateRouteSeoMeta({ routePath, metaTitle, metaDescription, ogImagePath
 
   const cleanTitle = String(metaTitle || '').trim();
   const cleanDesc = String(metaDescription || '').trim();
-  const cleanOgImage = String(ogImagePath || '/images/hero-pantry.jpg').trim() || '/images/hero-pantry.jpg';
+  const rawOg = String(ogImagePath || '/images/hero-pantry.jpg').trim() || '/images/hero-pantry.jpg';
+  if (/^https?:\/\//i.test(rawOg)) {
+    throw new Error('OpenGraph image path must be a local storefront path starting with "/" (e.g. /images/hero-pantry.jpg).');
+  }
+  const cleanOgImage = rawOg.startsWith('/') ? rawOg : `/${rawOg}`;
 
   if (!cleanTitle || !cleanDesc) {
     throw new Error('SEO Meta Title and Meta Description are required.');
@@ -355,7 +368,10 @@ function updateRouteSeoMeta({ routePath, metaTitle, metaDescription, ogImagePath
 }
 
 function escapeCsvCell(val) {
-  const str = String(val ?? '').replace(/\r?\n/g, ' ');
+  let str = String(val ?? '').replace(/\r?\n/g, ' ');
+  if (/^[=+\-@]/.test(str) && !/^-[0-9]+(\.[0-9]+)?$/.test(str)) {
+    str = `'${str}`;
+  }
   if (str.includes(',') || str.includes('"')) {
     return `"${str.replace(/"/g, '""')}"`;
   }
