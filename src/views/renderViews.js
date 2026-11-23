@@ -7,10 +7,26 @@ const {
   BRAND_TAGLINE,
   ORDER_FULFILMENT_STATUSES
 } = require('../config/appConfig');
+const { getDb } = require('../db/database');
 const { buildMasterSchemaGraph } = require('../core/content/schemaBuilder');
 const { getShippingPolicyFromDb } = require('../core/checkout/checkoutEngine');
 const { buildComprehensiveReports } = require('../core/reports/reportingEngine');
 const { getStorefrontContentAndSeo } = require('../core/content/contentStore');
+
+function getActiveNavCategories() {
+  try {
+    const db = getDb();
+    const cats = db.prepare('SELECT * FROM categories WHERE is_active = 1 ORDER BY display_order, id').all();
+    const counts = db.prepare('SELECT category_id, COUNT(*) AS cnt FROM products WHERE is_active = 1 GROUP BY category_id').all();
+    const countMap = new Map(counts.map(r => [Number(r.category_id), Number(r.cnt)]));
+    return cats.map(c => ({
+      ...c,
+      productCount: countMap.get(Number(c.id)) || 0
+    }));
+  } catch {
+    return [];
+  }
+}
 
 function escapeHtml(str) {
   return String(str ?? '')
@@ -160,6 +176,10 @@ function renderShell({
   const finalDescription = routeSeo && routeSeo.metaDescription ? routeSeo.metaDescription : description;
   const ogImgPath = routeSeo && routeSeo.ogImagePath ? routeSeo.ogImagePath : '/images/hero-pantry.jpg';
 
+  const navCategories = getActiveNavCategories();
+  const hasCategoryOverflow = navCategories.length > 3;
+  const isOverflowCatActive = hasCategoryOverflow && navCategories.slice(2).some(c => c.slug === activeNav);
+
   return `<!DOCTYPE html>
 <html lang="en-IN">
 <head>
@@ -197,16 +217,71 @@ function renderShell({
         <span class="sn-brand-title">Sasya Naturals</span>
         <span class="sn-brand-sub">Pure Indian Pantry</span>
       </a>
-      <nav class="sn-nav" id="sn-main-nav" aria-label="Main Navigation">
+      <nav class="sn-nav ${hasCategoryOverflow ? 'sn-nav-has-overflow' : ''}" id="sn-main-nav" aria-label="Main Navigation" data-nav-cat-count="${navCategories.length}">
         <form action="${basePath}/shop" method="GET" class="sn-mobile-nav-search">
           <input type="search" name="q" placeholder="Search almonds, ragi, spices..." class="sn-input" aria-label="Search products on mobile" />
           <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Search</button>
         </form>
         <a href="${basePath}/" class="${activeNav === 'home' ? 'sn-active' : ''}" id="nav-home">Home</a>
         <a href="${basePath}/shop" class="${activeNav === 'shop' ? 'sn-active' : ''}" id="nav-shop">All Catalogue</a>
-        <a href="${basePath}/category/dry-fruits" class="${activeNav === 'dry-fruits' ? 'sn-active' : ''}" id="nav-dry-fruits">Dry Fruits</a>
-        <a href="${basePath}/category/millets-grains" class="${activeNav === 'millets-grains' ? 'sn-active' : ''}" id="nav-millets">Millets &amp; Grains</a>
-        <a href="${basePath}/category/spices" class="${activeNav === 'spices' ? 'sn-active' : ''}" id="nav-spices">Spices</a>
+
+        <!-- Desktop Priority+ Inline Category Pillars (All 3 shown when <=3; Top 2 shown when 4..15) -->
+        ${navCategories.map((c, idx) => {
+          const navId = c.slug === 'millets-grains' ? 'nav-millets' : `nav-${escapeHtml(c.slug)}`;
+          const hideOnDesktopOverflow = hasCategoryOverflow && idx >= 2 ? 'sn-nav-cat-overflow-desktop' : '';
+          return `<a href="${basePath}/category/${escapeHtml(c.slug)}" class="sn-nav-cat-inline ${hideOnDesktopOverflow} ${activeNav === c.slug ? 'sn-active' : ''}" id="${navId}" data-nav-cat-inline="${idx}" data-category-id="${c.id}">${escapeHtml(c.name)}</a>`;
+        }).join('')}
+
+        <!-- Desktop Priority+ "Categories (N) ▾" 2-Column Visual Popover Menu (Active when >3 Categories) -->
+        <div class="sn-nav-dropdown-wrap" id="sn-nav-categories-dropdown-wrap" style="${hasCategoryOverflow ? '' : 'display:none;'}">
+          <button
+            type="button"
+            class="sn-nav-dropdown-trigger ${isOverflowCatActive ? 'sn-active' : ''}"
+            id="sn-nav-categories-trigger"
+            aria-haspopup="true"
+            aria-expanded="false"
+            data-toggle-cat-popover
+          >
+            <span>Categories (<span id="sn-nav-cat-total-count">${navCategories.length}</span>)</span>
+            <span class="sn-nav-dropdown-chevron" aria-hidden="true">▾</span>
+          </button>
+          <div class="sn-nav-categories-popover" id="sn-nav-categories-popover" role="menu" aria-label="All Pantry Categories">
+            <div class="sn-nav-popover-head">
+              <span>All Pantry Collections (<strong id="sn-nav-popover-count">${navCategories.length}</strong>)</span>
+              <a href="${basePath}/shop" class="sn-nav-popover-all-link">View All Products &rarr;</a>
+            </div>
+            <div class="sn-nav-popover-grid" id="sn-nav-categories-popover-grid">
+              ${navCategories.map(c => `
+                <a href="${basePath}/category/${escapeHtml(c.slug)}" class="sn-nav-popover-card ${activeNav === c.slug ? 'sn-active' : ''}" role="menuitem" data-popover-cat-id="${c.id}">
+                  <img src="${basePath}${escapeHtml(c.image_url || '/images/cat-spices.jpg')}" alt="${escapeHtml(c.name)}" data-category-img-id="${c.id}" loading="lazy" />
+                  <div class="sn-nav-popover-card-body">
+                    <div class="sn-nav-popover-card-title">
+                      <strong>${escapeHtml(c.name)}</strong>
+                      <span class="sn-nav-popover-badge">${c.productCount}</span>
+                    </div>
+                    <span class="sn-nav-popover-card-sub">${escapeHtml(c.subtitle || 'Farm-Direct Pantry')}</span>
+                  </div>
+                </a>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile Drawer 2-Column Compact Category Grid (Scales cleanly up to 15+ categories without clipping) -->
+        <div class="sn-mobile-cat-section" id="sn-mobile-cat-section">
+          <div class="sn-mobile-cat-header">
+            <span>Pantry Categories (<span id="sn-mobile-cat-count">${navCategories.length}</span>)</span>
+          </div>
+          <div class="sn-mobile-cat-grid ${navCategories.length > 3 ? 'sn-mobile-cat-grid-2col' : ''}" id="sn-mobile-cat-grid">
+            ${navCategories.map(c => `
+              <a href="${basePath}/category/${escapeHtml(c.slug)}" class="sn-mobile-cat-tile ${activeNav === c.slug ? 'sn-active' : ''}" data-mobile-cat-id="${c.id}">
+                <img src="${basePath}${escapeHtml(c.image_url || '/images/cat-spices.jpg')}" alt="${escapeHtml(c.name)}" data-category-img-id="${c.id}" loading="lazy" />
+                <span class="sn-mobile-cat-tile-name">${escapeHtml(c.name)}</span>
+              </a>
+            `).join('')}
+          </div>
+        </div>
+
         <a href="${basePath}/track-order" class="${activeNav === 'track' ? 'sn-active' : ''}" id="nav-track">Track Order</a>
       </nav>
       <div class="sn-header-actions">
@@ -255,11 +330,11 @@ function renderShell({
         </div>
         <div>
           <h4>Pantry Categories</h4>
-          <ul>
-            <li><a href="${basePath}/category/dry-fruits">Dry Fruits &amp; Nuts</a></li>
-            <li><a href="${basePath}/category/millets-grains">Unpolished Millets &amp; Grains</a></li>
-            <li><a href="${basePath}/category/spices">Single-Origin Spices</a></li>
-            <li><a href="${basePath}/shop">Full Product Catalogue</a></li>
+          <ul id="sn-footer-categories-list">
+            ${navCategories.slice(0, 8).map(c => `
+              <li><a href="${basePath}/category/${escapeHtml(c.slug)}">${escapeHtml(c.name)}</a></li>
+            `).join('')}
+            <li><a href="${basePath}/shop">Full Product Catalogue (${navCategories.length} Categories)</a></li>
           </ul>
         </div>
         <div>
@@ -296,10 +371,11 @@ function renderShell({
 }
 
 function renderHomePage({ categories, products, variants, basePath = '', staticShowcaseScript = '', isNoIndex = false }) {
-  // Interleave featured products across categories for visual variety
+  // Interleave featured products across all active categories for visual variety
   const featuredPool = products.filter(p => p.is_featured);
   const featured = [];
-  const byCat = [1, 2, 3].map(cid => featuredPool.filter(p => Number(p.category_id) === cid));
+  const activeCatIds = categories.length > 0 ? categories.map(c => Number(c.id)) : [1, 2, 3];
+  const byCat = activeCatIds.map(cid => featuredPool.filter(p => Number(p.category_id) === cid));
   for (let i = 0; i < 6; i++) {
     for (const group of byCat) {
       if (group[i] && featured.length < 6) featured.push(group[i]);
@@ -328,6 +404,10 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
     description,
     breadcrumbs: [{ name: 'Home', url: '/' }]
   });
+
+  const catSectionEyebrow = categories.length === 3
+    ? 'Three Core Pantry Pillars'
+    : `${categories.length} Curated Pantry Collections`;
 
   const bodyHtml = `
     <section class="sn-hero">
@@ -371,12 +451,12 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
       <div class="sn-container">
         <div class="sn-section-head">
           <div>
-            <span class="sn-eyebrow">Three Core Pantry Pillars</span>
+            <span class="sn-eyebrow" id="home-categories-eyebrow">${escapeHtml(catSectionEyebrow)}</span>
             <h2>Shop by Category</h2>
           </div>
           <a href="${basePath}/shop" class="sn-btn sn-btn-outline sn-btn-sm">View All ${products.length} Products</a>
         </div>
-        <div class="sn-category-grid" id="home-categories-grid">
+        <div class="sn-category-grid" id="home-categories-grid" data-category-count="${categories.length}">
           ${categories.map(cat => `
             <a href="${basePath}/category/${escapeHtml(cat.slug)}" class="sn-category-card" id="cat-tile-${escapeHtml(cat.slug)}">
               <div class="sn-category-img-wrap">
@@ -496,44 +576,50 @@ function renderCatalogPage({
         </div>
 
         <form class="sn-filter-bar" method="GET" action="${basePath}${canonicalPath}" id="catalog-filter-form" style="flex-direction:column;align-items:stretch;gap:12px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding-bottom:10px;border-bottom:1px dashed var(--sn-border-warm);">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <div class="sn-catalog-top-strip">
+            <div class="sn-catalog-pill-rail" id="sn-catalog-pill-rail" role="navigation" aria-label="Category &amp; Quick Filter Pills">
               <a href="${basePath}/shop" class="sn-btn ${!activeCategory ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">All Catalogue</a>
               ${categories.map(c => `
                 <a href="${basePath}/category/${escapeHtml(c.slug)}" class="sn-btn ${activeCategory && activeCategory.slug === c.slug ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">${escapeHtml(c.name)}</a>
               `).join('')}
-              <span style="color:var(--sn-border-strong);margin:0 2px;">|</span>
+              <span class="sn-catalog-pill-divider" aria-hidden="true">|</span>
               <a href="${basePath}${canonicalPath}?tag=bestseller" class="sn-btn ${tagFilter === 'bestseller' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">★ Bestsellers</a>
               <a href="${basePath}${canonicalPath}?tag=new_arrival" class="sn-btn ${tagFilter === 'new_arrival' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">New Harvests</a>
               <a href="${basePath}${canonicalPath}?maxPrice=250" class="sn-btn ${String(maxPriceInr) === '250' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">Under ₹250</a>
             </div>
-            <span style="font-family:var(--sn-font-mono);font-size:0.76rem;color:var(--sn-bg-forest);font-weight:600;background-color:var(--sn-bg-parchment);padding:4px 10px;border-radius:999px;border:1px solid var(--sn-border-warm);">
+            <span class="sn-catalog-harvest-badge">
               Showing ${products.length} of ${totalCount} Harvests
             </span>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%;">
-            <input type="search" name="q" value="${escapeHtml(searchQuery)}" placeholder="Search almonds, ragi, cloves..." class="sn-input" style="flex:1.5 1 200px;" id="catalog-search-input" />
-            <select name="tag" class="sn-select" style="flex:1 1 150px;" id="catalog-tag-select">
+            <input type="search" name="q" value="${escapeHtml(searchQuery)}" placeholder="Search almonds, ragi, cloves..." class="sn-input" style="flex:1.5 1 190px;" id="catalog-search-input" />
+            <select class="sn-select" style="flex:1 1 165px;" id="catalog-category-jump-select" aria-label="Jump to Category" data-category-jump-select>
+              <option value="${basePath}/shop" ${!activeCategory ? 'selected' : ''}>Category: All (${categories.length})</option>
+              ${categories.map(c => `
+                <option value="${basePath}/category/${escapeHtml(c.slug)}" ${activeCategory && activeCategory.slug === c.slug ? 'selected' : ''}>Category: ${escapeHtml(c.name)}</option>
+              `).join('')}
+            </select>
+            <select name="tag" class="sn-select" style="flex:1 1 145px;" id="catalog-tag-select">
               <option value="all" ${tagFilter === 'all' ? 'selected' : ''}>Filter: All Items</option>
               <option value="bestseller" ${tagFilter === 'bestseller' ? 'selected' : ''}>Bestsellers Only</option>
               <option value="featured" ${tagFilter === 'featured' ? 'selected' : ''}>Featured Only</option>
               <option value="new_arrival" ${tagFilter === 'new_arrival' ? 'selected' : ''}>New Harvests</option>
               <option value="in_stock" ${tagFilter === 'in_stock' ? 'selected' : ''}>In Stock Only</option>
             </select>
-            <select name="maxPrice" class="sn-select" style="flex:1 1 160px;" id="catalog-price-select">
+            <select name="maxPrice" class="sn-select" style="flex:1 1 155px;" id="catalog-price-select">
               <option value="all" ${maxPriceInr === 'all' ? 'selected' : ''}>Starting Price: Any</option>
               <option value="150" ${String(maxPriceInr) === '150' ? 'selected' : ''}>Starts Under ₹150</option>
               <option value="250" ${String(maxPriceInr) === '250' ? 'selected' : ''}>Starts Under ₹250</option>
               <option value="500" ${String(maxPriceInr) === '500' ? 'selected' : ''}>Starts Under ₹500</option>
             </select>
-            <select name="pack" class="sn-select" style="flex:0.9 1 135px;" id="catalog-pack-select">
+            <select name="pack" class="sn-select" style="flex:0.9 1 130px;" id="catalog-pack-select">
               <option value="all" ${packFilter === 'all' ? 'selected' : ''}>Pack: All Sizes</option>
               <option value="100 g" ${packFilter === '100 g' ? 'selected' : ''}>100 g Pack</option>
               <option value="250 g" ${packFilter === '250 g' ? 'selected' : ''}>250 g Pack</option>
               <option value="500 g" ${packFilter === '500 g' ? 'selected' : ''}>500 g Pack</option>
               <option value="1 kg" ${packFilter === '1 kg' ? 'selected' : ''}>1 kg Pack</option>
             </select>
-            <select name="sort" class="sn-select" style="flex:1 1 155px;" id="catalog-sort-select">
+            <select name="sort" class="sn-select" style="flex:1 1 150px;" id="catalog-sort-select">
               <option value="featured" ${sortBy === 'featured' ? 'selected' : ''}>Sort: Featured</option>
               <option value="price_asc" ${sortBy === 'price_asc' ? 'selected' : ''}>Price: Low to High</option>
               <option value="price_desc" ${sortBy === 'price_desc' ? 'selected' : ''}>Price: High to Low</option>

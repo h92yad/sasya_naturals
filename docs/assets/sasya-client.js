@@ -389,7 +389,32 @@
       });
     }
 
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const catDropWrap = document.getElementById('sn-nav-categories-dropdown-wrap');
+        const catTrig = document.getElementById('sn-nav-categories-trigger');
+        if (catDropWrap && catDropWrap.classList.contains('sn-popover-open')) {
+          catDropWrap.classList.remove('sn-popover-open');
+          if (catTrig) catTrig.setAttribute('aria-expanded', 'false');
+        }
+      }
+    });
+
     document.addEventListener('click', async (e) => {
+      const catPopoverTrigger = e.target.closest('[data-toggle-cat-popover]');
+      const catDropdownWrap = document.getElementById('sn-nav-categories-dropdown-wrap');
+      if (catPopoverTrigger && catDropdownWrap) {
+        e.preventDefault();
+        const isOpen = catDropdownWrap.classList.toggle('sn-popover-open');
+        catPopoverTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        return;
+      }
+      if (catDropdownWrap && catDropdownWrap.classList.contains('sn-popover-open') && !e.target.closest('#sn-nav-categories-dropdown-wrap')) {
+        catDropdownWrap.classList.remove('sn-popover-open');
+        const catTrig = document.getElementById('sn-nav-categories-trigger');
+        if (catTrig) catTrig.setAttribute('aria-expanded', 'false');
+      }
+
       const mobileMenuBtn = e.target.closest('[data-mobile-menu]');
       if (mobileMenuBtn) {
         const navEl = document.querySelector('.sn-nav');
@@ -3513,7 +3538,16 @@
     const grid = document.getElementById('sn-catalog-product-grid');
     if (!filterForm || !grid) return;
 
-    filterForm.querySelectorAll('select').forEach(sel => {
+    const catJumpSelect = document.getElementById('catalog-category-jump-select');
+    if (catJumpSelect) {
+      catJumpSelect.addEventListener('change', () => {
+        if (catJumpSelect.value) {
+          window.location.href = catJumpSelect.value;
+        }
+      });
+    }
+
+    filterForm.querySelectorAll('select:not([data-category-jump-select])').forEach(sel => {
       sel.addEventListener('change', () => {
         if (typeof filterForm.requestSubmit === 'function') {
           filterForm.requestSubmit();
@@ -3587,9 +3621,9 @@
     if (tbody) {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td><img src="${cat.imageUrl}" alt="${cat.name}" data-category-img-id="${cat.id}" style="width:68px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" /></td>
-        <td><strong>${cat.name}</strong><br/><span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">/category/${cat.slug}</span></td>
-        <td style="font-size:0.82rem;">${cat.subtitle}</td>
+        <td><img src="${escapeHtmlClient(cat.imageUrl)}" alt="${escapeHtmlClient(cat.name)}" data-category-img-id="${escapeHtmlClient(cat.id)}" style="width:68px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" /></td>
+        <td><strong>${escapeHtmlClient(cat.name)}</strong><br/><span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">/category/${escapeHtmlClient(cat.slug)}</span></td>
+        <td style="font-size:0.82rem;">${escapeHtmlClient(cat.subtitle)}</td>
         <td><span class="sn-status sn-status-paid">Published (Active)</span></td>
         <td><span style="font-size:0.75rem;color:var(--sn-text-muted);">Custom Category</span></td>
       `;
@@ -3602,19 +3636,90 @@
       opt.textContent = cat.name;
       prodCatSelect.appendChild(opt);
     }
+
+    // Update Desktop Priority+ Category Popover & Mobile 2-Column Category Grid
+    const popoverGrid = document.getElementById('sn-nav-categories-popover-grid');
+    if (popoverGrid) {
+      const popCard = document.createElement('a');
+      popCard.href = `${BASE_PATH}/shop`;
+      popCard.className = 'sn-nav-popover-card';
+      popCard.setAttribute('role', 'menuitem');
+      popCard.innerHTML = `
+        <img src="${escapeHtmlClient(cat.imageUrl)}" alt="${escapeHtmlClient(cat.name)}" data-category-img-id="${escapeHtmlClient(cat.id)}" />
+        <div class="sn-nav-popover-card-body">
+          <div class="sn-nav-popover-card-title">
+            <strong>${escapeHtmlClient(cat.name)}</strong>
+            <span class="sn-nav-popover-badge">0</span>
+          </div>
+          <span class="sn-nav-popover-card-sub">${escapeHtmlClient(cat.subtitle || 'Farm-Direct Pantry')}</span>
+        </div>
+      `;
+      popoverGrid.appendChild(popCard);
+      const nextCount = popoverGrid.querySelectorAll('.sn-nav-popover-card').length;
+      const dropWrap = document.getElementById('sn-nav-categories-dropdown-wrap');
+      if (dropWrap && nextCount > 3) {
+        dropWrap.style.display = '';
+      }
+      document.querySelectorAll('[data-nav-cat-inline]').forEach(el => {
+        const idx = Number(el.getAttribute('data-nav-cat-inline') || 0);
+        if (nextCount > 3 && idx >= 2) {
+          el.classList.add('sn-nav-cat-overflow-desktop');
+        }
+      });
+      const totCountEl = document.getElementById('sn-nav-cat-total-count');
+      const popCountEl = document.getElementById('sn-nav-popover-count');
+      const mobCountEl = document.getElementById('sn-mobile-cat-count');
+      if (totCountEl) totCountEl.textContent = String(nextCount);
+      if (popCountEl) popCountEl.textContent = String(nextCount);
+      if (mobCountEl) mobCountEl.textContent = String(nextCount);
+    }
+
+    const mobileCatGrid = document.getElementById('sn-mobile-cat-grid');
+    if (mobileCatGrid) {
+      const tile = document.createElement('a');
+      tile.href = `${BASE_PATH}/shop`;
+      tile.className = 'sn-mobile-cat-tile';
+      tile.innerHTML = `
+        <img src="${escapeHtmlClient(cat.imageUrl)}" alt="${escapeHtmlClient(cat.name)}" data-category-img-id="${escapeHtmlClient(cat.id)}" />
+        <span class="sn-mobile-cat-tile-name">${escapeHtmlClient(cat.name)}</span>
+      `;
+      mobileCatGrid.appendChild(tile);
+      mobileCatGrid.classList.add('sn-mobile-cat-grid-2col');
+    }
+
+    const pillRail = document.getElementById('sn-catalog-pill-rail');
+    if (pillRail) {
+      const divider = pillRail.querySelector('.sn-catalog-pill-divider');
+      const pill = document.createElement('a');
+      pill.href = `${BASE_PATH}/shop`;
+      pill.className = 'sn-btn sn-btn-outline sn-btn-sm';
+      pill.textContent = cat.name;
+      if (divider) {
+        pillRail.insertBefore(pill, divider);
+      } else {
+        pillRail.appendChild(pill);
+      }
+    }
+
     const homeGrid = document.getElementById('home-categories-grid');
     if (homeGrid) {
       const a = document.createElement('a');
       a.href = `${BASE_PATH}/shop`;
       a.className = 'sn-category-card';
       a.innerHTML = `
-        <div class="sn-category-img-wrap"><img src="${cat.imageUrl}" alt="${cat.name}" data-category-img-id="${cat.id}" /></div>
+        <div class="sn-category-img-wrap"><img src="${escapeHtmlClient(cat.imageUrl)}" alt="${escapeHtmlClient(cat.name)}" data-category-img-id="${escapeHtmlClient(cat.id)}" /></div>
         <div class="sn-category-body">
-          <div><span class="sn-eyebrow">${cat.subtitle}</span><h3>${cat.name}</h3><p>${cat.description}</p></div>
-          <span style="font-weight:700;color:var(--sn-accent-terracotta);font-size:0.875rem;">Browse ${cat.name} -></span>
+          <div><span class="sn-eyebrow">${escapeHtmlClient(cat.subtitle)}</span><h3>${escapeHtmlClient(cat.name)}</h3><p>${escapeHtmlClient(cat.description)}</p></div>
+          <span style="font-weight:700;color:var(--sn-accent-terracotta);font-size:0.875rem;">Browse ${escapeHtmlClient(cat.name)} &rarr;</span>
         </div>
       `;
       homeGrid.appendChild(a);
+      const count = homeGrid.querySelectorAll('.sn-category-card').length;
+      homeGrid.setAttribute('data-category-count', String(count));
+      const eyebrowEl = document.getElementById('home-categories-eyebrow');
+      if (eyebrowEl && count !== 3) {
+        eyebrowEl.textContent = `${count} Curated Pantry Collections`;
+      }
     }
   }
 
