@@ -1,6 +1,24 @@
-# Sasya Naturals (`sasynaturals.com`) - Pre-Launch Integration Checklist
+# Sasya Naturals (`sashyanaturals.com`) - Pre-Launch & Staging Integration Checklist
 
-This document tracks the remaining external provider integrations and production cutover steps required before switching `sasynaturals.com` from Sandbox/Showcase mode to live customer traffic.
+This document tracks the server setup, staging environment, external provider integrations, and production cutover steps required before switching `sashyanaturals.com` from Staging/Sandbox mode to live customer traffic.
+
+---
+
+## 0. Infrastructure & Staging Server Status (Do NOT Publish Live Yet)
+
+- **Domain Name (GoDaddy)**: `sashyanaturals.com`
+- **Hostinger KVM2 VPS (Ubuntu 24.04)**: `189.72.179.46` (`ssh root@189.72.179.46`)
+- **Primary / Staging Node Ports**: `:3021` (Staging instance at `/var/www/sasya_naturals_staging`) / `:3020` (Production instance at `/var/www/sasya_naturals`, held offline until launch)
+
+### Infrastructure Progress:
+- [x] **Step 1 — Hostinger KVM2 VPS & SSH Keys**: Provisioned Ubuntu 24.04 VPS at `189.72.179.46` and configured SSH key access (`ssh root@189.72.179.46`).
+- [x] **Step 2 — Cloudflare DNS Setup**: Created Cloudflare account for `sashyanaturals.com` and pointed `A` records to `189.72.179.46`.
+- [ ] **Step 3 — GoDaddy Nameserver Update (Waiting on Client)**: Client to replace GoDaddy default nameservers with the 2 Cloudflare nameservers.
+- [ ] **Step 4 — Staging-Only VPS Deployment (Keep Public Site Offline)**:
+  - Deploy the app to `/var/www/sasya_naturals_staging` on port `3021`.
+  - Expose it only on a staging subdomain (e.g., `staging.sashyanaturals.com`) or behind HTTP Basic Auth / maintenance page on `sashyanaturals.com` so the general public and search engines cannot access the store until sign-off.
+- [ ] **Step 5 — Final Production Cutover (Only After Sign-Off)**:
+  - Point `sashyanaturals.com` and `www.sashyanaturals.com` in Nginx to primary port `3020` (with `:3021` as hot-standby) and remove the staging gate.
 
 ---
 
