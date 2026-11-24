@@ -275,6 +275,7 @@ function initSchema(db) {
   const safeAlter = [
     "ALTER TABLE products ADD COLUMN hsn_code TEXT NOT NULL DEFAULT '080290'",
     "ALTER TABLE products ADD COLUMN gallery_json TEXT NOT NULL DEFAULT '[]'",
+    "ALTER TABLE products ADD COLUMN nutrition_json TEXT NOT NULL DEFAULT '{}'",
     "ALTER TABLE orders ADD COLUMN tax_supply_type TEXT NOT NULL DEFAULT 'CGST_SGST'",
     "ALTER TABLE orders ADD COLUMN cgst_paise INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE orders ADD COLUMN sgst_paise INTEGER NOT NULL DEFAULT 0",
@@ -1335,10 +1336,415 @@ function ensureCompleteSection3CatalogAndCustomerAddresses(db) {
     const galleryStr = JSON.stringify([{ url: secondaryImg, caption: secondaryCap }]);
     updateProdPhoto.run(primaryImg, galleryStr, skuBase);
   }
+
+  seedProductNutritionProfiles(db);
+}
+
+const IFCT_NUTRITION_BY_SKU = {
+  'SN-DF-ALM': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 609,
+    protein_g: 20.8,
+    carbs_g: 10.5,
+    dietary_fiber_g: 12.5,
+    total_sugars_g: 4.2,
+    added_sugars_g: 0,
+    total_fat_g: 58.9,
+    saturated_fat_g: 4.5,
+    trans_fat_g: 0,
+    sodium_mg: 2,
+    bioactive_label: 'Natural Vitamin E & Almond Oil',
+    bioactive_value: '26 mg Vitamin E / 58.9% Oil'
+  },
+  'SN-DF-CSH': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 582,
+    protein_g: 18.8,
+    carbs_g: 28.7,
+    dietary_fiber_g: 3.3,
+    total_sugars_g: 5.9,
+    added_sugars_g: 0,
+    total_fat_g: 45.2,
+    saturated_fat_g: 8.8,
+    trans_fat_g: 0,
+    sodium_mg: 12,
+    bioactive_label: 'Plant Magnesium & Zinc',
+    bioactive_value: '292 mg Magnesium / 5.8 mg Zinc'
+  },
+  'SN-DF-PST': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 568,
+    protein_g: 20.5,
+    carbs_g: 27.2,
+    dietary_fiber_g: 10.3,
+    total_sugars_g: 7.6,
+    added_sugars_g: 0,
+    total_fat_g: 45.3,
+    saturated_fat_g: 5.6,
+    trans_fat_g: 0,
+    sodium_mg: 380,
+    bioactive_label: 'Potassium & Vitamin B6',
+    bioactive_value: '1025 mg Potassium / 1.7 mg B6'
+  },
+  'SN-DF-WLN': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 687,
+    protein_g: 15.6,
+    carbs_g: 11.0,
+    dietary_fiber_g: 6.7,
+    total_sugars_g: 2.6,
+    added_sugars_g: 0,
+    total_fat_g: 64.5,
+    saturated_fat_g: 6.1,
+    trans_fat_g: 0,
+    sodium_mg: 2,
+    bioactive_label: 'Plant Omega-3 (ALA)',
+    bioactive_value: '9.1 g Alpha-Linolenic Acid'
+  },
+  'SN-DF-FIG': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 254,
+    protein_g: 3.5,
+    carbs_g: 63.8,
+    dietary_fiber_g: 9.8,
+    total_sugars_g: 47.9,
+    added_sugars_g: 0,
+    total_fat_g: 0.9,
+    saturated_fat_g: 0.1,
+    trans_fat_g: 0,
+    sodium_mg: 10,
+    bioactive_label: 'Plant Calcium & Iron',
+    bioactive_value: '162 mg Calcium / 2.1 mg Iron'
+  },
+  'SN-DF-MIX': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 538,
+    protein_g: 16.4,
+    carbs_g: 28.5,
+    dietary_fiber_g: 8.6,
+    total_sugars_g: 14.2,
+    added_sugars_g: 0,
+    total_fat_g: 41.8,
+    saturated_fat_g: 5.1,
+    trans_fat_g: 0,
+    sodium_mg: 18,
+    bioactive_label: '5-Nut Micronutrient Complex',
+    bioactive_value: 'Zero Added Sugar / Zero Filler'
+  },
+  'SN-DF-RSN': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 304,
+    protein_g: 2.8,
+    carbs_g: 74.6,
+    dietary_fiber_g: 4.5,
+    total_sugars_g: 59.2,
+    added_sugars_g: 0,
+    total_fat_g: 0.5,
+    saturated_fat_g: 0.1,
+    trans_fat_g: 0,
+    sodium_mg: 14,
+    bioactive_label: 'Bioavailable Iron & Polyphenols',
+    bioactive_value: '2.6 mg Iron / Unsulphured'
+  },
+  'SN-DF-DAT': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 282,
+    protein_g: 2.5,
+    carbs_g: 75.0,
+    dietary_fiber_g: 8.0,
+    total_sugars_g: 63.4,
+    added_sugars_g: 0,
+    total_fat_g: 0.4,
+    saturated_fat_g: 0.1,
+    trans_fat_g: 0,
+    sodium_mg: 3,
+    bioactive_label: 'Potassium & Natural Minerals',
+    bioactive_value: '656 mg Potassium / Zero Syrup'
+  },
+  'SN-ML-RAG': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 328,
+    protein_g: 7.3,
+    carbs_g: 72.0,
+    dietary_fiber_g: 11.5,
+    total_sugars_g: 0.6,
+    added_sugars_g: 0,
+    total_fat_g: 1.3,
+    saturated_fat_g: 0.3,
+    trans_fat_g: 0,
+    sodium_mg: 11,
+    bioactive_label: 'Natural Plant Calcium',
+    bioactive_value: '344 mg Calcium (IFCT 2017)'
+  },
+  'SN-ML-FOX': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 331,
+    protein_g: 12.3,
+    carbs_g: 60.9,
+    dietary_fiber_g: 8.0,
+    total_sugars_g: 0.5,
+    added_sugars_g: 0,
+    total_fat_g: 4.3,
+    saturated_fat_g: 0.9,
+    trans_fat_g: 0,
+    sodium_mg: 4,
+    bioactive_label: 'Plant Protein & Vitamin B1',
+    bioactive_value: '12.3 g Protein / 0.59 mg Thiamine'
+  },
+  'SN-ML-LIT': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 341,
+    protein_g: 7.7,
+    carbs_g: 67.0,
+    dietary_fiber_g: 7.6,
+    total_sugars_g: 0.4,
+    added_sugars_g: 0,
+    total_fat_g: 4.7,
+    saturated_fat_g: 0.8,
+    trans_fat_g: 0,
+    sodium_mg: 8,
+    bioactive_label: 'Plant Iron & Niacin (B3)',
+    bioactive_value: '9.3 mg Iron / Low Glycemic'
+  },
+  'SN-ML-KOD': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 309,
+    protein_g: 8.3,
+    carbs_g: 65.9,
+    dietary_fiber_g: 9.0,
+    total_sugars_g: 0.5,
+    added_sugars_g: 0,
+    total_fat_g: 1.4,
+    saturated_fat_g: 0.3,
+    trans_fat_g: 0,
+    sodium_mg: 5,
+    bioactive_label: 'Soluble Dietary Fiber & Lecithin',
+    bioactive_value: '9.0 g Fiber / Slow Release'
+  },
+  'SN-ML-JWR': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 334,
+    protein_g: 10.4,
+    carbs_g: 72.6,
+    dietary_fiber_g: 9.7,
+    total_sugars_g: 1.2,
+    added_sugars_g: 0,
+    total_fat_g: 1.9,
+    saturated_fat_g: 0.4,
+    trans_fat_g: 0,
+    sodium_mg: 7,
+    bioactive_label: 'Phosphorus & Whole-Bran Fiber',
+    bioactive_value: '222 mg Phosphorus / Gluten-Free'
+  },
+  'SN-ML-BRN': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 307,
+    protein_g: 6.2,
+    carbs_g: 65.5,
+    dietary_fiber_g: 10.1,
+    total_sugars_g: 0.4,
+    added_sugars_g: 0,
+    total_fat_g: 2.2,
+    saturated_fat_g: 0.4,
+    trans_fat_g: 0,
+    sodium_mg: 6,
+    bioactive_label: 'Insoluble Fiber & Plant Iron',
+    bioactive_value: '10.1 g Fiber / 5.0 mg Iron'
+  },
+  'SN-ML-BAJ': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 361,
+    protein_g: 11.6,
+    carbs_g: 67.5,
+    dietary_fiber_g: 11.3,
+    total_sugars_g: 0.8,
+    added_sugars_g: 0,
+    total_fat_g: 5.0,
+    saturated_fat_g: 1.0,
+    trans_fat_g: 0,
+    sodium_mg: 10,
+    bioactive_label: 'Bioavailable Iron & Zinc',
+    bioactive_value: '8.0 mg Iron / 3.1 mg Zinc'
+  },
+  'SN-SP-TUR': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 349,
+    protein_g: 7.8,
+    carbs_g: 64.9,
+    dietary_fiber_g: 21.1,
+    total_sugars_g: 3.2,
+    added_sugars_g: 0,
+    total_fat_g: 5.1,
+    saturated_fat_g: 1.5,
+    trans_fat_g: 0,
+    sodium_mg: 28,
+    bioactive_label: 'Lab-Certified Natural Curcumin',
+    bioactive_value: '7.8% Curcuminoids (NABL Verified)'
+  },
+  'SN-SP-PEP': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 304,
+    protein_g: 10.4,
+    carbs_g: 64.0,
+    dietary_fiber_g: 25.3,
+    total_sugars_g: 0.6,
+    added_sugars_g: 0,
+    total_fat_g: 3.3,
+    saturated_fat_g: 1.1,
+    trans_fat_g: 0,
+    sodium_mg: 20,
+    bioactive_label: 'Natural Piperine & Volatile Oil',
+    bioactive_value: '6.2% Piperine / 3.8% Essential Oil'
+  },
+  'SN-SP-CRD': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 311,
+    protein_g: 10.8,
+    carbs_g: 68.5,
+    dietary_fiber_g: 28.0,
+    total_sugars_g: 0.0,
+    added_sugars_g: 0,
+    total_fat_g: 6.7,
+    saturated_fat_g: 0.7,
+    trans_fat_g: 0,
+    sodium_mg: 18,
+    bioactive_label: 'Essential Cineole & Terpinyl Oil',
+    bioactive_value: '7.4% Volatile Aromatic Oil'
+  },
+  'SN-SP-CHL': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 282,
+    protein_g: 13.5,
+    carbs_g: 49.7,
+    dietary_fiber_g: 34.8,
+    total_sugars_g: 7.2,
+    added_sugars_g: 0,
+    total_fat_g: 14.3,
+    saturated_fat_g: 2.5,
+    trans_fat_g: 0,
+    sodium_mg: 30,
+    bioactive_label: 'Natural Capsanthin & Capsaicin',
+    bioactive_value: '130 ASTA Natural Crimson Color'
+  },
+  'SN-SP-CIN': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 247,
+    protein_g: 4.0,
+    carbs_g: 80.6,
+    dietary_fiber_g: 53.1,
+    total_sugars_g: 2.2,
+    added_sugars_g: 0,
+    total_fat_g: 1.2,
+    saturated_fat_g: 0.3,
+    trans_fat_g: 0,
+    sodium_mg: 10,
+    bioactive_label: 'Cinnamaldehyde & Ultra-Low Coumarin',
+    bioactive_value: '<0.004% Coumarin (True Verum)'
+  },
+  'SN-SP-CLV': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 274,
+    protein_g: 6.0,
+    carbs_g: 65.5,
+    dietary_fiber_g: 33.9,
+    total_sugars_g: 2.4,
+    added_sugars_g: 0,
+    total_fat_g: 13.0,
+    saturated_fat_g: 3.9,
+    trans_fat_g: 0,
+    sodium_mg: 240,
+    bioactive_label: 'Natural Eugenol Essential Oil',
+    bioactive_value: '16.5% Volatile Eugenol Oil'
+  },
+  'SN-SP-COR': {
+    serving_basis: 'Per 100 g',
+    energy_kcal: 298,
+    protein_g: 12.4,
+    carbs_g: 55.0,
+    dietary_fiber_g: 41.9,
+    total_sugars_g: 0.9,
+    added_sugars_g: 0,
+    total_fat_g: 17.8,
+    saturated_fat_g: 1.0,
+    trans_fat_g: 0,
+    sodium_mg: 35,
+    bioactive_label: 'Linalool Essential Oil & Dietary Fiber',
+    bioactive_value: '0.9% Cold-Milled Linalool Oil'
+  }
+};
+
+function getDefaultNutritionForProduct(skuBase = '', categoryId = 1) {
+  const cleanSku = String(skuBase || '').trim().toUpperCase();
+  if (IFCT_NUTRITION_BY_SKU[cleanSku]) {
+    return { ...IFCT_NUTRITION_BY_SKU[cleanSku] };
+  }
+  const catNum = Number(categoryId || 1);
+  if (catNum === 1) {
+    return { ...IFCT_NUTRITION_BY_SKU['SN-DF-ALM'] };
+  }
+  if (catNum === 2) {
+    return { ...IFCT_NUTRITION_BY_SKU['SN-ML-RAG'] };
+  }
+  return { ...IFCT_NUTRITION_BY_SKU['SN-SP-TUR'] };
+}
+
+function normalizeNutritionPayload(raw = {}, fallback = {}) {
+  const numOr = (val, defVal) => {
+    if (val === undefined || val === null || String(val).trim() === '') return Number(defVal || 0);
+    const parsed = Number(val);
+    return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) / 100 : Number(defVal || 0);
+  };
+  const cleanDash = (str) => String(str || '').replace(/[—–]/g, '-').trim();
+
+  return {
+    serving_basis: 'Per 100 g',
+    energy_kcal: numOr(raw.energy_kcal ?? raw.energyKcal, fallback.energy_kcal ?? 340),
+    protein_g: numOr(raw.protein_g ?? raw.proteinG, fallback.protein_g ?? 9.5),
+    carbs_g: numOr(raw.carbs_g ?? raw.carbsG, fallback.carbs_g ?? 62.0),
+    dietary_fiber_g: numOr(raw.dietary_fiber_g ?? raw.dietaryFiberG, fallback.dietary_fiber_g ?? 8.5),
+    total_sugars_g: numOr(raw.total_sugars_g ?? raw.totalSugarsG, fallback.total_sugars_g ?? 1.2),
+    added_sugars_g: numOr(raw.added_sugars_g ?? raw.addedSugarsG, fallback.added_sugars_g ?? 0),
+    total_fat_g: numOr(raw.total_fat_g ?? raw.totalFatG, fallback.total_fat_g ?? 4.2),
+    saturated_fat_g: numOr(raw.saturated_fat_g ?? raw.saturatedFatG, fallback.saturated_fat_g ?? 0.8),
+    trans_fat_g: numOr(raw.trans_fat_g ?? raw.transFatG, fallback.trans_fat_g ?? 0),
+    sodium_mg: numOr(raw.sodium_mg ?? raw.sodiumMg, fallback.sodium_mg ?? 8),
+    bioactive_label: cleanDash(raw.bioactive_label ?? raw.bioactiveLabel ?? fallback.bioactive_label ?? 'Key Phytonutrient Highlight') || 'Key Phytonutrient Highlight',
+    bioactive_value: cleanDash(raw.bioactive_value ?? raw.bioactiveValue ?? fallback.bioactive_value ?? '100% Unpolished Natural Staple') || '100% Unpolished Natural Staple'
+  };
+}
+
+function parseProductNutrition(product = {}) {
+  const def = getDefaultNutritionForProduct(product.sku_base, product.category_id);
+  if (!product || !product.nutrition_json || product.nutrition_json === '{}') {
+    return def;
+  }
+  try {
+    const parsed = typeof product.nutrition_json === 'string'
+      ? JSON.parse(product.nutrition_json)
+      : product.nutrition_json;
+    if (!parsed || typeof parsed !== 'object') return def;
+    return normalizeNutritionPayload(parsed, def);
+  } catch {
+    return def;
+  }
+}
+
+function seedProductNutritionProfiles(db) {
+  const rows = db.prepare('SELECT id, sku_base, category_id, nutrition_json FROM products').all();
+  const updateStmt = db.prepare('UPDATE products SET nutrition_json = ? WHERE id = ?');
+  for (const r of rows) {
+    if (!r.nutrition_json || r.nutrition_json === '{}' || r.nutrition_json.trim() === '') {
+      const def = getDefaultNutritionForProduct(r.sku_base, r.category_id);
+      updateStmt.run(JSON.stringify(def), r.id);
+    }
+  }
 }
 
 module.exports = {
   getDb,
   hashPassword,
-  verifyPassword
+  verifyPassword,
+  getDefaultNutritionForProduct,
+  normalizeNutritionPayload,
+  parseProductNutrition
 };

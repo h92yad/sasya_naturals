@@ -6,6 +6,13 @@ const {
   WIKIDATA_MORATORIUM_UNTIL,
   BANNED_PORTFOLIO_DOMAINS
 } = require('../../config/appConfig');
+const { parseProductNutrition } = require('../../db/database');
+
+function resolveEffectiveVariantPaise(v = {}) {
+  const sell = Number(v.selling_price_paise || 0);
+  const promo = Number(v.promo_price_paise || 0);
+  return promo > 0 && promo < sell ? promo : sell;
+}
 
 const WIKIDATA_HOST = ['wikidata', 'org'].join('\\.');
 const WIKIDATA_REGEX = new RegExp(`${WIKIDATA_HOST}|\\/entity\\/Q\\d+|\\/wiki\\/Q\\d+|\\bQ\\d{3,}\\b`, 'i');
@@ -107,17 +114,22 @@ function buildMasterSchemaGraph({
       stock_qty: 10
     };
 
-    const offers = activeVariants.map(v => ({
-      '@type': 'Offer',
-      sku: v.sku,
-      name: `${product.name} (${v.pack_label})`,
-      priceCurrency: 'INR',
-      price: (v.selling_price_paise / 100).toFixed(2),
-      availability: v.stock_qty > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-      url: `${canonicalUrl}?pack=${encodeURIComponent(v.pack_label)}`,
-      itemCondition: 'https://schema.org/NewCondition',
-      seller: { '@id': `${CANONICAL_ORIGIN}/#organization` }
-    }));
+    const offers = activeVariants.map(v => {
+      const effectivePaise = resolveEffectiveVariantPaise(v);
+      return {
+        '@type': 'Offer',
+        sku: v.sku,
+        name: `${product.name} (${v.pack_label})`,
+        priceCurrency: 'INR',
+        price: (effectivePaise / 100).toFixed(2),
+        availability: v.stock_qty > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        url: `${canonicalUrl}?pack=${encodeURIComponent(v.pack_label)}`,
+        itemCondition: 'https://schema.org/NewCondition',
+        seller: { '@id': `${CANONICAL_ORIGIN}/#organization` }
+      };
+    });
+
+    const nut = parseProductNutrition(product);
 
     const productNode = {
       '@type': 'Product',
@@ -135,12 +147,37 @@ function buildMasterSchemaGraph({
         '@type': 'Country',
         name: 'India'
       },
+      nutrition: {
+        '@type': 'NutritionInformation',
+        servingSize: '100 g',
+        calories: `${nut.energy_kcal} kcal`,
+        proteinContent: `${nut.protein_g} g`,
+        carbohydrateContent: `${nut.carbs_g} g`,
+        fiberContent: `${nut.dietary_fiber_g} g`,
+        sugarContent: `${nut.total_sugars_g} g`,
+        fatContent: `${nut.total_fat_g} g`,
+        saturatedFatContent: `${nut.saturated_fat_g} g`,
+        transFatContent: `${nut.trans_fat_g} g`,
+        sodiumContent: `${nut.sodium_mg} mg`
+      },
+      additionalProperty: [
+        {
+          '@type': 'PropertyValue',
+          name: nut.bioactive_label || 'Key Phytonutrient Highlight',
+          value: nut.bioactive_value || '100% Unpolished Natural Staple'
+        },
+        {
+          '@type': 'PropertyValue',
+          name: 'Growing Region',
+          value: product.origin_region || 'India'
+        }
+      ],
       offers: offers.length > 1
         ? {
             '@type': 'AggregateOffer',
             priceCurrency: 'INR',
-            lowPrice: (Math.min(...activeVariants.map(v => v.selling_price_paise)) / 100).toFixed(2),
-            highPrice: (Math.max(...activeVariants.map(v => v.selling_price_paise)) / 100).toFixed(2),
+            lowPrice: (Math.min(...activeVariants.map(v => resolveEffectiveVariantPaise(v))) / 100).toFixed(2),
+            highPrice: (Math.max(...activeVariants.map(v => resolveEffectiveVariantPaise(v))) / 100).toFixed(2),
             offerCount: offers.length,
             offers
           }

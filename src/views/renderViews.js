@@ -7,7 +7,7 @@ const {
   BRAND_TAGLINE,
   ORDER_FULFILMENT_STATUSES
 } = require('../config/appConfig');
-const { getDb } = require('../db/database');
+const { getDb, parseProductNutrition } = require('../db/database');
 const { buildMasterSchemaGraph } = require('../core/content/schemaBuilder');
 const { getShippingPolicyFromDb } = require('../core/checkout/checkoutEngine');
 const { buildComprehensiveReports } = require('../core/reports/reportingEngine');
@@ -87,6 +87,9 @@ function renderProductCard(p, variants = [], basePath = '') {
   const savePct = defVar.mrp_paise > defVar.selling_price_paise
     ? Math.round(((defVar.mrp_paise - defVar.selling_price_paise) / defVar.mrp_paise) * 100)
     : 0;
+  const minSellPaise = prodVariants.length > 0
+    ? Math.min(...prodVariants.map(v => Number(v.selling_price_paise || 0)))
+    : defVar.selling_price_paise;
 
   return `
     <article
@@ -96,7 +99,7 @@ function renderProductCard(p, variants = [], basePath = '') {
       data-product-bestseller="${p.is_bestseller ? '1' : '0'}"
       data-product-new="${p.is_new_arrival ? '1' : '0'}"
       data-product-instock="${totalStock > 0 ? '1' : '0'}"
-      data-product-min-inr="${Math.round((prodVariants[0] ? prodVariants[0].selling_price_paise : defVar.selling_price_paise) / 100)}"
+      data-product-min-inr="${Math.round(minSellPaise / 100)}"
       id="prod-card-${escapeHtml(p.slug)}"
     >
       <a href="${basePath}/product/${escapeHtml(p.slug)}" class="sn-product-media">
@@ -767,7 +770,11 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
                 1. Choose Pack-Size Variant (Prices Inclusive of ${product.gst_percent}% GST)
               </div>
               <div class="sn-pack-selector">
-                ${activeVariants.map(v => `
+                ${activeVariants.map(v => {
+                  const vSavePct = v.mrp_paise > v.selling_price_paise
+                    ? Math.round(((v.mrp_paise - v.selling_price_paise) / v.mrp_paise) * 100)
+                    : 0;
+                  return `
                   <button
                     type="button"
                     class="sn-pack-pill ${v.id === defVar.id ? 'sn-active' : ''}"
@@ -781,9 +788,11 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
                     style="padding:8px 4px;"
                   >
                     <span>${escapeHtml(v.pack_label)}</span>
-                    <span style="font-size:0.7rem;opacity:0.85;">${formatInr(v.selling_price_paise)}</span>
+                    <span style="font-size:0.72rem;opacity:0.9;">${formatInr(v.selling_price_paise)}</span>
+                    ${vSavePct > 0 ? `<span class="sn-pack-pill-save">Save ${vSavePct}%</span>` : ''}
                   </button>
-                `).join('')}
+                  `;
+                }).join('')}
               </div>
 
               <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding-top:12px;border-top:1px solid var(--sn-border-warm);">
@@ -836,16 +845,72 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
               </div>
             </div>
 
-            <table class="sn-spec-table" aria-label="Product Compliance and Nutritional Information">
-              <tbody>
-                <tr><th>Growing Region / Origin</th><td>${escapeHtml(product.origin_region)}</td></tr>
-                <tr><th>Harvest Batch &amp; Best Before</th><td>Batch ${escapeHtml(product.harvest_batch)} • Best before ${product.shelf_life_months} months from packing</td></tr>
-                <tr><th>Ingredients</th><td>${escapeHtml(product.ingredients)}</td></tr>
-                <tr><th>Allergen Information</th><td>${escapeHtml(product.allergen_info)}</td></tr>
-                <tr><th>Food Safety &amp; Storage Notes</th><td>${escapeHtml(product.fssai_notes)}</td></tr>
-                <tr><th>Available Pack Weights</th><td>100 g, 250 g, 500 g, and 1 kg nitrogen-flushed stand-up pouches</td></tr>
-              </tbody>
-            </table>
+            ${(() => {
+              const nut = parseProductNutrition(product);
+              return `
+              <div class="sn-pdp-spec-card" data-pdp-spec-container>
+                <div class="sn-admin-subnav-bar" role="tablist" aria-label="Product Specifications and Nutritional Information" style="margin-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:none;">
+                  <button type="button" class="sn-admin-subtab-pill sn-active" data-pdp-spec-tab="compliance" role="tab" aria-selected="true">📋 Origin, Batch &amp; FSSAI Compliance</button>
+                  <button type="button" class="sn-admin-subtab-pill" data-pdp-spec-tab="nutrition" role="tab" aria-selected="false">🥗 Nutritional Value (Per 100 g)</button>
+                </div>
+
+                <!-- Tab 1: Origin, Harvest Batch & FSSAI Labelling -->
+                <div data-pdp-spec-pane="compliance">
+                  <table class="sn-spec-table" aria-label="Product Origin and FSSAI Compliance" style="margin-top:0;border-top-left-radius:0;border-top-right-radius:0;">
+                    <tbody>
+                      <tr><th>Growing Region / Origin</th><td>${escapeHtml(product.origin_region)}</td></tr>
+                      <tr><th>Harvest Batch &amp; Best Before</th><td>Batch ${escapeHtml(product.harvest_batch)} • Best before ${product.shelf_life_months} months from packing</td></tr>
+                      <tr><th>Ingredients</th><td>${escapeHtml(product.ingredients)}</td></tr>
+                      <tr><th>Allergen Information</th><td>${escapeHtml(product.allergen_info)}</td></tr>
+                      <tr><th>Food Safety &amp; Storage Notes</th><td>${escapeHtml(product.fssai_notes)}</td></tr>
+                      <tr><th>Key Phytonutrient Highlight</th><td><strong>${escapeHtml(nut.bioactive_label)}:</strong> ${escapeHtml(nut.bioactive_value)}</td></tr>
+                      <tr><th>Available Pack Weights</th><td>100 g, 250 g, 500 g, and 1 kg nitrogen-flushed stand-up pouches</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Tab 2: Structured FSSAI Per-100g Nutritional Profile (100% SSR Rendered for SEO & AEO) -->
+                <div data-pdp-spec-pane="nutrition" style="display:none;background-color:var(--sn-bg-surface);border:1px solid var(--sn-border-warm);border-bottom-left-radius:var(--sn-radius-sm);border-bottom-right-radius:var(--sn-radius-sm);padding:14px 16px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 12px;margin-bottom:12px;background-color:var(--sn-status-paid-bg);border:1px solid var(--sn-bg-forest);border-radius:var(--sn-radius-sm);">
+                    <span style="font-family:var(--sn-font-mono);font-size:0.75rem;font-weight:700;color:var(--sn-bg-forest);">★ ${escapeHtml(nut.bioactive_label)}</span>
+                    <span style="font-family:var(--sn-font-mono);font-size:0.78rem;font-weight:700;color:var(--sn-accent-terracotta);">${escapeHtml(nut.bioactive_value)}</span>
+                  </div>
+
+                  <div class="sn-pdp-macro-grid" style="margin-bottom:12px;">
+                    <div class="sn-pdp-macro-tile">
+                      <span class="sn-pdp-macro-label">Energy</span>
+                      <strong class="sn-pdp-macro-val">${nut.energy_kcal} kcal</strong>
+                    </div>
+                    <div class="sn-pdp-macro-tile">
+                      <span class="sn-pdp-macro-label">Protein</span>
+                      <strong class="sn-pdp-macro-val">${nut.protein_g} g</strong>
+                    </div>
+                    <div class="sn-pdp-macro-tile">
+                      <span class="sn-pdp-macro-label">Dietary Fiber</span>
+                      <strong class="sn-pdp-macro-val">${nut.dietary_fiber_g} g</strong>
+                    </div>
+                    <div class="sn-pdp-macro-tile">
+                      <span class="sn-pdp-macro-label">Total Fat</span>
+                      <strong class="sn-pdp-macro-val">${nut.total_fat_g} g</strong>
+                    </div>
+                  </div>
+
+                  <table class="sn-spec-table" aria-label="Nutritional Facts Per 100 Grams" style="margin-top:0;">
+                    <tbody>
+                      <tr><th>Serving Basis</th><td><strong>Per 100 g Edible Portion</strong> (FSSAI Standard)</td></tr>
+                      <tr><th>Total Carbohydrates</th><td>${nut.carbs_g} g (of which Dietary Fiber: ${nut.dietary_fiber_g} g)</td></tr>
+                      <tr><th>Total Sugars / Added Sugars</th><td>Total Sugars: ${nut.total_sugars_g} g • <strong>Added Sugars: ${nut.added_sugars_g} g</strong></td></tr>
+                      <tr><th>Fat Breakdown</th><td>Total Fat: ${nut.total_fat_g} g • Saturated Fat: ${nut.saturated_fat_g} g • <strong>Trans Fat: ${nut.trans_fat_g} g</strong></td></tr>
+                      <tr><th>Sodium</th><td>${nut.sodium_mg} mg</td></tr>
+                    </tbody>
+                  </table>
+                  <div style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-text-muted);margin-top:8px;">
+                    Reference: IFCT 2017 (ICMR-NIN Indian Food Composition Tables) &amp; Batch Lab Analysis. Natural unpolished agricultural produce exhibits minor seasonal variance.
+                  </div>
+                </div>
+              </div>
+              `;
+            })()}
           </div>
         </div>
       </div>
@@ -2616,10 +2681,20 @@ function renderAdminPortalPage({
                     </thead>
                     <tbody>
                       ${products.map(p => {
-                        const pVars = variants.filter(v => v.product_id === p.id);
+                        const pVars = variants.filter(v => v.product_id === p.id).sort((a, b) => a.weight_grams - b.weight_grams);
                         const v100 = pVars.find(v => Number(v.weight_grams) === 100) || pVars[0] || { selling_price_paise: 14000, mrp_paise: 17000 };
                         const base100SellInr = Math.round(Number(v100.selling_price_paise || 14000) / 100);
                         const base100MrpInr = Math.round(Number(v100.mrp_paise || 17000) / 100);
+                        const nut = parseProductNutrition(p);
+                        const variantsDataJson = JSON.stringify(pVars.map(v => ({
+                          id: v.id,
+                          sku: v.sku,
+                          packLabel: v.pack_label,
+                          weightGrams: v.weight_grams,
+                          mrpInr: Math.round(v.mrp_paise / 100),
+                          sellInr: Math.round(v.selling_price_paise / 100),
+                          stockQty: v.stock_qty
+                        })));
                         return `
                           <tr
                             data-admin-prod-row="${p.id}"
@@ -2632,7 +2707,15 @@ function renderAdminPortalPage({
                             data-prod-gst="${p.gst_percent}"
                             data-prod-hsn="${escapeHtml(p.hsn_code || '080290')}"
                             data-prod-origin="${escapeHtml(p.origin_region || '')}"
+                            data-prod-batch="${escapeHtml(p.harvest_batch || 'SN-BATCH-2611')}"
+                            data-prod-shelf-life="${Number(p.shelf_life_months || 9)}"
                             data-prod-desc="${escapeHtml(p.short_description || '')}"
+                            data-prod-full-desc="${escapeHtml(p.description || p.short_description || '')}"
+                            data-prod-ingredients="${escapeHtml(p.ingredients || '')}"
+                            data-prod-allergen="${escapeHtml(p.allergen_info || '')}"
+                            data-prod-fssai="${escapeHtml(p.fssai_notes || '')}"
+                            data-prod-variants-json="${escapeHtml(variantsDataJson)}"
+                            data-prod-nutrition-json="${escapeHtml(JSON.stringify(nut))}"
                             data-prod-img="${basePath}${escapeHtml(p.image_url)}"
                             data-prod-active="${p.is_active ? '1' : '0'}"
                             data-prod-bestseller="${p.is_bestseller ? '1' : '0'}"
@@ -2655,10 +2738,18 @@ function renderAdminPortalPage({
                                 <strong><a href="${basePath}/product/${escapeHtml(p.slug)}" data-prod-name-display="${p.id}">${escapeHtml(p.name)}</a></strong><br/>
                                 <span class="sn-status sn-status-paid" data-prod-cat-badge="${p.id}" style="font-size:0.65rem;padding:1px 6px;margin-top:2px;">${escapeHtml((categories.find(c => Number(c.id) === Number(p.category_id)) || { name: 'Category' }).name)}</span>
                                 <span data-prod-origin-display="${p.id}" style="font-size:0.75rem;color:var(--sn-text-muted);">${escapeHtml(p.origin_region)} • ${escapeHtml(p.harvest_batch)}</span>
+                                <div data-prod-nut-summary="${p.id}" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
+                                  🥗 ${nut.energy_kcal} kcal • ${nut.protein_g}g Prot • ${escapeHtml(nut.bioactive_value)}
+                                </div>
                               </div>
                             </td>
-                            <td data-label="Pack Variants" style="font-family:var(--sn-font-mono);font-size:0.73rem;">
-                              <span>${pVars.map(v => `${escapeHtml(v.pack_label)}: ${formatInr(v.selling_price_paise)} (${v.stock_qty})`).join(' | ')}</span>
+                            <td data-label="Pack Variants" style="font-family:var(--sn-font-mono);font-size:0.72rem;">
+                              <span data-prod-variants-cell="${p.id}">${pVars.map(v => {
+                                const pct = v.mrp_paise > v.selling_price_paise
+                                  ? Math.round(((v.mrp_paise - v.selling_price_paise) / v.mrp_paise) * 100)
+                                  : 0;
+                                return `${escapeHtml(v.pack_label)}: <strong>${formatInr(v.selling_price_paise)}</strong>${pct > 0 ? ` <span style="color:var(--sn-status-paid);">(-${pct}%)</span>` : ''} (${v.stock_qty})`;
+                              }).join(' | ')}</span>
                             </td>
                             <td data-label="Status &amp; Edit">
                               <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
@@ -2672,7 +2763,22 @@ function renderAdminPortalPage({
                                   type="button"
                                   class="sn-btn sn-btn-outline sn-btn-sm"
                                   data-load-prod-editor="${p.id}"
+                                  data-open-modal-tab="core"
                                 >✏️ Edit</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="${p.id}"
+                                  data-open-modal-tab="pricing"
+                                  title="Edit Per-Weight Pack Discounts &amp; Prices"
+                                >⚖️ Discounts</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="${p.id}"
+                                  data-open-modal-tab="nutrition"
+                                  title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
+                                >🥗 Nutrition</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -2789,7 +2895,7 @@ function renderAdminPortalPage({
                 </div>
               </div>
 
-              <!-- Contextual Product Edit, Category Assignment, Pack Pricing, Flags & Gallery Media Modal (Opens on Product ✏️ Edit Click) -->
+              <!-- Contextual Product Edit, Per-Weight Discount Matrix & FSSAI Nutrition Modal (Opens on Product ✏️ Edit / ⚖️ Discounts / 🥗 Nutrition Click) -->
               <div id="sn-admin-edit-product-modal" class="sn-admin-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sn-edit-modal-heading" style="display:none;">
                 <div class="sn-admin-modal-card">
                   <div class="sn-admin-modal-header">
@@ -2797,103 +2903,252 @@ function renderAdminPortalPage({
                       <img id="sn-edit-modal-thumb" src="${basePath}/images/cat-dry-fruits.jpg" alt="Product Preview" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
                       <div>
                         <span id="sn-edit-modal-sku" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">SN-DF-ALM</span>
-                        <h3 id="sn-edit-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF6EE;">Edit Product Details, Category, Pack Pricing &amp; Media</h3>
+                        <h3 id="sn-edit-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF6EE;">Edit Product Details, Per-Weight Discounts &amp; FSSAI Nutrition</h3>
                       </div>
                     </div>
                     <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-prod-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
                   </div>
 
                   <div class="sn-admin-modal-body">
-                    <form id="sn-admin-edit-product-form" style="margin-bottom:18px;">
+                    <!-- Isolated Modal Sub-Navigation Bar (Does not touch background Admin Module sessionStorage) -->
+                    <div class="sn-admin-subnav-bar" role="tablist" aria-label="Product Editor Sections" style="margin-bottom:14px;">
+                      <button type="button" class="sn-admin-subtab-pill sn-active" data-prod-modal-tab="core">🏷️ 1. Core Info, Flags &amp; Photos</button>
+                      <button type="button" class="sn-admin-subtab-pill" data-prod-modal-tab="pricing">⚖️ 2. Pack-Weight Pricing &amp; Discounts</button>
+                      <button type="button" class="sn-admin-subtab-pill" data-prod-modal-tab="nutrition">🥗 3. FSSAI Nutrition (Per 100g) &amp; Labelling</button>
+                    </div>
+
+                    <form id="sn-admin-edit-product-form" style="margin-bottom:14px;">
                       <input type="hidden" name="productId" id="sn-edit-prod-select" value="${products[0] ? products[0].id : 1}" />
 
-                      <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
-                        <div>
-                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Product Title *</label>
-                          <input type="text" name="name" id="sn-edit-prod-name" required class="sn-input" />
+                      <!-- Modal Pane 1: Core Product Info, Batch, Descriptions & Flags -->
+                      <div data-prod-modal-pane="core">
+                        <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
+                          <div>
+                            <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Product Title *</label>
+                            <input type="text" name="name" id="sn-edit-prod-name" required class="sn-input" />
+                          </div>
+                          <div>
+                            <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Storefront Category *</label>
+                            <select name="categoryId" id="sn-edit-prod-cat" class="sn-select">
+                              ${categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+                            </select>
+                          </div>
+                          <div>
+                            <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Growing Region / Origin *</label>
+                            <input type="text" name="originRegion" id="sn-edit-prod-origin" required class="sn-input" />
+                          </div>
                         </div>
-                        <div>
-                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Storefront Category *</label>
-                          <select name="categoryId" id="sn-edit-prod-cat" class="sn-select">
-                            ${categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
-                          </select>
+
+                        <div class="sn-grid-4" style="gap:12px;margin-bottom:12px;">
+                          <div>
+                            <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">GST Slab (%)</label>
+                            <select name="gstPercent" id="sn-edit-prod-gst" class="sn-select">
+                              <option value="5">5% GST (Natural Staples)</option>
+                              <option value="12">12% GST (Processed / Blended)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">HSN Code *</label>
+                            <input type="text" name="hsnCode" id="sn-edit-prod-hsn" required class="sn-input" style="font-family:var(--sn-font-mono);" />
+                          </div>
+                          <div>
+                            <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Harvest Batch Code *</label>
+                            <input type="text" name="harvestBatch" id="sn-edit-prod-batch" required class="sn-input" style="font-family:var(--sn-font-mono);" />
+                          </div>
+                          <div>
+                            <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Shelf Life (Months) *</label>
+                            <input type="number" name="shelfLifeMonths" id="sn-edit-prod-shelf-life" min="1" max="36" required class="sn-input" />
+                          </div>
                         </div>
-                        <div>
-                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Growing Region / Origin *</label>
-                          <input type="text" name="originRegion" id="sn-edit-prod-origin" required class="sn-input" />
+
+                        <div style="margin-bottom:10px;">
+                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Short Description (Card Summary • Humanizer-Checked) *</label>
+                          <input type="text" name="shortDescription" id="sn-edit-prod-desc" required class="sn-input" />
+                        </div>
+
+                        <div style="margin-bottom:12px;">
+                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Full Product Story &amp; Harvest Description (PDP Body) *</label>
+                          <textarea name="description" id="sn-edit-prod-full-desc" rows="2" required class="sn-textarea"></textarea>
+                        </div>
+
+                        <div class="sn-grid-4" style="gap:12px;margin-bottom:14px;">
+                          <div>
+                            <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Storefront Status</label>
+                            <select name="isActive" id="sn-edit-prod-active" class="sn-select">
+                              <option value="1">Published (Active)</option>
+                              <option value="0">Deactivated (Hidden)</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Featured Flag</label>
+                            <select name="isFeatured" id="sn-edit-prod-featured" class="sn-select">
+                              <option value="1">Featured: Yes</option>
+                              <option value="0">Featured: No</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Bestseller Flag</label>
+                            <select name="isBestseller" id="sn-edit-prod-bestseller" class="sn-select">
+                              <option value="1">Bestseller: Yes</option>
+                              <option value="0">Bestseller: No</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">New Harvest Flag</label>
+                            <select name="isNewArrival" id="sn-edit-prod-new" class="sn-select">
+                              <option value="1">New Harvest: Yes</option>
+                              <option value="0">New Harvest: No</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
 
-                      <div class="sn-grid-4" style="gap:12px;margin-bottom:12px;">
-                        <div>
-                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">100g Base Selling Price (₹) *</label>
-                          <input type="number" name="base100gSellInr" id="sn-edit-prod-sell" min="10" required class="sn-input" />
+                      <!-- Modal Pane 2: Per-Weight Variant Pricing & Discount Control Matrix (100g, 250g, 500g, 1kg) -->
+                      <div data-prod-modal-pane="pricing" style="display:none;">
+                        <div class="sn-card" style="background-color:var(--sn-bg-mortar);padding:10px 14px;margin-bottom:12px;">
+                          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                            <div style="font-size:0.76rem;color:var(--sn-text-secondary);">
+                              <strong style="color:var(--sn-bg-forest);">Quick 100g Base Curve Generator:</strong> Set 100g base prices and click Auto-Scale, or customize each weight's discount % independently below.
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                              <div style="display:flex;align-items:center;gap:4px;">
+                                <label for="sn-edit-prod-mrp" style="font-family:var(--sn-font-mono);font-size:0.72rem;font-weight:700;">100g MRP ₹</label>
+                                <input type="number" name="base100gMrpInr" id="sn-edit-prod-mrp" min="10" required class="sn-input" style="width:82px;padding:5px 8px;min-height:32px;" />
+                              </div>
+                              <div style="display:flex;align-items:center;gap:4px;">
+                                <label for="sn-edit-prod-sell" style="font-family:var(--sn-font-mono);font-size:0.72rem;font-weight:700;">100g Sell ₹</label>
+                                <input type="number" name="base100gSellInr" id="sn-edit-prod-sell" min="10" required class="sn-input" style="width:82px;padding:5px 8px;min-height:32px;" />
+                              </div>
+                              <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-edit-prod-autoscale-btn" style="min-height:32px;padding:4px 10px;">⚡ Auto-Scale 4 Packs</button>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">100g Base MRP (₹) *</label>
-                          <input type="number" name="base100gMrpInr" id="sn-edit-prod-mrp" min="10" required class="sn-input" />
+
+                        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
+                          ${[
+                            { weight: 100, label: '100 g Pack', multLabel: '1.00× Base' },
+                            { weight: 250, label: '250 g Pack', multLabel: '2.35× Curve' },
+                            { weight: 500, label: '500 g Pack', multLabel: '4.45× Curve' },
+                            { weight: 1000, label: '1 kg Pack', multLabel: '8.50× Curve' }
+                          ].map(pk => `
+                            <div class="sn-admin-variant-price-row" data-variant-price-row="${pk.weight}">
+                              <div>
+                                <strong style="font-family:var(--sn-font-mono);font-size:0.84rem;color:var(--sn-bg-forest);">${pk.label}</strong>
+                                <div id="sn-edit-var-sku-${pk.weight}" style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">${pk.multLabel}</div>
+                              </div>
+                              <div>
+                                <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Printed MRP (₹) *</label>
+                                <input type="number" name="variant_mrp_${pk.weight}" id="sn-edit-var-mrp-${pk.weight}" data-var-mrp-input="${pk.weight}" min="10" required class="sn-input" style="font-family:var(--sn-font-mono);padding:6px 8px;" />
+                              </div>
+                              <div>
+                                <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Discount (%)</label>
+                                <input type="number" id="sn-edit-var-disc-${pk.weight}" data-var-disc-input="${pk.weight}" min="0" max="85" step="0.1" class="sn-input" style="font-family:var(--sn-font-mono);padding:6px 8px;color:var(--sn-status-paid);font-weight:700;" />
+                              </div>
+                              <div>
+                                <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Selling Price (₹) *</label>
+                                <input type="number" name="variant_sell_${pk.weight}" id="sn-edit-var-sell-${pk.weight}" data-var-sell-input="${pk.weight}" min="10" required class="sn-input" style="font-family:var(--sn-font-mono);padding:6px 8px;font-weight:700;" />
+                              </div>
+                              <div id="sn-edit-var-rate-${pk.weight}" style="font-family:var(--sn-font-mono);font-size:0.72rem;text-align:right;">
+                                <span class="sn-status sn-status-paid">₹320 / 100g</span>
+                              </div>
+                            </div>
+                          `).join('')}
                         </div>
-                        <div>
-                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">GST Slab (%)</label>
-                          <select name="gstPercent" id="sn-edit-prod-gst" class="sn-select">
-                            <option value="5">5% GST (Natural Staples)</option>
-                            <option value="12">12% GST (Processed / Blended)</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">HSN Code *</label>
-                          <input type="text" name="hsnCode" id="sn-edit-prod-hsn" required class="sn-input" style="font-family:var(--sn-font-mono);" />
+
+                        <div id="sn-edit-prod-pack-preview" style="padding:8px 12px;margin-bottom:12px;background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-warm);border-radius:var(--sn-radius-sm);font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-bg-forest);">
+                          Per-Weight Pricing Summary: 100 g • 250 g • 500 g • 1 kg
                         </div>
                       </div>
 
-                      <!-- Live 4-Pack Variant Price Preview Bar -->
-                      <div id="sn-edit-prod-pack-preview" style="padding:8px 12px;margin-bottom:12px;background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-warm);border-radius:var(--sn-radius-sm);font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-bg-forest);">
-                        Auto-Scaled Pack Variants: 100 g • 250 g (2.35×) • 500 g (4.45×) • 1 kg (8.50×)
+                      <!-- Modal Pane 3: FSSAI Nutrition (Per 100 g) & Mandatory Food Labelling -->
+                      <div data-prod-modal-pane="nutrition" style="display:none;">
+                        <div class="sn-grid-3" style="gap:10px;margin-bottom:12px;">
+                          <div>
+                            <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Ingredients Declaration *</label>
+                            <input type="text" name="ingredients" id="sn-edit-prod-ingredients" required class="sn-input" />
+                          </div>
+                          <div>
+                            <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Allergen Declaration *</label>
+                            <input type="text" name="allergenInfo" id="sn-edit-prod-allergen" required class="sn-input" />
+                          </div>
+                          <div>
+                            <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">FSSAI Safety &amp; Storage Notes *</label>
+                            <input type="text" name="fssaiNotes" id="sn-edit-prod-fssai" required class="sn-input" />
+                          </div>
+                        </div>
+
+                        <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:12px;">
+                          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+                            <strong style="font-family:var(--sn-font-serif);font-size:0.95rem;color:var(--sn-bg-forest);">🥗 FSSAI Per-100g Nutritional Profile (IFCT 2017 / NABL Lab Reference)</strong>
+                            <span style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-text-muted);">Synced to PDP Table, JSON-LD &amp; Markdown Twin</span>
+                          </div>
+
+                          <div class="sn-admin-variant-price-grid" style="margin-bottom:10px;">
+                            <div>
+                              <label style="font-size:0.71rem;font-weight:700;display:block;margin-bottom:2px;">Energy (kcal / 100g) *</label>
+                              <input type="number" name="energy_kcal" id="sn-edit-nut-kcal" step="0.1" min="0" required class="sn-input" style="font-family:var(--sn-font-mono);" />
+                            </div>
+                            <div>
+                              <label style="font-size:0.71rem;font-weight:700;display:block;margin-bottom:2px;">Protein (g / 100g) *</label>
+                              <input type="number" name="protein_g" id="sn-edit-nut-protein" step="0.1" min="0" required class="sn-input" style="font-family:var(--sn-font-mono);" />
+                            </div>
+                            <div>
+                              <label style="font-size:0.71rem;font-weight:700;display:block;margin-bottom:2px;">Total Carbs (g / 100g) *</label>
+                              <input type="number" name="carbs_g" id="sn-edit-nut-carbs" step="0.1" min="0" required class="sn-input" style="font-family:var(--sn-font-mono);" />
+                            </div>
+                            <div>
+                              <label style="font-size:0.71rem;font-weight:700;display:block;margin-bottom:2px;">Dietary Fiber (g / 100g) *</label>
+                              <input type="number" name="dietary_fiber_g" id="sn-edit-nut-fiber" step="0.1" min="0" required class="sn-input" style="font-family:var(--sn-font-mono);" />
+                            </div>
+                          </div>
+
+                          <div class="sn-admin-variant-price-grid" style="margin-bottom:10px;">
+                            <div>
+                              <label style="font-size:0.71rem;font-weight:700;display:block;margin-bottom:2px;">Total Fat (g / 100g) *</label>
+                              <input type="number" name="total_fat_g" id="sn-edit-nut-fat" step="0.1" min="0" required class="sn-input" style="font-family:var(--sn-font-mono);" />
+                            </div>
+                            <div>
+                              <label style="font-size:0.71rem;font-weight:700;display:block;margin-bottom:2px;">Saturated Fat (g / 100g) *</label>
+                              <input type="number" name="saturated_fat_g" id="sn-edit-nut-satfat" step="0.1" min="0" required class="sn-input" style="font-family:var(--sn-font-mono);" />
+                            </div>
+                            <div>
+                              <label style="font-size:0.71rem;font-weight:700;display:block;margin-bottom:2px;">Total Sugars (g / 100g) *</label>
+                              <input type="number" name="total_sugars_g" id="sn-edit-nut-sugars" step="0.1" min="0" required class="sn-input" style="font-family:var(--sn-font-mono);" />
+                            </div>
+                            <div>
+                              <label style="font-size:0.71rem;font-weight:700;display:block;margin-bottom:2px;">Sodium (mg / 100g) *</label>
+                              <input type="number" name="sodium_mg" id="sn-edit-nut-sodium" step="0.1" min="0" required class="sn-input" style="font-family:var(--sn-font-mono);" />
+                            </div>
+                          </div>
+
+                          <div class="sn-admin-variant-price-grid">
+                            <div>
+                              <label style="font-size:0.71rem;font-weight:700;display:block;margin-bottom:2px;">Added Sugars (g)</label>
+                              <input type="number" name="added_sugars_g" id="sn-edit-nut-addedsugars" step="0.1" min="0" value="0" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                            </div>
+                            <div>
+                              <label style="font-size:0.71rem;font-weight:700;display:block;margin-bottom:2px;">Trans Fat (g)</label>
+                              <input type="number" name="trans_fat_g" id="sn-edit-nut-transfat" step="0.1" min="0" value="0" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                            </div>
+                            <div>
+                              <label style="font-size:0.71rem;font-weight:700;display:block;margin-bottom:2px;">Signature Bioactive Label *</label>
+                              <input type="text" name="bioactive_label" id="sn-edit-nut-biolabel" required placeholder="e.g. Natural Plant Calcium" class="sn-input" />
+                            </div>
+                            <div>
+                              <label style="font-size:0.71rem;font-weight:700;display:block;margin-bottom:2px;">Signature Bioactive Value *</label>
+                              <input type="text" name="bioactive_value" id="sn-edit-nut-bioval" required placeholder="e.g. 344 mg Calcium (IFCT)" class="sn-input" />
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
-                      <div style="margin-bottom:12px;">
-                        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Short Description (Humanizer-Checked) *</label>
-                        <input type="text" name="shortDescription" id="sn-edit-prod-desc" required class="sn-input" />
-                      </div>
-
-                      <div class="sn-grid-4" style="gap:12px;margin-bottom:16px;">
-                        <div>
-                          <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Storefront Status</label>
-                          <select name="isActive" id="sn-edit-prod-active" class="sn-select">
-                            <option value="1">Published (Active)</option>
-                            <option value="0">Deactivated (Hidden)</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Featured Flag</label>
-                          <select name="isFeatured" id="sn-edit-prod-featured" class="sn-select">
-                            <option value="1">Featured: Yes</option>
-                            <option value="0">Featured: No</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Bestseller Flag</label>
-                          <select name="isBestseller" id="sn-edit-prod-bestseller" class="sn-select">
-                            <option value="1">Bestseller: Yes</option>
-                            <option value="0">Bestseller: No</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">New Harvest Flag</label>
-                          <select name="isNewArrival" id="sn-edit-prod-new" class="sn-select">
-                            <option value="1">New Harvest: Yes</option>
-                            <option value="0">New Harvest: No</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
+                      <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--sn-border-warm);">
                         <button type="button" class="sn-btn sn-btn-outline" data-close-prod-modal>Cancel</button>
-                        <button type="submit" class="sn-btn sn-btn-forest">Save Product Edits</button>
+                        <button type="submit" class="sn-btn sn-btn-forest">Save Product, Pricing &amp; Nutrition Edits</button>
                       </div>
                     </form>
 
-                    <!-- Integrated Primary Photo & FSSAI Back-Label Gallery Uploader inside the Modal -->
+                    <!-- Integrated Primary Photo & FSSAI Back-Label Gallery Uploader inside the Modal (Shown on Tab 1 Core Info) -->
                     <form id="sn-admin-image-upload-form" style="padding-top:14px;border-top:1px dashed var(--sn-border-strong);">
                       <input type="hidden" name="productId" id="sn-upload-prod-select" value="${products[0] ? products[0].id : 1}" />
                       <div style="font-family:var(--sn-font-serif);font-weight:700;font-size:0.95rem;color:var(--sn-bg-forest);margin-bottom:8px;">
@@ -3018,12 +3273,15 @@ function renderAdminPortalPage({
                 <div class="sn-table-wrap">
                   <table class="sn-table sn-table-cards" id="sn-admin-inventory-table">
                     <thead>
-                      <tr><th>Variant SKU</th><th>Product</th><th>Pack Size</th><th>Selling Price</th><th>MRP</th><th>Current Stock</th><th>Alert Threshold</th><th>Update Stock &amp; Threshold</th></tr>
+                      <tr><th>Variant SKU</th><th>Product</th><th>Pack Size</th><th>Selling Price &amp; Discount</th><th>MRP</th><th>Current Stock</th><th>Alert Threshold</th><th>Update Stock &amp; Threshold</th></tr>
                     </thead>
                     <tbody>
                       ${variants.map(v => {
                         const parentProd = products.find(p => Number(p.id) === Number(v.product_id));
                         const prodName = parentProd ? parentProd.name : `Product #${v.product_id}`;
+                        const vSavePct = v.mrp_paise > v.selling_price_paise
+                          ? Math.round(((v.mrp_paise - v.selling_price_paise) / v.mrp_paise) * 100)
+                          : 0;
                         return `
                         <tr
                           data-inv-variant-row="${v.id}"
@@ -3034,7 +3292,20 @@ function renderAdminPortalPage({
                           <td data-label="Variant SKU" style="font-family:var(--sn-font-mono);font-weight:700;color:var(--sn-bg-forest);">${escapeHtml(v.sku)}</td>
                           <td data-label="Product" style="font-size:0.82rem;font-weight:600;">${escapeHtml(prodName)}</td>
                           <td data-label="Pack Size" style="font-family:var(--sn-font-mono);">${escapeHtml(v.pack_label)}</td>
-                          <td data-label="Selling Price" style="font-family:var(--sn-font-mono);font-weight:600;">${formatInr(v.selling_price_paise)}</td>
+                          <td data-label="Selling Price &amp; Discount" style="font-family:var(--sn-font-mono);font-weight:600;">
+                            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                              <span>${formatInr(v.selling_price_paise)}</span>
+                              ${vSavePct > 0 ? `<span class="sn-price-save" style="margin-left:0;">-${vSavePct}%</span>` : ''}
+                              <button
+                                type="button"
+                                class="sn-btn sn-btn-outline sn-btn-sm"
+                                data-load-prod-editor="${v.product_id}"
+                                data-open-modal-tab="pricing"
+                                style="padding:2px 7px;min-height:24px;font-size:0.68rem;"
+                                title="Edit ${escapeHtml(v.pack_label)} Discount &amp; Price"
+                              >✏️ Price</button>
+                            </div>
+                          </td>
                           <td data-label="MRP" style="font-family:var(--sn-font-mono);color:var(--sn-text-muted);">${formatInr(v.mrp_paise)}</td>
                           <td data-label="Current Stock"><span class="sn-status ${v.stock_qty <= v.low_stock_threshold ? 'sn-status-danger' : 'sn-status-paid'}" data-inv-stock-badge="${v.id}">${v.stock_qty} packs</span></td>
                           <td data-label="Alert Threshold" style="font-family:var(--sn-font-mono);" data-inv-threshold-cell="${v.id}">&le; ${v.low_stock_threshold} packs</td>

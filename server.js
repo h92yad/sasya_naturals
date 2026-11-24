@@ -13,7 +13,13 @@ const {
   BRAND_NAME,
   BRAND_TAGLINE
 } = require('./src/config/appConfig');
-const { getDb, hashPassword } = require('./src/db/database');
+const {
+  getDb,
+  hashPassword,
+  getDefaultNutritionForProduct,
+  normalizeNutritionPayload,
+  parseProductNutrition
+} = require('./src/db/database');
 const {
   calculateCartPricing,
   createOrder,
@@ -315,7 +321,10 @@ function createServerHandler() {
           ...cats.map(c => `- [${c.name}](${CANONICAL_ORIGIN}/category/${c.slug}): ${c.description}`),
           '',
           '## Product Catalogue',
-          ...prods.map(p => `- [${p.name}](${CANONICAL_ORIGIN}/product/${p.slug}): ${p.short_description} (HSN: ${p.hsn_code}, Origin: ${p.origin_region}, Batch: ${p.harvest_batch})`)
+          ...prods.map(p => {
+            const nut = parseProductNutrition(p);
+            return `- [${p.name}](${CANONICAL_ORIGIN}/product/${p.slug}): ${p.short_description} (HSN: ${p.hsn_code}, Origin: ${p.origin_region}, Batch: ${p.harvest_batch}, Per 100g: ${nut.energy_kcal} kcal, ${nut.protein_g}g Protein, ${nut.dietary_fiber_g}g Fiber, ${nut.bioactive_label}: ${nut.bioactive_value})`;
+          })
         ];
         res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
         return res.end(lines.join('\n'));
@@ -342,15 +351,28 @@ function createServerHandler() {
             res.writeHead(404);
             return res.end('Not found');
           }
-          const pVars = db.prepare('SELECT * FROM product_variants WHERE product_id = ? AND is_active = 1').all(product.id);
+          const pVars = db.prepare('SELECT * FROM product_variants WHERE product_id = ? AND is_active = 1 ORDER BY weight_grams ASC').all(product.id);
+          const nut = parseProductNutrition(product);
           const md = renderMarkdownTwin({
             title: product.name,
             canonicalPath: `/product/${product.slug}`,
             description: product.short_description,
             sections: [
               { heading: 'Product Overview', body: product.description },
-              { heading: 'Origin & Compliance', body: `Origin: ${product.origin_region} | HSN: ${product.hsn_code} | Batch: ${product.harvest_batch} | Ingredients: ${product.ingredients} | Allergens: ${product.allergen_info}` },
-              { heading: 'Available Pack Variants', body: pVars.map(v => `- ${v.pack_label} (${v.sku}): Rs. ${(v.selling_price_paise / 100).toFixed(2)} (MRP Rs. ${(v.mrp_paise / 100).toFixed(2)})`).join('\n') }
+              { heading: 'Origin & Compliance', body: `Origin: ${product.origin_region} | HSN: ${product.hsn_code} | Batch: ${product.harvest_batch} | Ingredients: ${product.ingredients} | Allergens: ${product.allergen_info} | FSSAI Notes: ${product.fssai_notes}` },
+              {
+                heading: 'Nutritional Value (Per 100 g)',
+                body: `Energy: ${nut.energy_kcal} kcal | Protein: ${nut.protein_g} g | Total Carbohydrates: ${nut.carbs_g} g | Dietary Fiber: ${nut.dietary_fiber_g} g | Total Sugars: ${nut.total_sugars_g} g (Added Sugars: ${nut.added_sugars_g} g) | Total Fat: ${nut.total_fat_g} g (Saturated Fat: ${nut.saturated_fat_g} g, Trans Fat: ${nut.trans_fat_g} g) | Sodium: ${nut.sodium_mg} mg | ${nut.bioactive_label}: ${nut.bioactive_value}`
+              },
+              {
+                heading: 'Available Pack Variants',
+                body: pVars.map(v => {
+                  const savePct = v.mrp_paise > v.selling_price_paise
+                    ? Math.round(((v.mrp_paise - v.selling_price_paise) / v.mrp_paise) * 100)
+                    : 0;
+                  return `- ${v.pack_label} (${v.sku}): Rs. ${(v.selling_price_paise / 100).toFixed(2)} (MRP Rs. ${(v.mrp_paise / 100).toFixed(2)}${savePct > 0 ? `, Save ${savePct}%` : ''})`;
+                }).join('\n')
+              }
             ]
           });
           res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
@@ -1047,9 +1069,10 @@ function createServerHandler() {
           return sendJson(res, 400, { error: 'Product name and short description are required.' });
         }
 
-        const lintCheck = lintContentText(`${rawName} ${rawShortDesc}`, 'new_product');
-        if (!lintCheck.valid) {
-          return sendJson(res, 400, { error: lintCheck.issues.join(' ') });
+        const catId = Number(body.categoryId || 3);
+        const catRow = db.prepare('SELECT * FROM categories WHERE id = ?').get(catId);
+        if (!catRow) {
+          return sendJson(res, 400, { error: 'Selected category does not exist.' });
         }
 
         let slug = rawName
@@ -1069,10 +1092,20 @@ function createServerHandler() {
           return sendJson(res, 400, { error: `A product with SKU Base "${skuBase}" or slug "${slug}" already exists.` });
         }
 
-        const catId = Number(body.categoryId || 3);
-        const catRow = db.prepare('SELECT * FROM categories WHERE id = ?').get(catId);
-        if (!catRow) {
-          return sendJson(res, 400, { error: 'Selected category does not exist.' });
+        const cleanDash = (s) => String(s || '').replace(/[—–]/g, '-').trim();
+        const ingredients = cleanDash(body.ingredients) || `100% Pure ${rawName}`;
+        const allergenInfo = cleanDash(body.allergenInfo) || 'Packed in a facility handling tree nuts.';
+        const fssaiNotes = cleanDash(body.fssaiNotes) || 'Store in a cool, dry container.';
+        const harvestBatch = cleanDash(body.harvestBatch) || 'SN-BATCH-2611';
+        const shelfLifeMonths = Math.max(1, Math.min(36, Math.round(Number(body.shelfLifeMonths || 12))));
+        const nutritionObj = normalizeNutritionPayload(body.nutrition || body, getDefaultNutritionForProduct(skuBase, catId));
+
+        const lintCheck = lintContentText(
+          `${rawName} ${rawShortDesc} ${ingredients} ${allergenInfo} ${fssaiNotes} ${nutritionObj.bioactive_label} ${nutritionObj.bioactive_value}`,
+          'new_product'
+        );
+        if (!lintCheck.valid) {
+          return sendJson(res, 400, { error: lintCheck.issues.join(' ') });
         }
 
         const base100gInr = Number(body.base100gInr ?? 150);
@@ -1100,8 +1133,8 @@ function createServerHandler() {
             sku_base, slug, name, category_id, short_description, description,
             origin_region, harvest_batch, shelf_life_months, fssai_notes,
             ingredients, allergen_info, gst_percent, hsn_code, image_url, image_caption,
-            is_featured, is_new_arrival, is_bestseller, is_active
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, 'SN-BATCH-2611', 12, 'Store in a cool, dry container.', ?, 'Packed in a facility handling tree nuts.', ?, ?, ?, ?, 0, 1, 0, 1)
+            nutrition_json, is_featured, is_new_arrival, is_bestseller, is_active
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, 0, 1)
         `).run(
           skuBase,
           slug,
@@ -1110,11 +1143,16 @@ function createServerHandler() {
           rawShortDesc,
           rawShortDesc,
           String(body.originRegion || 'India').trim() || 'India',
-          `100% Pure ${rawName}`,
+          harvestBatch,
+          shelfLifeMonths,
+          fssaiNotes,
+          ingredients,
+          allergenInfo,
           gstPercent,
           hsnCode,
           imageUrl,
-          rawName
+          rawName,
+          JSON.stringify(nutritionObj)
         );
 
         const newProdId = Number(prodRes.lastInsertRowid);
@@ -1140,10 +1178,10 @@ function createServerHandler() {
           action: 'PRODUCT_CREATED',
           entityType: 'PRODUCT',
           entityId: skuBase,
-          details: { name: rawName, slug, imageUrl, hsnCode }
+          details: { name: rawName, slug, imageUrl, hsnCode, nutrition: nutritionObj }
         });
 
-        return sendJson(res, 201, { product: { id: newProdId, name: rawName, slug, imageUrl } });
+        return sendJson(res, 201, { product: { id: newProdId, name: rawName, slug, imageUrl, nutrition: nutritionObj } });
       }
 
       if (pathname === '/api/admin/products/update' && req.method === 'POST') {
@@ -1154,16 +1192,37 @@ function createServerHandler() {
         const prod = db.prepare('SELECT * FROM products WHERE id = ?').get(productId);
         if (!prod) return sendJson(res, 404, { error: 'Product not found' });
 
+        const cleanDash = (s) => String(s || '').replace(/[—–]/g, '-').trim();
+
         const nextName = body.name && String(body.name).trim() ? String(body.name).trim() : prod.name;
         const nextShortDesc = body.shortDescription && String(body.shortDescription).trim()
           ? String(body.shortDescription).trim()
           : prod.short_description;
         const nextDesc = body.description && String(body.description).trim()
           ? String(body.description).trim()
-          : nextShortDesc;
+          : (body.shortDescription && String(body.shortDescription).trim() ? nextShortDesc : prod.description);
         const nextOrigin = body.originRegion && String(body.originRegion).trim()
           ? String(body.originRegion).trim()
           : prod.origin_region;
+        const nextBatch = body.harvestBatch && cleanDash(body.harvestBatch)
+          ? cleanDash(body.harvestBatch)
+          : prod.harvest_batch;
+        const nextShelfLife = body.shelfLifeMonths !== undefined && body.shelfLifeMonths !== '' && Number.isFinite(Number(body.shelfLifeMonths))
+          ? Math.max(1, Math.min(36, Math.round(Number(body.shelfLifeMonths))))
+          : prod.shelf_life_months;
+        const nextIngredients = body.ingredients && cleanDash(body.ingredients)
+          ? cleanDash(body.ingredients)
+          : prod.ingredients;
+        const nextAllergen = body.allergenInfo && cleanDash(body.allergenInfo)
+          ? cleanDash(body.allergenInfo)
+          : prod.allergen_info;
+        const nextFssai = body.fssaiNotes && cleanDash(body.fssaiNotes)
+          ? cleanDash(body.fssaiNotes)
+          : prod.fssai_notes;
+
+        const currentNutrition = parseProductNutrition(prod);
+        const rawNutritionInput = (body.nutrition && typeof body.nutrition === 'object') ? body.nutrition : body;
+        const nextNutrition = normalizeNutritionPayload(rawNutritionInput, currentNutrition);
 
         let nextCatId = prod.category_id;
         if (body.categoryId !== undefined && body.categoryId !== '') {
@@ -1174,7 +1233,10 @@ function createServerHandler() {
           nextCatId = Number(candidateCat.id);
         }
 
-        const lintCheck = lintContentText(`${nextName} ${nextShortDesc}`, 'edit_product');
+        const lintCheck = lintContentText(
+          `${nextName} ${nextShortDesc} ${nextDesc} ${nextIngredients} ${nextAllergen} ${nextFssai} ${nextNutrition.bioactive_label} ${nextNutrition.bioactive_value}`,
+          'edit_product'
+        );
         if (!lintCheck.valid) {
           return sendJson(res, 400, { error: lintCheck.issues.join(' ') });
         }
@@ -1189,23 +1251,60 @@ function createServerHandler() {
         const nextNewArrival = body.isNewArrival !== undefined && body.isNewArrival !== '' ? (Number(body.isNewArrival) ? 1 : 0) : prod.is_new_arrival;
         const nextActive = body.isActive !== undefined && body.isActive !== '' ? (Number(body.isActive) ? 1 : 0) : prod.is_active;
 
-        db.prepare(`
-          UPDATE products
-          SET name = ?,
-              category_id = ?,
-              origin_region = ?,
-              short_description = ?,
-              description = ?,
-              gst_percent = ?,
-              hsn_code = ?,
-              is_featured = ?,
-              is_bestseller = ?,
-              is_new_arrival = ?,
-              is_active = ?
-          WHERE id = ?
-        `).run(nextName, nextCatId, nextOrigin, nextShortDesc, nextDesc, nextGst, nextHsn, nextFeatured, nextBestseller, nextNewArrival, nextActive, productId);
+        // Validate Per-Weight Variant Pricing & Discount Overrides BEFORE mutating DB
+        const pVars = db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY weight_grams ASC').all(productId);
+        const explicitVariantUpdates = [];
+        const hasFlatVariantFields = pVars.some(v =>
+          (body[`variant_sell_${v.weight_grams}`] !== undefined && body[`variant_sell_${v.weight_grams}`] !== '') ||
+          (body[`variant_mrp_${v.weight_grams}`] !== undefined && body[`variant_mrp_${v.weight_grams}`] !== '')
+        );
 
-        if (body.base100gSellInr !== undefined && body.base100gSellInr !== '') {
+        if (Array.isArray(body.variantsPricing) && body.variantsPricing.length > 0) {
+          for (const v of pVars) {
+            const match = body.variantsPricing.find(vp =>
+              (vp.variantId !== undefined && Number(vp.variantId) === Number(v.id)) ||
+              (vp.weightGrams !== undefined && Number(vp.weightGrams) === Number(v.weight_grams))
+            );
+            if (!match) continue;
+            const sellInr = match.sellingPriceInr !== undefined ? Number(match.sellingPriceInr) : (v.selling_price_paise / 100);
+            const mrpInr = match.mrpInr !== undefined ? Number(match.mrpInr) : (v.mrp_paise / 100);
+            if (!Number.isFinite(sellInr) || sellInr < 10) {
+              return sendJson(res, 400, { error: `Selling price for ${v.pack_label} (${v.sku}) must be at least ₹10.` });
+            }
+            if (!Number.isFinite(mrpInr) || mrpInr < sellInr) {
+              return sendJson(res, 400, { error: `Legal Metrology Guardrail: MRP (₹${mrpInr}) for ${v.pack_label} (${v.sku}) cannot be lower than Selling Price (₹${sellInr}).` });
+            }
+            explicitVariantUpdates.push({
+              variantId: v.id,
+              sku: v.sku,
+              packLabel: v.pack_label,
+              weightGrams: v.weight_grams,
+              sellPaise: Math.round(sellInr * 100),
+              mrpPaise: Math.round(mrpInr * 100)
+            });
+          }
+        } else if (hasFlatVariantFields) {
+          for (const v of pVars) {
+            const rawSell = body[`variant_sell_${v.weight_grams}`];
+            const rawMrp = body[`variant_mrp_${v.weight_grams}`];
+            const sellInr = (rawSell !== undefined && String(rawSell).trim() !== '') ? Number(rawSell) : (v.selling_price_paise / 100);
+            const mrpInr = (rawMrp !== undefined && String(rawMrp).trim() !== '') ? Number(rawMrp) : (v.mrp_paise / 100);
+            if (!Number.isFinite(sellInr) || sellInr < 10) {
+              return sendJson(res, 400, { error: `Selling price for ${v.pack_label} (${v.sku}) must be at least ₹10.` });
+            }
+            if (!Number.isFinite(mrpInr) || mrpInr < sellInr) {
+              return sendJson(res, 400, { error: `Legal Metrology Guardrail: MRP (₹${mrpInr}) for ${v.pack_label} (${v.sku}) cannot be lower than Selling Price (₹${sellInr}).` });
+            }
+            explicitVariantUpdates.push({
+              variantId: v.id,
+              sku: v.sku,
+              packLabel: v.pack_label,
+              weightGrams: v.weight_grams,
+              sellPaise: Math.round(sellInr * 100),
+              mrpPaise: Math.round(mrpInr * 100)
+            });
+          }
+        } else if (body.base100gSellInr !== undefined && body.base100gSellInr !== '') {
           const sellInrNum = Number(body.base100gSellInr);
           if (!Number.isFinite(sellInrNum) || sellInrNum < 10) {
             return sendJson(res, 400, { error: 'Base 100g selling price must be at least ₹10.' });
@@ -1218,7 +1317,6 @@ function createServerHandler() {
             return sendJson(res, 400, { error: 'Base 100g MRP cannot be lower than the selling price.' });
           }
           const baseMrpPaise = Math.round(mrpInrNum * 100);
-          const pVars = db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY weight_grams ASC').all(productId);
           const v100 = pVars.find(v => v.weight_grams === 100) || pVars[0];
           const priceChanged = !v100 || v100.selling_price_paise !== baseSellPaise || v100.mrp_paise !== baseMrpPaise;
           if (priceChanged) {
@@ -1227,10 +1325,65 @@ function createServerHandler() {
               const mult = multMap[v.weight_grams] || (v.weight_grams / 100);
               const newSell = Math.round((baseSellPaise / 100) * mult) * 100;
               const newMrp = Math.max(newSell, Math.round((baseMrpPaise / 100) * mult) * 100);
-              db.prepare('UPDATE product_variants SET selling_price_paise = ?, promo_price_paise = ?, mrp_paise = ? WHERE id = ?').run(newSell, newSell, newMrp, v.id);
+              explicitVariantUpdates.push({
+                variantId: v.id,
+                sku: v.sku,
+                packLabel: v.pack_label,
+                weightGrams: v.weight_grams,
+                sellPaise: newSell,
+                mrpPaise: newMrp
+              });
             }
           }
         }
+
+        db.prepare(`
+          UPDATE products
+          SET name = ?,
+              category_id = ?,
+              origin_region = ?,
+              harvest_batch = ?,
+              shelf_life_months = ?,
+              short_description = ?,
+              description = ?,
+              ingredients = ?,
+              allergen_info = ?,
+              fssai_notes = ?,
+              nutrition_json = ?,
+              gst_percent = ?,
+              hsn_code = ?,
+              is_featured = ?,
+              is_bestseller = ?,
+              is_new_arrival = ?,
+              is_active = ?
+          WHERE id = ?
+        `).run(
+          nextName,
+          nextCatId,
+          nextOrigin,
+          nextBatch,
+          nextShelfLife,
+          nextShortDesc,
+          nextDesc,
+          nextIngredients,
+          nextAllergen,
+          nextFssai,
+          JSON.stringify(nextNutrition),
+          nextGst,
+          nextHsn,
+          nextFeatured,
+          nextBestseller,
+          nextNewArrival,
+          nextActive,
+          productId
+        );
+
+        const updateVarStmt = db.prepare('UPDATE product_variants SET selling_price_paise = ?, promo_price_paise = ?, mrp_paise = ? WHERE id = ?');
+        for (const vu of explicitVariantUpdates) {
+          updateVarStmt.run(vu.sellPaise, vu.sellPaise, vu.mrpPaise, vu.variantId);
+        }
+
+        const updatedVariants = db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY weight_grams ASC').all(productId);
 
         recordAuditLog({
           actorId: adminUser.id,
@@ -1239,10 +1392,41 @@ function createServerHandler() {
           action: 'PRODUCT_UPDATED',
           entityType: 'PRODUCT',
           entityId: prod.sku_base,
-          details: { productId, name: nextName, categoryId: nextCatId, originRegion: nextOrigin, isActive: nextActive, isFeatured: nextFeatured, isBestseller: nextBestseller }
+          details: {
+            productId,
+            name: nextName,
+            categoryId: nextCatId,
+            originRegion: nextOrigin,
+            harvestBatch: nextBatch,
+            shelfLifeMonths: nextShelfLife,
+            isActive: nextActive,
+            isFeatured: nextFeatured,
+            isBestseller: nextBestseller,
+            nutrition: nextNutrition,
+            variantPricesUpdated: explicitVariantUpdates.map(vu => ({
+              sku: vu.sku,
+              packLabel: vu.packLabel,
+              mrpInr: vu.mrpPaise / 100,
+              sellingInr: vu.sellPaise / 100,
+              discountPct: vu.mrpPaise > vu.sellPaise ? Math.round(((vu.mrpPaise - vu.sellPaise) / vu.mrpPaise) * 1000) / 10 : 0
+            }))
+          }
         });
 
-        return sendJson(res, 200, { productId, name: nextName, categoryId: nextCatId, originRegion: nextOrigin, isActive: nextActive });
+        return sendJson(res, 200, {
+          productId,
+          name: nextName,
+          categoryId: nextCatId,
+          originRegion: nextOrigin,
+          harvestBatch: nextBatch,
+          shelfLifeMonths: nextShelfLife,
+          ingredients: nextIngredients,
+          allergenInfo: nextAllergen,
+          fssaiNotes: nextFssai,
+          nutrition: nextNutrition,
+          variants: updatedVariants,
+          isActive: nextActive
+        });
       }
 
       if (pathname === '/api/admin/staff/create' && req.method === 'POST') {

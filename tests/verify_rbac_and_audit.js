@@ -397,7 +397,46 @@ function runVerifyRbacAndAudit() {
   });
   assert(formulaCsv.includes('\'=CMD'), 'CSV export must prefix formula-triggering cells with a single quote');
 
-  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager, v2.5.0 Adversarial Edge-Case Guards & immutable audit_logs');
+  // 12. Verify v2.7.0 FSSAI Per-100g Nutritional Profiles & Per-Weight Variant Discount Controls
+  const { parseProductNutrition, normalizeNutritionPayload } = require('../src/db/database');
+  const { renderProductDetailPage } = require('../src/views/renderViews');
+
+  const ragiProd = db.prepare("SELECT * FROM products WHERE sku_base = 'SN-ML-RAG'").get();
+  assert(ragiProd, 'Haveri Finger Millet (Ragi) product must exist');
+  const ragiNut = parseProductNutrition(ragiProd);
+  assert.strictEqual(ragiNut.energy_kcal, 328, 'Haveri Ragi IFCT energy_kcal must be 328');
+  assert(ragiNut.bioactive_value.includes('344 mg Calcium'), 'Haveri Ragi bioactive_value must highlight 344 mg Calcium');
+
+  // Verify en-dash / em-dash normalization in normalizeNutritionPayload so contentLinter never fails on pasted ranges
+  const sanitizedNut = normalizeNutritionPayload({
+    energy_kcal: 350,
+    protein_g: 11.2,
+    bioactive_label: 'Natural Curcumin — Lab Tested',
+    bioactive_value: '7.5–8.0% Curcuminoids'
+  }, ragiNut);
+  assert(!/[—–]/.test(sanitizedNut.bioactive_label) && !/[—–]/.test(sanitizedNut.bioactive_value), 'normalizeNutritionPayload must convert em/en-dashes to ASCII hyphens');
+
+  // Verify per-weight distinct discount percentages render accurately on PDP variant pills
+  const ragiCat = db.prepare('SELECT * FROM categories WHERE id = ?').get(ragiProd.category_id);
+  const ragiVars = db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY weight_grams ASC').all(ragiProd.id);
+  const customVars = ragiVars.map(v => {
+    if (v.weight_grams === 1000) {
+      // Set 1 kg MRP Rs 400 (40000 paise), Selling Rs 280 (28000 paise) -> Save 30%
+      return { ...v, mrp_paise: 40000, selling_price_paise: 28000, promo_price_paise: 28000 };
+    }
+    return v;
+  });
+  const ragiPdpHtml = renderProductDetailPage({
+    product: ragiProd,
+    category: ragiCat,
+    variants: customVars,
+    relatedProducts: [],
+    allVariants: customVars
+  });
+  assert(ragiPdpHtml.includes('Save 30%'), 'PDP must display the distinct 30% per-weight discount badge on the 1 kg variant pill');
+  assert(ragiPdpHtml.includes('344 mg Calcium (IFCT 2017)'), 'PDP must render the product-specific bioactive highlight in the Nutritional Value tab');
+
+  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager, v2.5.0 Adversarial Edge-Case Guards, v2.7.0 FSSAI Nutrition + Per-Weight Discounts & immutable audit_logs');
 }
 
 if (require.main === module) {
@@ -405,4 +444,5 @@ if (require.main === module) {
 }
 
 module.exports = { runVerifyRbacAndAudit };
+
 

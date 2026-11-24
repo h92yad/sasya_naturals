@@ -508,6 +508,23 @@
         return;
       }
 
+      const pdpSpecTabBtn = e.target.closest('[data-pdp-spec-tab]');
+      if (pdpSpecTabBtn) {
+        const targetTab = pdpSpecTabBtn.getAttribute('data-pdp-spec-tab');
+        const specContainer = pdpSpecTabBtn.closest('[data-pdp-spec-container]');
+        if (specContainer && targetTab) {
+          specContainer.querySelectorAll('[data-pdp-spec-tab]').forEach(btn => {
+            const isTarget = btn.getAttribute('data-pdp-spec-tab') === targetTab;
+            btn.classList.toggle('sn-active', isTarget);
+            btn.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+          });
+          specContainer.querySelectorAll('[data-pdp-spec-pane]').forEach(pane => {
+            pane.style.display = pane.getAttribute('data-pdp-spec-pane') === targetTab ? 'block' : 'none';
+          });
+        }
+        return;
+      }
+
       const addBtn = e.target.closest('[data-add-to-cart]');
       if (addBtn) {
         const variantId = Number(addBtn.getAttribute('data-variant-id'));
@@ -1899,25 +1916,158 @@
       });
     }
 
-    // 4D. Contextual Product Edit & Media Modal Controller (Opens on "✏️ Edit" in Tab 3 Table)
+    // 4D. Contextual Product Edit, Per-Weight Discount Matrix & FSSAI Nutrition Modal Controller
     const editProdModal = document.getElementById('sn-admin-edit-product-modal');
     const editSellInput = document.getElementById('sn-edit-prod-sell');
     const editMrpInput = document.getElementById('sn-edit-prod-mrp');
+    const editAutoScaleBtn = document.getElementById('sn-edit-prod-autoscale-btn');
     const editPackPreview = document.getElementById('sn-edit-prod-pack-preview');
+    const editImageUploadForm = document.getElementById('sn-admin-image-upload-form');
+    const MODAL_PACK_WEIGHTS = [100, 250, 500, 1000];
+    const MODAL_CURVE_MULT = { 100: 1.0, 250: 2.35, 500: 4.45, 1000: 8.5 };
+
+    function switchProdModalTab(tabKey = 'core') {
+      if (!editProdModal) return;
+      editProdModal.querySelectorAll('[data-prod-modal-tab]').forEach(btn => {
+        btn.classList.toggle('sn-active', btn.getAttribute('data-prod-modal-tab') === tabKey);
+      });
+      editProdModal.querySelectorAll('[data-prod-modal-pane]').forEach(pane => {
+        pane.style.display = pane.getAttribute('data-prod-modal-pane') === tabKey ? 'block' : 'none';
+      });
+      if (editImageUploadForm) {
+        editImageUploadForm.style.display = tabKey === 'core' ? 'block' : 'none';
+      }
+    }
+
+    document.querySelectorAll('[data-prod-modal-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        switchProdModalTab(btn.getAttribute('data-prod-modal-tab') || 'core');
+      });
+    });
+
+    function refreshVariantRowRateAndSummary(weight) {
+      const mrpEl = document.getElementById(`sn-edit-var-mrp-${weight}`);
+      const sellEl = document.getElementById(`sn-edit-var-sell-${weight}`);
+      const discEl = document.getElementById(`sn-edit-var-disc-${weight}`);
+      const rateEl = document.getElementById(`sn-edit-var-rate-${weight}`);
+      if (!mrpEl || !sellEl) return;
+
+      const mrp = Math.max(10, Number(mrpEl.value) || 10);
+      const sell = Math.max(10, Number(sellEl.value) || 10);
+      const discPct = mrp >= sell ? Math.round(((mrp - sell) / mrp) * 1000) / 10 : -1;
+      const per100g = Math.round(sell / (weight / 100));
+
+      if (rateEl) {
+        if (sell > mrp) {
+          rateEl.innerHTML = `<span class="sn-status sn-status-danger">⚠ Sell &gt; MRP</span>`;
+        } else if (discPct > 35) {
+          rateEl.innerHTML = `<span class="sn-status sn-status-warn" title="Deep discount (>35%) — check margin with cart coupons">⚠ -${discPct}% (₹${per100g}/100g)</span>`;
+        } else {
+          rateEl.innerHTML = `<span class="sn-status sn-status-paid">${discPct > 0 ? `Save ${discPct}% • ` : ''}₹${per100g}/100g</span>`;
+        }
+      }
+
+      if (weight === 100) {
+        if (editMrpInput && Number(editMrpInput.value) !== mrp) editMrpInput.value = String(mrp);
+        if (editSellInput && Number(editSellInput.value) !== sell) editSellInput.value = String(sell);
+      }
+
+      updateEditModalPackPreview();
+    }
+
+    function syncVariantRowFromPrices(weight) {
+      const mrpEl = document.getElementById(`sn-edit-var-mrp-${weight}`);
+      const sellEl = document.getElementById(`sn-edit-var-sell-${weight}`);
+      const discEl = document.getElementById(`sn-edit-var-disc-${weight}`);
+      if (!mrpEl || !sellEl) return;
+      const mrp = Math.max(10, Number(mrpEl.value) || 10);
+      const sell = Math.max(10, Number(sellEl.value) || 10);
+      if (discEl) {
+        const pct = mrp > sell ? Math.round(((mrp - sell) / mrp) * 1000) / 10 : 0;
+        discEl.value = String(pct);
+      }
+      refreshVariantRowRateAndSummary(weight);
+    }
+
+    function syncVariantRowFromDiscount(weight) {
+      const mrpEl = document.getElementById(`sn-edit-var-mrp-${weight}`);
+      const sellEl = document.getElementById(`sn-edit-var-sell-${weight}`);
+      const discEl = document.getElementById(`sn-edit-var-disc-${weight}`);
+      if (!mrpEl || !sellEl || !discEl) return;
+      const mrp = Math.max(10, Number(mrpEl.value) || 10);
+      const disc = Math.max(0, Math.min(85, Number(discEl.value) || 0));
+      const computedSell = Math.max(10, Math.round(mrp * (1 - disc / 100)));
+      sellEl.value = String(computedSell);
+      refreshVariantRowRateAndSummary(weight);
+    }
 
     function updateEditModalPackPreview() {
       if (!editPackPreview) return;
-      const baseSell = Math.max(10, Number(editSellInput ? editSellInput.value : 140) || 140);
-      const baseMrp = Math.max(baseSell, Number(editMrpInput ? editMrpInput.value : baseSell + 30) || (baseSell + 30));
-      const p100 = Math.round(baseSell);
-      const p250 = Math.round(baseSell * 2.35);
-      const p500 = Math.round(baseSell * 4.45);
-      const p1000 = Math.round(baseSell * 8.5);
-      editPackPreview.innerHTML = `<strong>Auto-Scaled 4-Pack Prices:</strong> 100 g: <strong>₹${p100}</strong> (MRP ₹${Math.round(baseMrp)}) &bull; 250 g: <strong>₹${p250}</strong> &bull; 500 g: <strong>₹${p500}</strong> &bull; 1 kg: <strong>₹${p1000}</strong>`;
+      const parts = MODAL_PACK_WEIGHTS.map(w => {
+        const mrpEl = document.getElementById(`sn-edit-var-mrp-${w}`);
+        const sellEl = document.getElementById(`sn-edit-var-sell-${w}`);
+        const sell = sellEl && sellEl.value ? Number(sellEl.value) : Math.round((Number(editSellInput ? editSellInput.value : 140) || 140) * MODAL_CURVE_MULT[w]);
+        const mrp = mrpEl && mrpEl.value ? Number(mrpEl.value) : Math.round((Number(editMrpInput ? editMrpInput.value : 170) || 170) * MODAL_CURVE_MULT[w]);
+        const pct = mrp > sell ? Math.round(((mrp - sell) / mrp) * 100) : 0;
+        const lbl = w === 1000 ? '1 kg' : `${w} g`;
+        return `${lbl}: <strong>₹${sell}</strong> (MRP ₹${mrp}${pct > 0 ? `, -${pct}%` : ''})`;
+      });
+      editPackPreview.innerHTML = `<strong>Active 4-Pack Pricing:</strong> ${parts.join(' &bull; ')}`;
     }
 
-    if (editSellInput) editSellInput.addEventListener('input', updateEditModalPackPreview);
-    if (editMrpInput) editMrpInput.addEventListener('input', updateEditModalPackPreview);
+    function autoScaleAllPackRowsFrom100g() {
+      const baseSell = Math.max(10, Number(editSellInput ? editSellInput.value : 140) || 140);
+      const baseMrp = Math.max(baseSell, Number(editMrpInput ? editMrpInput.value : Math.round(baseSell * 1.15)) || Math.round(baseSell * 1.15));
+      if (editMrpInput) editMrpInput.value = String(baseMrp);
+      for (const w of MODAL_PACK_WEIGHTS) {
+        const mult = MODAL_CURVE_MULT[w] || (w / 100);
+        const mrpEl = document.getElementById(`sn-edit-var-mrp-${w}`);
+        const sellEl = document.getElementById(`sn-edit-var-sell-${w}`);
+        const newSell = Math.round(baseSell * mult);
+        const newMrp = Math.max(newSell, Math.round(baseMrp * mult));
+        if (mrpEl) mrpEl.value = String(newMrp);
+        if (sellEl) sellEl.value = String(newSell);
+        syncVariantRowFromPrices(w);
+      }
+    }
+
+    for (const w of MODAL_PACK_WEIGHTS) {
+      const mrpEl = document.getElementById(`sn-edit-var-mrp-${w}`);
+      const sellEl = document.getElementById(`sn-edit-var-sell-${w}`);
+      const discEl = document.getElementById(`sn-edit-var-disc-${w}`);
+      if (mrpEl) mrpEl.addEventListener('input', () => syncVariantRowFromPrices(w));
+      if (sellEl) sellEl.addEventListener('input', () => syncVariantRowFromPrices(w));
+      if (discEl) discEl.addEventListener('input', () => syncVariantRowFromDiscount(w));
+    }
+
+    if (editAutoScaleBtn) {
+      editAutoScaleBtn.addEventListener('click', () => {
+        autoScaleAllPackRowsFrom100g();
+        showToast('Auto-scaled all 4 pack weights from 100g base curve.');
+      });
+    }
+    if (editSellInput) {
+      editSellInput.addEventListener('input', () => {
+        const sell100El = document.getElementById('sn-edit-var-sell-100');
+        if (sell100El) {
+          sell100El.value = editSellInput.value;
+          syncVariantRowFromPrices(100);
+        } else {
+          updateEditModalPackPreview();
+        }
+      });
+    }
+    if (editMrpInput) {
+      editMrpInput.addEventListener('input', () => {
+        const mrp100El = document.getElementById('sn-edit-var-mrp-100');
+        if (mrp100El) {
+          mrp100El.value = editMrpInput.value;
+          syncVariantRowFromPrices(100);
+        } else {
+          updateEditModalPackPreview();
+        }
+      });
+    }
 
     function closeEditProductModal() {
       if (editProdModal) {
@@ -1969,6 +2119,7 @@
     document.querySelectorAll('[data-load-prod-editor]').forEach(btn => {
       btn.addEventListener('click', () => {
         const prodId = btn.getAttribute('data-load-prod-editor');
+        const requestedTab = btn.getAttribute('data-open-modal-tab') || 'core';
         const tr = document.querySelector(`[data-admin-prod-row="${prodId}"]`);
 
         const selectEl = document.getElementById('sn-edit-prod-select');
@@ -1981,11 +2132,17 @@
           const name = tr.getAttribute('data-prod-name') || '';
           const catId = tr.getAttribute('data-prod-cat-id') || '1';
           const origin = tr.getAttribute('data-prod-origin') || '';
+          const batch = tr.getAttribute('data-prod-batch') || 'SN-BATCH-2611';
+          const shelfLife = tr.getAttribute('data-prod-shelf-life') || '9';
           const sell100 = tr.getAttribute('data-prod-100g-sell') || '140';
           const mrp100 = tr.getAttribute('data-prod-100g-mrp') || '170';
           const gst = tr.getAttribute('data-prod-gst') || '5';
           const hsn = tr.getAttribute('data-prod-hsn') || '080290';
           const desc = tr.getAttribute('data-prod-desc') || '';
+          const fullDesc = tr.getAttribute('data-prod-full-desc') || desc;
+          const ingredients = tr.getAttribute('data-prod-ingredients') || `100% Pure ${name}`;
+          const allergen = tr.getAttribute('data-prod-allergen') || 'Packed in a facility handling tree nuts.';
+          const fssai = tr.getAttribute('data-prod-fssai') || 'Store in a cool, dry container.';
           const img = tr.getAttribute('data-prod-img') || '';
           const isActive = tr.getAttribute('data-prod-active') || '1';
           const isFeatured = tr.getAttribute('data-prod-featured') || '0';
@@ -1998,9 +2155,15 @@
           const nameInput = document.getElementById('sn-edit-prod-name');
           const catSelect = document.getElementById('sn-edit-prod-cat');
           const originInput = document.getElementById('sn-edit-prod-origin');
+          const batchInput = document.getElementById('sn-edit-prod-batch');
+          const shelfInput = document.getElementById('sn-edit-prod-shelf-life');
           const gstSelect = document.getElementById('sn-edit-prod-gst');
           const hsnInput = document.getElementById('sn-edit-prod-hsn');
           const descInput = document.getElementById('sn-edit-prod-desc');
+          const fullDescInput = document.getElementById('sn-edit-prod-full-desc');
+          const ingInput = document.getElementById('sn-edit-prod-ingredients');
+          const algInput = document.getElementById('sn-edit-prod-allergen');
+          const fssaiInput = document.getElementById('sn-edit-prod-fssai');
           const activeSelect = document.getElementById('sn-edit-prod-active');
           const featSelect = document.getElementById('sn-edit-prod-featured');
           const bestSelect = document.getElementById('sn-edit-prod-bestseller');
@@ -2012,18 +2175,71 @@
           if (nameInput) nameInput.value = name;
           if (catSelect) catSelect.value = catId;
           if (originInput) originInput.value = origin;
+          if (batchInput) batchInput.value = batch;
+          if (shelfInput) shelfInput.value = shelfLife;
           if (editSellInput) editSellInput.value = sell100;
           if (editMrpInput) editMrpInput.value = mrp100;
           if (gstSelect) gstSelect.value = gst;
           if (hsnInput) hsnInput.value = hsn;
           if (descInput) descInput.value = desc;
+          if (fullDescInput) fullDescInput.value = fullDesc;
+          if (ingInput) ingInput.value = ingredients;
+          if (algInput) algInput.value = allergen;
+          if (fssaiInput) fssaiInput.value = fssai;
           if (activeSelect) activeSelect.value = isActive;
           if (featSelect) featSelect.value = isFeatured;
           if (bestSelect) bestSelect.value = isBestseller;
           if (newSelect) newSelect.value = isNew;
-          updateEditModalPackPreview();
+
+          // Hydrate 4-pack variant prices & discounts
+          let variantsArr = [];
+          try {
+            variantsArr = JSON.parse(tr.getAttribute('data-prod-variants-json') || '[]');
+          } catch {
+            variantsArr = [];
+          }
+          for (const w of MODAL_PACK_WEIGHTS) {
+            const match = variantsArr.find(v => Number(v.weightGrams) === w);
+            const mult = MODAL_CURVE_MULT[w] || (w / 100);
+            const mrpVal = match ? match.mrpInr : Math.round(Number(mrp100) * mult);
+            const sellVal = match ? match.sellInr : Math.round(Number(sell100) * mult);
+            const skuLabelEl = document.getElementById(`sn-edit-var-sku-${w}`);
+            const mrpEl = document.getElementById(`sn-edit-var-mrp-${w}`);
+            const sellEl = document.getElementById(`sn-edit-var-sell-${w}`);
+            if (skuLabelEl && match && match.sku) {
+              skuLabelEl.textContent = `${match.sku} • Stock: ${match.stockQty}`;
+            }
+            if (mrpEl) mrpEl.value = String(mrpVal);
+            if (sellEl) sellEl.value = String(sellVal);
+            syncVariantRowFromPrices(w);
+          }
+
+          // Hydrate FSSAI Per-100g Nutrition fields
+          let nutObj = {};
+          try {
+            nutObj = JSON.parse(tr.getAttribute('data-prod-nutrition-json') || '{}');
+          } catch {
+            nutObj = {};
+          }
+          const setVal = (id, val, fallback) => {
+            const el = document.getElementById(id);
+            if (el) el.value = String(val !== undefined && val !== null ? val : fallback);
+          };
+          setVal('sn-edit-nut-kcal', nutObj.energy_kcal, 340);
+          setVal('sn-edit-nut-protein', nutObj.protein_g, 9.5);
+          setVal('sn-edit-nut-carbs', nutObj.carbs_g, 62.0);
+          setVal('sn-edit-nut-fiber', nutObj.dietary_fiber_g, 8.5);
+          setVal('sn-edit-nut-fat', nutObj.total_fat_g, 4.2);
+          setVal('sn-edit-nut-satfat', nutObj.saturated_fat_g, 0.8);
+          setVal('sn-edit-nut-sugars', nutObj.total_sugars_g, 1.2);
+          setVal('sn-edit-nut-sodium', nutObj.sodium_mg, 8);
+          setVal('sn-edit-nut-addedsugars', nutObj.added_sugars_g, 0);
+          setVal('sn-edit-nut-transfat', nutObj.trans_fat_g, 0);
+          setVal('sn-edit-nut-biolabel', nutObj.bioactive_label, 'Key Phytonutrient Highlight');
+          setVal('sn-edit-nut-bioval', nutObj.bioactive_value, '100% Unpolished Natural Staple');
         }
 
+        switchProdModalTab(requestedTab);
         if (editProdModal) {
           editProdModal.style.display = 'flex';
         }
@@ -2362,13 +2578,69 @@
       });
     }
 
-    // 6. Edit Existing Product, Category Assignment, Pack Prices, Flags & Publish/Deactivate
+    // 6. Edit Existing Product, Category Assignment, Per-Weight Pack Prices/Discounts, FSSAI Nutrition & Flags
     const editProdForm = document.getElementById('sn-admin-edit-product-form');
     if (editProdForm) {
+      const submitBtn = editProdForm.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.addEventListener('click', () => {
+          const controls = Array.from(editProdForm.querySelectorAll('input, select, textarea'));
+          for (const ctrl of controls) {
+            if (typeof ctrl.checkValidity === 'function' && !ctrl.checkValidity()) {
+              const parentPane = ctrl.closest('[data-prod-modal-pane]');
+              if (parentPane) {
+                const paneKey = parentPane.getAttribute('data-prod-modal-pane');
+                if (paneKey) switchProdModalTab(paneKey);
+              }
+              break;
+            }
+          }
+        });
+      }
+
       editProdForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const fd = new FormData(editProdForm);
         const payload = Object.fromEntries(fd.entries());
+
+        // Validate Legal Metrology MRP >= Selling Price across all 4 weights
+        const variantsPricing = [];
+        for (const w of MODAL_PACK_WEIGHTS) {
+          const mrpInr = Number(payload[`variant_mrp_${w}`]);
+          const sellingPriceInr = Number(payload[`variant_sell_${w}`]);
+          const packLbl = w === 1000 ? '1 kg' : `${w} g`;
+          if (!Number.isFinite(sellingPriceInr) || sellingPriceInr < 10) {
+            switchProdModalTab('pricing');
+            showToast(`Selling price for ${packLbl} must be at least ₹10.`);
+            return;
+          }
+          if (!Number.isFinite(mrpInr) || mrpInr < sellingPriceInr) {
+            switchProdModalTab('pricing');
+            showToast(`Legal Metrology Guardrail: MRP (₹${mrpInr}) for ${packLbl} cannot be lower than Selling Price (₹${sellingPriceInr}).`);
+            return;
+          }
+          variantsPricing.push({
+            weightGrams: w,
+            mrpInr: Math.round(mrpInr),
+            sellingPriceInr: Math.round(sellingPriceInr)
+          });
+        }
+        payload.variantsPricing = variantsPricing;
+        payload.nutrition = {
+          energy_kcal: Number(payload.energy_kcal || 0),
+          protein_g: Number(payload.protein_g || 0),
+          carbs_g: Number(payload.carbs_g || 0),
+          dietary_fiber_g: Number(payload.dietary_fiber_g || 0),
+          total_fat_g: Number(payload.total_fat_g || 0),
+          saturated_fat_g: Number(payload.saturated_fat_g || 0),
+          total_sugars_g: Number(payload.total_sugars_g || 0),
+          sodium_mg: Number(payload.sodium_mg || 0),
+          added_sugars_g: Number(payload.added_sugars_g || 0),
+          trans_fat_g: Number(payload.trans_fat_g || 0),
+          bioactive_label: String(payload.bioactive_label || '').trim(),
+          bioactive_value: String(payload.bioactive_value || '').trim()
+        };
+
         if (IS_STATIC_SHOWCASE) {
           const email = getActiveAdminEmail();
           if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
@@ -2380,6 +2652,37 @@
             if (payload.name) tr.setAttribute('data-prod-name', payload.name);
             if (payload.categoryId) tr.setAttribute('data-prod-cat-id', payload.categoryId);
             if (payload.originRegion) tr.setAttribute('data-prod-origin', payload.originRegion);
+            if (payload.harvestBatch) tr.setAttribute('data-prod-batch', payload.harvestBatch);
+            if (payload.shelfLifeMonths) tr.setAttribute('data-prod-shelf-life', payload.shelfLifeMonths);
+            if (payload.shortDescription) tr.setAttribute('data-prod-desc', payload.shortDescription);
+            if (payload.description) tr.setAttribute('data-prod-full-desc', payload.description);
+            if (payload.ingredients) tr.setAttribute('data-prod-ingredients', payload.ingredients);
+            if (payload.allergenInfo) tr.setAttribute('data-prod-allergen', payload.allergenInfo);
+            if (payload.fssaiNotes) tr.setAttribute('data-prod-fssai', payload.fssaiNotes);
+            tr.setAttribute('data-prod-nutrition-json', JSON.stringify(payload.nutrition));
+
+            let existingVars = [];
+            try {
+              existingVars = JSON.parse(tr.getAttribute('data-prod-variants-json') || '[]');
+            } catch {
+              existingVars = [];
+            }
+            const updatedVars = variantsPricing.map(vp => {
+              const prev = existingVars.find(ev => Number(ev.weightGrams) === vp.weightGrams) || {};
+              return {
+                id: prev.id || 0,
+                sku: prev.sku || '',
+                packLabel: prev.packLabel || (vp.weightGrams === 1000 ? '1 kg' : `${vp.weightGrams} g`),
+                weightGrams: vp.weightGrams,
+                mrpInr: vp.mrpInr,
+                sellInr: vp.sellingPriceInr,
+                stockQty: prev.stockQty !== undefined ? prev.stockQty : 40
+              };
+            });
+            tr.setAttribute('data-prod-variants-json', JSON.stringify(updatedVars));
+            tr.setAttribute('data-prod-100g-sell', String(variantsPricing[0].sellingPriceInr));
+            tr.setAttribute('data-prod-100g-mrp', String(variantsPricing[0].mrpInr));
+
             const nameEl = tr.querySelector(`[data-prod-name-display="${payload.productId}"]`);
             if (nameEl && payload.name) nameEl.textContent = payload.name;
             const catBadge = tr.querySelector(`[data-prod-cat-badge="${payload.productId}"]`);
@@ -2387,11 +2690,23 @@
             if (catBadge && catSelect && catSelect.selectedIndex >= 0) {
               catBadge.textContent = catSelect.options[catSelect.selectedIndex].text;
             }
+            const nutSumEl = tr.querySelector(`[data-prod-nut-summary="${payload.productId}"]`);
+            if (nutSumEl) {
+              nutSumEl.textContent = `🥗 ${payload.nutrition.energy_kcal} kcal • ${payload.nutrition.protein_g}g Prot • ${payload.nutrition.bioactive_value}`;
+            }
+            const varCellEl = tr.querySelector(`[data-prod-variants-cell="${payload.productId}"]`);
+            if (varCellEl) {
+              varCellEl.innerHTML = updatedVars.map(v => {
+                const pct = v.mrpInr > v.sellInr ? Math.round(((v.mrpInr - v.sellInr) / v.mrpInr) * 100) : 0;
+                return `${v.packLabel}: <strong>₹${v.sellInr}</strong>${pct > 0 ? ` <span style="color:var(--sn-status-paid);">(-${pct}%)</span>` : ''} (${v.stockQty})`;
+              }).join(' | ');
+            }
           }
           closeEditProductModal();
-          showToast(`[Showcase Verified] Updated product #${payload.productId} ("${payload.name}") & category!`);
+          showToast(`[Showcase Verified] Updated product #${payload.productId}, 4-pack discounts & FSSAI nutrition!`);
           return;
         }
+
         const res = await fetch('/api/admin/products/update', {
           method: 'POST',
           headers: {
@@ -2406,7 +2721,7 @@
           return;
         }
         closeEditProductModal();
-        showToast(`Updated product "${data.name}"!`);
+        showToast(`Updated "${data.name}" (4-pack discounts & FSSAI nutrition saved)!`);
         setTimeout(() => window.location.reload(), 600);
       });
     }

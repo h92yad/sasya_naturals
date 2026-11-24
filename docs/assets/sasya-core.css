@@ -2436,4 +2436,81 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
   }
 }
 
+/* v2.7.0: Per-Weight Pack Pill Savings Badge, PDP 2-Tab Nutrition Card & Admin Variant Matrix */
+.sn-pack-pill-save {
+  font-family: var(--sn-font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--sn-status-paid);
+  margin-top: 2px;
+  line-height: 1.1;
+}
 
+.sn-pack-pill.sn-active .sn-pack-pill-save {
+  color: #E7B971;
+}
+
+.sn-pdp-spec-card {
+  margin-top: 22px;
+}
+
+.sn-pdp-macro-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sn-pdp-macro-tile {
+  background-color: var(--sn-bg-parchment);
+  border: 1px solid var(--sn-border-warm);
+  border-radius: var(--sn-radius-sm);
+  padding: 8px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sn-pdp-macro-label {
+  font-family: var(--sn-font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  color: var(--sn-text-muted);
+}
+
+.sn-pdp-macro-val {
+  font-family: var(--sn-font-mono);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--sn-bg-forest);
+}
+
+.sn-admin-variant-price-row {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 0.9fr 1fr 1.15fr;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--sn-bg-parchment);
+  border: 1px solid var(--sn-border-warm);
+  border-radius: var(--sn-radius-sm);
+}
+
+.sn-admin-variant-price-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .sn-admin-variant-price-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .sn-pdp-macro-grid,
+  .sn-admin-variant-price-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

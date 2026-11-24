@@ -44,7 +44,17 @@ function runVerifyHydration() {
     assert.strictEqual(h1Matches.length, 1, `[${page.name}] Expected exactly 1 <h1> tag, found ${h1Matches.length}`);
   }
 
-  console.log(`✓ [Suite 1/7: verify_hydration] Passed 7/7 SSR routes with data-ssr-rendered="true" and APP_VERSION=${APP_VERSION}`);
+  const pdpHtml = pages.find(p => p.name === 'PDP Almonds').html;
+  assert(pdpHtml.includes('data-pdp-spec-tab="nutrition"'), 'PDP must render the Nutritional Value (Per 100 g) tab');
+  assert(pdpHtml.includes('Per 100 g Edible Portion'), 'PDP must SSR-render the FSSAI Per-100g nutrition table in DOM');
+  assert(pdpHtml.includes('class="sn-pack-pill-save"'), 'PDP pack pills must render per-weight Save X% badges');
+
+  const adminHtml = pages.find(p => p.name === 'Admin Portal').html;
+  assert(adminHtml.includes('data-prod-modal-tab="pricing"'), 'Admin Product Edit Modal must include isolated Pack-Weight Pricing & Discounts tab');
+  assert(adminHtml.includes('data-prod-modal-tab="nutrition"'), 'Admin Product Edit Modal must include isolated FSSAI Nutrition & Labelling tab');
+  assert(adminHtml.includes('data-var-disc-input="500"') && adminHtml.includes('data-var-disc-input="1000"'), 'Admin Product Edit Modal must render per-weight discount inputs for 100g, 250g, 500g, and 1kg');
+
+  console.log(`✓ [Suite 1/7: verify_hydration] Passed 7/7 SSR routes with data-ssr-rendered="true", PDP Nutrition Tab, Per-Weight Discount Matrix & APP_VERSION=${APP_VERSION}`);
 }
 
 if (require.main === module) {

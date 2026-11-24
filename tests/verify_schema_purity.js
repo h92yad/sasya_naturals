@@ -45,9 +45,12 @@ function runVerifySchemaPurity() {
     assert(prodNode, `Missing Product schema on /product/${prod.slug}`);
     assert(prodNode.offers, `Missing Offer node on /product/${prod.slug}`);
     assert(prodNode.aggregateRating, `Missing AggregateRating node on /product/${prod.slug}`);
+    assert(prodNode.nutrition && prodNode.nutrition['@type'] === 'NutritionInformation', `Missing NutritionInformation node on /product/${prod.slug}`);
+    assert.strictEqual(prodNode.nutrition.servingSize, '100 g', `NutritionInformation servingSize must be '100 g' on /product/${prod.slug}`);
+    assert(Array.isArray(prodNode.additionalProperty) && prodNode.additionalProperty.length >= 1, `Missing bioactive additionalProperty on /product/${prod.slug}`);
   }
 
-  console.log(`✓ [Suite 6/7: verify_schema_purity] Verified 0 Wikidata groundings, CollectionPage isolation, and Product JSON-LD on ${products.length} PDPs`);
+  console.log(`✓ [Suite 6/7: verify_schema_purity] Verified 0 Wikidata groundings, CollectionPage isolation, and Product + NutritionInformation JSON-LD on ${products.length} PDPs`);
 }
 
 if (require.main === module) {

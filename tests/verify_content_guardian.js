@@ -19,7 +19,7 @@ function runVerifyContentGuardian() {
 
   for (const prod of products) {
     const res = lintContentText(
-      `${prod.name} ${prod.short_description} ${prod.description} ${prod.fssai_notes} ${prod.ingredients}`,
+      `${prod.name} ${prod.short_description} ${prod.description} ${prod.fssai_notes} ${prod.ingredients} ${prod.allergen_info} ${prod.nutrition_json || ''}`,
       `product:${prod.slug}`
     );
     if (!res.valid) failures.push(...res.issues);
@@ -31,7 +31,7 @@ function runVerifyContentGuardian() {
   }
 
   assert.strictEqual(failures.length, 0, `Content Guardian Violations:\n${failures.join('\n')}`);
-  console.log(`✓ [Suite 5/7: verify_content_guardian] Passed humanizer-en audit across ${categories.length} categories, ${products.length} products, and ${Object.keys(INFO_PAGES).length} policy pages`);
+  console.log(`✓ [Suite 5/7: verify_content_guardian] Passed humanizer-en audit across ${categories.length} categories, ${products.length} products (including FSSAI nutrition & allergens), and ${Object.keys(INFO_PAGES).length} policy pages`);
 }
 
 if (require.main === module) {
