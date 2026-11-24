@@ -274,15 +274,20 @@ function createServerHandler() {
           '.css': 'text/css; charset=utf-8',
           '.js': 'application/javascript; charset=utf-8',
           '.wasm': 'application/wasm',
+          '.woff2': 'font/woff2',
+          '.woff': 'font/woff',
           '.jpg': 'image/jpeg',
           '.jpeg': 'image/jpeg',
           '.png': 'image/png',
           '.webp': 'image/webp',
           '.svg': 'image/svg+xml'
         };
+        const isImmutableAsset = pathname.startsWith('/assets/fonts/') || parsedUrl.searchParams.has('v');
         res.writeHead(200, {
           'Content-Type': mimeMap[ext] || 'application/octet-stream',
-          'Cache-Control': 'public, max-age=3600'
+          'Cache-Control': isImmutableAsset
+            ? 'public, max-age=31536000, immutable'
+            : 'public, max-age=86400'
         });
         return fs.createReadStream(filePath).pipe(res);
       }

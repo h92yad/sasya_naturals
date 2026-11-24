@@ -204,6 +204,11 @@ function renderShell({
   <link rel="icon" type="image/webp" href="${basePath}/images/favicon.webp?v=${APP_VERSION}" />
   <link rel="icon" type="image/png" sizes="32x32" href="${basePath}/images/favicon-32.png?v=${APP_VERSION}" />
   <link rel="apple-touch-icon" sizes="180x180" href="${basePath}/images/apple-touch-icon.png?v=${APP_VERSION}" />
+  <link rel="preload" href="${basePath}/assets/fonts/poppins-latin-400.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="${basePath}/assets/fonts/poppins-latin-500.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="${basePath}/assets/fonts/poppins-latin-600.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="${basePath}/assets/fonts/poppins-latin-700.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="${basePath}/assets/fonts/lora-latin-var.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="${basePath}/assets/sasya-core.css?v=${APP_VERSION}" />
   <script type="application/ld+json">${JSON.stringify(schemaGraph)}</script>
 </head>
@@ -260,7 +265,7 @@ function renderShell({
             <div class="sn-nav-popover-grid" id="sn-nav-categories-popover-grid">
               ${navCategories.map(c => `
                 <a href="${basePath}/category/${escapeHtml(c.slug)}" class="sn-nav-popover-card ${activeNav === c.slug ? 'sn-active' : ''}" role="menuitem" data-popover-cat-id="${c.id}">
-                  <img src="${basePath}${escapeHtml(c.image_url || '/images/cat-spices.jpg')}" alt="${escapeHtml(c.name)}" data-category-img-id="${c.id}" loading="lazy" />
+                  <img src="${basePath}${escapeHtml(c.image_url || '/images/cat-spices.jpg')}" alt="${escapeHtml(c.name)}" data-category-img-id="${c.id}" loading="lazy" width="42" height="42" />
                   <div class="sn-nav-popover-card-body">
                     <div class="sn-nav-popover-card-title">
                       <strong>${escapeHtml(c.name)}</strong>
@@ -282,7 +287,7 @@ function renderShell({
           <div class="sn-mobile-cat-grid ${navCategories.length > 3 ? 'sn-mobile-cat-grid-2col' : ''}" id="sn-mobile-cat-grid">
             ${navCategories.map(c => `
               <a href="${basePath}/category/${escapeHtml(c.slug)}" class="sn-mobile-cat-tile ${activeNav === c.slug ? 'sn-active' : ''}" data-mobile-cat-id="${c.id}">
-                <img src="${basePath}${escapeHtml(c.image_url || '/images/cat-spices.jpg')}" alt="${escapeHtml(c.name)}" data-category-img-id="${c.id}" loading="lazy" />
+                <img src="${basePath}${escapeHtml(c.image_url || '/images/cat-spices.jpg')}" alt="${escapeHtml(c.name)}" data-category-img-id="${c.id}" loading="lazy" width="30" height="30" />
                 <span class="sn-mobile-cat-tile-name">${escapeHtml(c.name)}</span>
               </a>
             `).join('')}
@@ -305,6 +310,7 @@ function renderShell({
       </div>
     </div>
   </header>
+  <script>(function(){try{var c=JSON.parse(localStorage.getItem('sn_cart_v1')||'[]'),n=c.reduce(function(a,i){return a+Number(i.quantity||1)},0);if(n>0)document.querySelectorAll('[data-cart-count]').forEach(function(e){e.textContent=String(n)})}catch(e){}})();</script>
 
   <main id="app-mount" data-ssr-rendered="true" data-app-version="${APP_VERSION}">
     ${bodyHtml}
@@ -2120,6 +2126,8 @@ function renderAdminPortalPage({
   };
   const allowedModules = roleAllowedModulesMap[activeAdminRole] || roleAllowedModulesMap.SUPER_ADMIN;
   const modDisplayStyle = (modKey) => (isShowcase || allowedModules.includes(modKey)) ? '' : 'display:none;';
+  const defaultAdminMod = isShowcase ? 'orders' : (allowedModules[0] || 'orders');
+  const panelDisplayStyle = (modKey) => defaultAdminMod === modKey ? '' : 'display:none;';
 
   const bodyHtml = `
     <section class="sn-section" id="sn-admin-portal" data-active-admin-role="${escapeHtml(activeAdminRole)}">
@@ -2206,25 +2214,25 @@ function renderAdminPortalPage({
           <aside class="sn-admin-sidebar">
             <div class="sn-admin-sidebar-label" style="font-family:var(--sn-font-mono);font-size:0.73rem;text-transform:uppercase;color:#DCE2F2;">${isShowcase ? 'Admin Modules (Section 5.1)' : `Assigned Modules (${escapeHtml(activeAdminRole)})`}</div>
             <ul class="sn-admin-menu">
-              <li style="${modDisplayStyle('orders')}"><button type="button" class="sn-active" data-admin-tab-btn="orders" id="tab-btn-orders">1. Orders &amp; Manual Shipping</button></li>
-              <li style="${modDisplayStyle('vault')}"><button type="button" data-admin-tab-btn="vault" id="tab-btn-vault">2. API &amp; Razorpay Key Vault</button></li>
+              <li style="${modDisplayStyle('orders')}"><button type="button" class="${defaultAdminMod === 'orders' ? 'sn-active' : ''}" data-admin-tab-btn="orders" id="tab-btn-orders">1. Orders &amp; Manual Shipping</button></li>
+              <li style="${modDisplayStyle('vault')}"><button type="button" class="${defaultAdminMod === 'vault' ? 'sn-active' : ''}" data-admin-tab-btn="vault" id="tab-btn-vault">2. API &amp; Razorpay Key Vault</button></li>
               <li style="${modDisplayStyle('products')}">
-                <button type="button" data-admin-tab-btn="products" id="tab-btn-products">3. Categories, Products &amp; Media ▾</button>
-                <ul class="sn-admin-submenu" data-admin-submenu-for="products">
+                <button type="button" class="${defaultAdminMod === 'products' ? 'sn-active' : ''}" data-admin-tab-btn="products" id="tab-btn-products">3. Categories, Products &amp; Media ▾</button>
+                <ul class="sn-admin-submenu ${defaultAdminMod === 'products' ? 'sn-submenu-open' : ''}" data-admin-submenu-for="products">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="products:catalogue">3.1 Products Catalogue (${products.length})</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="products:categories">3.2 Categories &amp; Banners (${categories.length})</button></li>
                 </ul>
               </li>
               <li style="${modDisplayStyle('inventory')}">
-                <button type="button" data-admin-tab-btn="inventory" id="tab-btn-inventory">4. Inventory &amp; Stock Ledger (${variants.length}) ▾</button>
-                <ul class="sn-admin-submenu" data-admin-submenu-for="inventory">
+                <button type="button" class="${defaultAdminMod === 'inventory' ? 'sn-active' : ''}" data-admin-tab-btn="inventory" id="tab-btn-inventory">4. Inventory &amp; Stock Ledger (${variants.length}) ▾</button>
+                <ul class="sn-admin-submenu ${defaultAdminMod === 'inventory' ? 'sn-submenu-open' : ''}" data-admin-submenu-for="inventory">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="inventory:variants">4.1 Variant Stock (${variants.length} SKUs)</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="inventory:movements">4.2 Stock Movement Ledger</button></li>
                 </ul>
               </li>
               <li style="${modDisplayStyle('payments')}">
-                <button type="button" data-admin-tab-btn="payments" id="tab-btn-payments">5. Payments, COD &amp; Reports ▾</button>
-                <ul class="sn-admin-submenu" data-admin-submenu-for="payments">
+                <button type="button" class="${defaultAdminMod === 'payments' ? 'sn-active' : ''}" data-admin-tab-btn="payments" id="tab-btn-payments">5. Payments, COD &amp; Reports ▾</button>
+                <ul class="sn-admin-submenu ${defaultAdminMod === 'payments' ? 'sn-submenu-open' : ''}" data-admin-submenu-for="payments">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="payments:reconciliation">5.1 Payments, COD &amp; Refunds</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="payments:sales-timeseries">5.2 Daily / Weekly / Monthly Sales</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="payments:product-sales">5.3 Product-Wise Sales (${reports.productSales.length})</button></li>
@@ -2232,21 +2240,21 @@ function renderAdminPortalPage({
                 </ul>
               </li>
               <li style="${modDisplayStyle('customers')}">
-                <button type="button" data-admin-tab-btn="customers" id="tab-btn-customers">6. Users, Purchases &amp; Export ▾</button>
+                <button type="button" class="${defaultAdminMod === 'customers' ? 'sn-active' : ''}" data-admin-tab-btn="customers" id="tab-btn-customers">6. Users, Purchases &amp; Export ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="customers">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="customers:users">6.1 Signed-Up Users &amp; Purchases (${customerDirectoryRows.length})</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="customers:addresses">6.2 Saved Addresses Directory (${customerAddresses.length})</button></li>
                 </ul>
               </li>
               <li style="${modDisplayStyle('rbac')}">
-                <button type="button" data-admin-tab-btn="rbac" id="tab-btn-rbac">7. Staff RBAC &amp; Audit Logs ▾</button>
+                <button type="button" class="${defaultAdminMod === 'rbac' ? 'sn-active' : ''}" data-admin-tab-btn="rbac" id="tab-btn-rbac">7. Staff RBAC &amp; Audit Logs ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="rbac">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="rbac:staff">7.1 Staff Accounts &amp; RBAC (${staffUsers.length})</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="rbac:audit-logs">7.2 Immutable Audit Logs (${auditLogs.length})</button></li>
                 </ul>
               </li>
               <li style="${modDisplayStyle('compliance')}">
-                <button type="button" data-admin-tab-btn="compliance" id="tab-btn-compliance">8. Shipping, GST, FSSAI &amp; Templates ▾</button>
+                <button type="button" class="${defaultAdminMod === 'compliance' ? 'sn-active' : ''}" data-admin-tab-btn="compliance" id="tab-btn-compliance">8. Shipping, GST, FSSAI &amp; Templates ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="compliance">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="compliance:shipping">8.1 Delivery Pricing (4-Zone)</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="compliance:legal-templates">8.2 GSTIN, FSSAI &amp; Templates</button></li>
@@ -2254,7 +2262,7 @@ function renderAdminPortalPage({
                 </ul>
               </li>
               <li style="${modDisplayStyle('content')}">
-                <button type="button" data-admin-tab-btn="content" id="tab-btn-content">9. Storefront Content &amp; SEO ▾</button>
+                <button type="button" class="${defaultAdminMod === 'content' ? 'sn-active' : ''}" data-admin-tab-btn="content" id="tab-btn-content">9. Storefront Content &amp; SEO ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="content">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="content:homepage">9.1 Homepage Hero, Topbar &amp; Footer</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="content:pages">9.2 Info &amp; Policy Pages (6 Pages)</button></li>
@@ -2266,7 +2274,7 @@ function renderAdminPortalPage({
 
           <div>
             <!-- Panel 1: Orders & Manual Shipping (Full Delivery Address, Pick & Pack List, Copy Label & Manual Courier Dispatch) -->
-            <div class="sn-card" data-admin-panel="orders">
+            <div class="sn-card" data-admin-panel="orders" style="${panelDisplayStyle('orders')}">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
                 <div>
                   <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Orders, Delivery Addresses, Pick-and-Pack &amp; Manual Courier Dispatch</h2>
@@ -2718,7 +2726,7 @@ function renderAdminPortalPage({
             </div>
 
             <!-- Panel 3: Categories, Products, Contextual Edit Modal & Media Manager -->
-            <div class="sn-card" data-admin-panel="products" style="display:none;">
+            <div class="sn-card" data-admin-panel="products" style="${panelDisplayStyle('products')}">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
                 <div>
                   <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Categories, Products, Pack Variants &amp; Media Manager</h2>
@@ -3500,7 +3508,7 @@ function renderAdminPortalPage({
             </div>
 
             <!-- Panel 5: Payments, COD Settlement, Refunds & Sales/Product Reports (Section 5.1 & Section 6) -->
-            <div class="sn-card" data-admin-panel="payments" style="display:none;">
+            <div class="sn-card" data-admin-panel="payments" style="${panelDisplayStyle('payments')}">
               <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Payment Gateway Reconciliation, COD Collections, Refunds &amp; Reports</h2>
               <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 14px;">
                 Authorized for <strong>SUPER_ADMIN</strong> and <strong>ACCOUNTS_MANAGER</strong>. Record COD collections, initiate/record refunds (with automatic stock restoration), and review sales reports.
@@ -4554,6 +4562,7 @@ function renderAdminPortalPage({
           </div>
         </div>
       </div>
+      <script>(function(){try{var sub=sessionStorage.getItem('sn_admin_active_subtab'),mod=sessionStorage.getItem('sn_admin_active_module');if(sub&&sub.indexOf(':')>0)mod=sub.split(':')[0];if(!mod)return;var btn=document.querySelector('[data-admin-tab-btn="'+mod+'"]');if(!btn)return;var li=btn.closest('li');if(li&&li.style.display==='none')return;document.querySelectorAll('[data-admin-tab-btn]').forEach(function(b){b.classList.toggle('sn-active',b.getAttribute('data-admin-tab-btn')===mod)});document.querySelectorAll('[data-admin-submenu-for]').forEach(function(u){u.classList.toggle('sn-submenu-open',u.getAttribute('data-admin-submenu-for')===mod)});document.querySelectorAll('[data-admin-panel]').forEach(function(p){p.style.display=p.getAttribute('data-admin-panel')===mod?'block':'none'});if(sub&&document.querySelector('[data-admin-subpanel="'+sub+'"]')){document.querySelectorAll('[data-admin-subpanel^="'+mod+':"]').forEach(function(sp){sp.style.display=sp.getAttribute('data-admin-subpanel')===sub?'block':'none'});document.querySelectorAll('[data-admin-subtab-btn^="'+mod+':"]').forEach(function(pl){pl.classList.toggle('sn-active',pl.getAttribute('data-admin-subtab-btn')===sub)});document.querySelectorAll('[data-admin-subtab-link^="'+mod+':"]').forEach(function(sb){sb.classList.toggle('sn-sub-active',sb.getAttribute('data-admin-subtab-link')===sub)})}}catch(e){}})();</script>
     </section>
   `;
 

@@ -1,5 +1,62 @@
 /* Sasya Naturals (sasynaturals.com) - Core Design System (sn- namespace) */
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Poppins:wght@400;500;600;700&display=swap');
+/* Self-hosted preloaded Latin WOFF2 fonts + Metric-Calibrated Fallbacks (Zero FOUT / Zero CLS) */
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: block;
+  src: url('./fonts/lora-latin-var.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./fonts/poppins-latin-400.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+  src: url('./fonts/poppins-latin-500.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 600;
+  font-display: block;
+  src: url('./fonts/poppins-latin-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Poppins';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('./fonts/poppins-latin-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Poppins-Fallback';
+  src: local('Arial'), local('Helvetica Neue'), local('Roboto'), local(' Liberation Sans');
+  size-adjust: 112.15%;
+  ascent-override: 93.6%;
+  descent-override: 31.2%;
+  line-gap-override: 8.9%;
+}
+
+@font-face {
+  font-family: 'Lora-Fallback';
+  src: local('Georgia'), local('Times New Roman'), local('Liberation Serif');
+  size-adjust: 101.8%;
+  ascent-override: 96.5%;
+  descent-override: 26.5%;
+  line-gap-override: 0%;
+}
 
 :root {
   --sn-bg-parchment: #FAF5E4;
@@ -27,9 +84,9 @@
   --sn-radius-lg: 16px;
   --sn-shadow-soft: 0 4px 20px rgba(27, 36, 88, 0.08);
   --sn-shadow-elevated: 0 14px 38px rgba(27, 36, 88, 0.15);
-  --sn-font-serif: 'Lora', Georgia, serif;
-  --sn-font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
-  --sn-font-mono: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+  --sn-font-serif: 'Lora', 'Lora-Fallback', Georgia, serif;
+  --sn-font-sans: 'Poppins', 'Poppins-Fallback', -apple-system, BlinkMacSystemFont, sans-serif;
+  --sn-font-mono: 'Poppins', 'Poppins-Fallback', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 *, *::before, *::after {

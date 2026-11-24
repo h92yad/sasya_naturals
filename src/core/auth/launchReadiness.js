@@ -133,8 +133,13 @@ function renderLaunchingSoonGuardrailHtml() {
   <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
   <title>Sashya Naturals — Launching Soon</title>
   <link rel="icon" type="image/webp" href="/images/favicon.webp">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=Poppins:wght@400;500;600&display=swap">
+  <link rel="preload" href="/assets/fonts/lora-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/poppins-latin-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/poppins-latin-600.woff2" as="font" type="font/woff2" crossorigin>
   <style>
+    @font-face { font-family: 'Lora'; font-style: normal; font-weight: 500 700; font-display: block; src: url('/assets/fonts/lora-latin-var.woff2') format('woff2'); }
+    @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 400; font-display: block; src: url('/assets/fonts/poppins-latin-400.woff2') format('woff2'); }
+    @font-face { font-family: 'Poppins'; font-style: normal; font-weight: 600; font-display: block; src: url('/assets/fonts/poppins-latin-600.woff2') format('woff2'); }
     body { font-family: 'Poppins', system-ui, -apple-system, sans-serif; background: #FAF5E4; color: #161B33; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; text-align: center; padding: 16px; box-sizing: border-box; }
     .card { max-width: 480px; padding: 2.5rem; border: 1px solid #E2D7B5; border-radius: 14px; background: #FFFDF8; box-shadow: 0 10px 30px rgba(27, 36, 88, 0.08); }
     .logo { height: 56px; width: auto; margin: 0 auto 1.25rem; display: block; object-fit: contain; }
