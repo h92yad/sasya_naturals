@@ -80,14 +80,29 @@ function clearFailedAttempts(key) {
   loginAttemptsMap.delete(key);
 }
 
+function normalizeStaffOrCustomerEmail(rawEmail) {
+  const clean = String(rawEmail || '').trim().toLowerCase();
+  if (clean.endsWith('@sashyanaturals.com')) {
+    return clean.replace(/@sashyanaturals\.com$/, '@sasynaturals.com');
+  }
+  return clean;
+}
+
+function checkPasswordWithTrimFallback(rawPassword, passwordHash) {
+  const str = String(rawPassword || '');
+  if (verifyPassword(str, passwordHash)) return true;
+  if (str.trim() !== str && verifyPassword(str.trim(), passwordHash)) return true;
+  return false;
+}
+
 function loginAdminWithPassword(email, password, clientIp = '127.0.0.1') {
-  const cleanEmail = String(email || '').trim().toLowerCase();
+  const cleanEmail = normalizeStaffOrCustomerEmail(email);
   const rateKey = `${clientIp}:${cleanEmail}`;
   checkLoginRateLimit(rateKey);
 
   const db = getDb();
   const user = db.prepare("SELECT * FROM users WHERE lower(email) = ? AND role != 'CUSTOMER' AND is_active = 1").get(cleanEmail);
-  if (!user || !verifyPassword(String(password || ''), user.password_hash)) {
+  if (!user || !checkPasswordWithTrimFallback(password, user.password_hash)) {
     recordFailedAttempt(rateKey);
     const err = new Error('Invalid staff email or password.');
     err.statusCode = 401;
@@ -143,13 +158,13 @@ function parseCookies(cookieHeader = '') {
 const CUSTOMER_COOKIE_NAME = 'sn_customer_session';
 
 function loginCustomerWithPassword(email, password, clientIp = '127.0.0.1') {
-  const cleanEmail = String(email || '').trim().toLowerCase();
+  const cleanEmail = normalizeStaffOrCustomerEmail(email);
   const rateKey = `cust:${clientIp}:${cleanEmail}`;
   checkLoginRateLimit(rateKey);
 
   const db = getDb();
   const user = db.prepare("SELECT * FROM users WHERE lower(email) = ? AND is_active = 1").get(cleanEmail);
-  if (!user || !verifyPassword(String(password || ''), user.password_hash)) {
+  if (!user || !checkPasswordWithTrimFallback(password, user.password_hash)) {
     recordFailedAttempt(rateKey);
     const err = new Error('Invalid customer email or password.');
     err.statusCode = 401;
@@ -258,7 +273,7 @@ function changeUserPassword({ userId, currentPassword, newPassword }) {
 }
 
 function requestPasswordResetOtp(email) {
-  const cleanEmail = String(email || '').trim().toLowerCase();
+  const cleanEmail = normalizeStaffOrCustomerEmail(email);
   if (!cleanEmail || !cleanEmail.includes('@')) {
     throw new Error('Please enter a valid registered email address.');
   }
@@ -298,9 +313,9 @@ function requestPasswordResetOtp(email) {
 }
 
 function resetPasswordWithOtp({ email, otpCode, newPassword }) {
-  const cleanEmail = String(email || '').trim().toLowerCase();
+  const cleanEmail = normalizeStaffOrCustomerEmail(email);
   const cleanOtp = String(otpCode || '').trim();
-  const cleanNew = String(newPassword || '');
+  const cleanNew = String(newPassword || '').trim();
 
   if (cleanNew.length < 6) {
     throw new Error('New password must be at least 6 characters.');
@@ -334,6 +349,12 @@ function resetPasswordWithOtp({ email, otpCode, newPassword }) {
   const nextHash = hashPassword(cleanNew);
   db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(nextHash, user.id);
   db.prepare('DELETE FROM cod_otps WHERE phone = ?').run(resetKey);
+
+  for (const k of loginAttemptsMap.keys()) {
+    if (k.endsWith(cleanEmail)) {
+      loginAttemptsMap.delete(k);
+    }
+  }
 
   recordAuditLog({
     actorId: user.id,

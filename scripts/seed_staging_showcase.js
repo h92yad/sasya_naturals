@@ -182,6 +182,22 @@ const SAMPLE_PRODUCTS = [
 
 function applyStagingSampleCatalogue() {
   const db = getDb();
+  const { hashPassword } = require('../src/db/database');
+
+  // Ensure all 5 default staff roles and demo customer account have active status and baseline password Sasya@2026 on Staging
+  const baselinePassHash = hashPassword('Sasya@2026');
+  const baselineEmails = [
+    'superadmin@sasynaturals.com',
+    'catalog@sasynaturals.com',
+    'orders@sasynaturals.com',
+    'accounts@sasynaturals.com',
+    'dispatch@sasynaturals.com',
+    'ananya.iyer@example.com'
+  ];
+  const resetUserStmt = db.prepare('UPDATE users SET password_hash = ?, is_active = 1 WHERE lower(email) = ?');
+  for (const em of baselineEmails) {
+    resetUserStmt.run(baselinePassHash, em);
+  }
 
   // Lint every sample category and product before inserting
   for (const cat of SAMPLE_CATEGORIES) {
