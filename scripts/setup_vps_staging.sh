@@ -66,8 +66,9 @@ echo "---> [Step 4.4] Deploying repository to ${STAGING_DIR} (Port 3021)..."
 mkdir -p /var/www
 
 if [ -d "${STAGING_DIR}/.git" ]; then
-  echo "     Existing git clone detected; pulling latest changes..."
-  git -C "${STAGING_DIR}" pull --ff-only
+  echo "     Existing git clone detected; syncing latest origin/main..."
+  git -C "${STAGING_DIR}" fetch origin
+  git -C "${STAGING_DIR}" reset --hard origin/main
 else
   git clone "${REPO_URL}" "${STAGING_DIR}"
 fi
