@@ -155,10 +155,10 @@ cat <<'EOF' > "${COMING_SOON_DIR}/index.html"
   <meta name="robots" content="noindex, nofollow">
   <title>Sashya Naturals — Launching Soon</title>
   <style>
-    body { font-family: system-ui, sans-serif; background: #FAF6F0; color: #1F3A2E; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-    .card { max-width: 480px; padding: 2.5rem; border: 1px solid #E2D9C8; border-radius: 12px; background: #FFF; box-shadow: 0 10px 30px rgba(31, 58, 46, 0.06); }
-    h1 { margin: 0 0 0.75rem; font-size: 1.75rem; letter-spacing: -0.02em; }
-    p { margin: 0; color: #5A6B5C; line-height: 1.6; }
+    body { font-family: system-ui, sans-serif; background: #FDF6DA; color: #212C64; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
+    .card { max-width: 480px; padding: 2.5rem; border: 1px solid #E8DFBE; border-radius: 12px; background: #FFFEFA; box-shadow: 0 10px 30px rgba(33, 44, 100, 0.08); }
+    h1 { margin: 0 0 0.75rem; font-size: 1.75rem; letter-spacing: -0.02em; color: #212C64; }
+    p { margin: 0; color: #454D6B; line-height: 1.6; }
   </style>
 </head>
 <body>

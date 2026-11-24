@@ -45,7 +45,7 @@ function buildOrganizationNode() {
     url: `${CANONICAL_ORIGIN}/`,
     logo: {
       '@type': 'ImageObject',
-      url: `${CANONICAL_ORIGIN}/images/hero-pantry.jpg`
+      url: `${CANONICAL_ORIGIN}/images/logo-horizontal.webp`
     },
     contactPoint: {
       '@type': 'ContactPoint',

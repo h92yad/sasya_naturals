@@ -200,6 +200,9 @@ function renderShell({
   <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
   <meta property="og:site_name" content="${escapeHtml(BRAND_NAME)}" />
   <meta property="og:image" content="${escapeHtml(CANONICAL_ORIGIN)}${escapeHtml(ogImgPath)}" />
+  <link rel="icon" type="image/webp" href="${basePath}/images/favicon.webp?v=${APP_VERSION}" />
+  <link rel="icon" type="image/png" sizes="32x32" href="${basePath}/images/favicon-32.png?v=${APP_VERSION}" />
+  <link rel="apple-touch-icon" sizes="180x180" href="${basePath}/images/apple-touch-icon.png?v=${APP_VERSION}" />
   <link rel="stylesheet" href="${basePath}/assets/sasya-core.css?v=${APP_VERSION}" />
   <script type="application/ld+json">${JSON.stringify(schemaGraph)}</script>
 </head>
@@ -217,9 +220,8 @@ function renderShell({
 
   <header class="sn-header">
     <div class="sn-container sn-header-inner">
-      <a href="${basePath}/" class="sn-brand" id="nav-brand-logo">
-        <span class="sn-brand-title">Sasya Naturals</span>
-        <span class="sn-brand-sub">Pure Indian Pantry</span>
+      <a href="${basePath}/" class="sn-brand" id="nav-brand-logo" aria-label="${escapeHtml(BRAND_NAME)} — Rooted in Trust">
+        <img src="${basePath}/images/logo-horizontal.webp" alt="${escapeHtml(BRAND_NAME)} — Rooted in Trust" class="sn-brand-logo-img" width="160" height="46" />
       </a>
       <nav class="sn-nav ${hasCategoryOverflow ? 'sn-nav-has-overflow' : ''}" id="sn-main-nav" aria-label="Main Navigation" data-nav-cat-count="${navCategories.length}">
         <form action="${basePath}/shop" method="GET" class="sn-mobile-nav-search">
@@ -325,10 +327,10 @@ function renderShell({
       <div class="sn-footer-grid">
         <div>
           <h4>Sasya Naturals</h4>
-          <p style="color:#B9C2BA;margin:0 0 14px;">
+          <p style="color:#DCE1F0;margin:0 0 14px;">
             ${escapeHtml(hp.footerBlurb)}
           </p>
-          <div style="font-family:var(--sn-font-mono);font-size:0.76rem;color:#9BA69D;">
+          <div style="font-family:var(--sn-font-mono);font-size:0.76rem;color:#A7B0CC;">
             ${escapeHtml(hp.footerSupportLine)}
           </div>
         </div>
@@ -2020,10 +2022,10 @@ function renderAdminPortalPage({
     <section class="sn-section" id="sn-admin-portal">
       <div class="sn-container">
         <!-- Separate Staff Authentication & RBAC Session Bar (Section 5 & Section 10) -->
-        <div class="sn-filter-bar sn-admin-session-bar" style="background-color:var(--sn-bg-forest);color:#FAF6EE;border-color:var(--sn-bg-forest);margin-bottom:12px;">
+        <div class="sn-filter-bar sn-admin-session-bar" style="background-color:var(--sn-bg-forest);color:#FDF6DA;border-color:var(--sn-bg-forest);margin-bottom:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:10px;flex-wrap:wrap;">
             <div>
-              <span class="sn-eyebrow" style="color:#E7B971;margin-bottom:2px;">Separate Authenticated Staff Portal • Server-Side RBAC &amp; Write-Only API Vault</span>
+              <span class="sn-eyebrow" style="color:#FBD977;margin-bottom:2px;">Separate Authenticated Staff Portal • Server-Side RBAC &amp; Write-Only API Vault</span>
               <h1 style="font-family:var(--sn-font-serif);font-size:1.45rem;margin:0;color:#FFFFFF;">Sasya Naturals Operations &amp; Role Management</h1>
             </div>
             <button
@@ -2088,7 +2090,7 @@ function renderAdminPortalPage({
 
         <div class="sn-admin-grid">
           <aside class="sn-admin-sidebar">
-            <div class="sn-admin-sidebar-label" style="font-family:var(--sn-font-mono);font-size:0.73rem;text-transform:uppercase;color:#B8C4BB;">Admin Modules (Section 5.1)</div>
+            <div class="sn-admin-sidebar-label" style="font-family:var(--sn-font-mono);font-size:0.73rem;text-transform:uppercase;color:#C5CCE0;">Admin Modules (Section 5.1)</div>
             <ul class="sn-admin-menu">
               <li><button type="button" class="sn-active" data-admin-tab-btn="orders" id="tab-btn-orders">1. Orders &amp; Manual Shipping</button></li>
               <li><button type="button" data-admin-tab-btn="vault" id="tab-btn-vault">2. API &amp; Razorpay Key Vault</button></li>
@@ -2377,10 +2379,10 @@ function renderAdminPortalPage({
                 <div class="sn-admin-modal-card" style="max-width:860px;">
                   <div class="sn-admin-modal-header">
                     <div>
-                      <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">RBAC: SUPER_ADMIN &amp; ORDER_MANAGER • RUST WASM GST + 4-ZONE SHIPPING ENGINE</span>
-                      <h3 id="sn-create-order-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.25rem;color:#FAF6EE;">Create Manual Order &amp; Auto-Generate GST Tax Invoice</h3>
+                      <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#FBD977;letter-spacing:0.05em;">RBAC: SUPER_ADMIN &amp; ORDER_MANAGER • RUST WASM GST + 4-ZONE SHIPPING ENGINE</span>
+                      <h3 id="sn-create-order-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.25rem;color:#FDF6DA;">Create Manual Order &amp; Auto-Generate GST Tax Invoice</h3>
                     </div>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-create-order-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-create-order-modal style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border-color:rgba(255,255,255,0.35);">✕ Close</button>
                   </div>
 
                   <div class="sn-admin-modal-body">
@@ -2903,11 +2905,11 @@ function renderAdminPortalPage({
                     <div style="display:flex;align-items:center;gap:12px;">
                       <img id="sn-edit-modal-thumb" src="${basePath}/images/cat-dry-fruits.jpg" alt="Product Preview" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
                       <div>
-                        <span id="sn-edit-modal-sku" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">SN-DF-ALM</span>
-                        <h3 id="sn-edit-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF6EE;">Edit Product Details, Per-Weight Discounts &amp; FSSAI Nutrition</h3>
+                        <span id="sn-edit-modal-sku" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#FBD977;letter-spacing:0.05em;">SN-DF-ALM</span>
+                        <h3 id="sn-edit-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FDF6DA;">Edit Product Details, Per-Weight Discounts &amp; FSSAI Nutrition</h3>
                       </div>
                     </div>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-prod-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-prod-modal style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border-color:rgba(255,255,255,0.35);">✕ Close</button>
                   </div>
 
                   <div class="sn-admin-modal-body">
@@ -3187,11 +3189,11 @@ function renderAdminPortalPage({
                     <div style="display:flex;align-items:center;gap:12px;">
                       <img id="sn-edit-cat-modal-thumb" src="${basePath}/images/cat-dry-fruits.jpg" alt="Category Banner Preview" style="width:60px;height:42px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
                       <div>
-                        <span id="sn-edit-cat-modal-slug" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">/category/dry-fruits</span>
-                        <h3 id="sn-edit-cat-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF6EE;">Edit Category Details &amp; Banner Photo</h3>
+                        <span id="sn-edit-cat-modal-slug" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#FBD977;letter-spacing:0.05em;">/category/dry-fruits</span>
+                        <h3 id="sn-edit-cat-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FDF6DA;">Edit Category Details &amp; Banner Photo</h3>
                       </div>
                     </div>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-cat-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-cat-modal style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border-color:rgba(255,255,255,0.35);">✕ Close</button>
                   </div>
 
                   <div class="sn-admin-modal-body">
@@ -3868,10 +3870,10 @@ function renderAdminPortalPage({
                 <div class="sn-admin-modal-card" style="max-width:780px;">
                   <div class="sn-admin-modal-header">
                     <div>
-                      <span id="sn-user-purchases-modal-eyebrow" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">USER PURCHASE LEDGER</span>
-                      <h3 id="sn-user-purchases-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.2rem;color:#FAF6EE;">Customer Purchase History &amp; GST Invoices</h3>
+                      <span id="sn-user-purchases-modal-eyebrow" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#FBD977;letter-spacing:0.05em;">USER PURCHASE LEDGER</span>
+                      <h3 id="sn-user-purchases-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.2rem;color:#FDF6DA;">Customer Purchase History &amp; GST Invoices</h3>
                     </div>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-user-purchases-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-user-purchases-modal style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border-color:rgba(255,255,255,0.35);">✕ Close</button>
                   </div>
                   <div class="sn-admin-modal-body" id="sn-user-purchases-modal-body">
                   </div>

@@ -264,7 +264,12 @@ function createServerHandler() {
 
       // 2. Discovery Endpoints (/favicon.ico, /robots.txt, /sitemap.xml, /llms.txt)
       if (pathname === '/favicon.ico') {
-        const svgFavicon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#143022"/><text x="16" y="22" font-family="Georgia,serif" font-size="18" font-weight="bold" fill="#FAF6EE" text-anchor="middle">S</text></svg>';
+        const favWebpPath = path.join(__dirname, 'public/images/favicon.webp');
+        if (fs.existsSync(favWebpPath)) {
+          res.writeHead(200, { 'Content-Type': 'image/webp', 'Cache-Control': 'public, max-age=86400' });
+          return fs.createReadStream(favWebpPath).pipe(res);
+        }
+        const svgFavicon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#212C64"/><text x="16" y="22" font-family="Georgia,serif" font-size="18" font-weight="bold" fill="#FDF6DA" text-anchor="middle">S</text></svg>';
         res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' });
         return res.end(svgFavicon);
       }

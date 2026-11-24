@@ -2,31 +2,31 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 :root {
-  --sn-bg-parchment: #FAF6EE;
-  --sn-bg-mortar: #F2ECE0;
-  --sn-bg-surface: #FFFDF9;
-  --sn-bg-forest: #163024;
-  --sn-bg-forest-deep: #0F231A;
-  --sn-text-primary: #1C231D;
-  --sn-text-secondary: #4D594F;
-  --sn-text-muted: #727D73;
-  --sn-accent-terracotta: #B84A24;
-  --sn-accent-terracotta-hover: #9B3B1A;
-  --sn-accent-turmeric: #C88312;
-  --sn-accent-leaf: #23533B;
-  --sn-border-warm: #E3DAC8;
-  --sn-border-strong: #CBBFA8;
-  --sn-status-paid: #1E6B43;
-  --sn-status-paid-bg: #E7F4ED;
+  --sn-bg-parchment: #FDF6DA;
+  --sn-bg-mortar: #F4E9C2;
+  --sn-bg-surface: #FFFEFA;
+  --sn-bg-forest: #212C64;
+  --sn-bg-forest-deep: #161E47;
+  --sn-text-primary: #171D3B;
+  --sn-text-secondary: #454D6B;
+  --sn-text-muted: #6D7490;
+  --sn-accent-terracotta: #C47A18;
+  --sn-accent-terracotta-hover: #A36210;
+  --sn-accent-turmeric: #FBD977;
+  --sn-accent-leaf: #2D3C84;
+  --sn-border-warm: #E8DFBE;
+  --sn-border-strong: #D4C598;
+  --sn-status-paid: #248444;
+  --sn-status-paid-bg: #E8F5EC;
   --sn-status-warn: #9A5B0A;
-  --sn-status-warn-bg: #FDF3E1;
+  --sn-status-warn-bg: #FEF6D5;
   --sn-status-danger: #A62929;
   --sn-status-danger-bg: #FDECEC;
   --sn-radius-sm: 6px;
   --sn-radius-md: 10px;
   --sn-radius-lg: 16px;
-  --sn-shadow-soft: 0 4px 20px rgba(22, 48, 36, 0.06);
-  --sn-shadow-elevated: 0 14px 38px rgba(22, 48, 36, 0.12);
+  --sn-shadow-soft: 0 4px 20px rgba(33, 44, 100, 0.07);
+  --sn-shadow-elevated: 0 14px 38px rgba(33, 44, 100, 0.14);
   --sn-font-serif: 'Fraunces', Georgia, serif;
   --sn-font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --sn-font-mono: 'JetBrains Mono', monospace;
@@ -51,7 +51,7 @@ body {
   display: flex;
   flex-direction: column;
   background-color: var(--sn-bg-parchment);
-  background-image: radial-gradient(rgba(184, 74, 36, 0.03) 1px, transparent 0);
+  background-image: radial-gradient(rgba(33, 44, 100, 0.035) 1px, transparent 0);
   background-size: 24px 24px;
 }
 
@@ -75,7 +75,7 @@ img {
 
 .sn-topbar {
   background-color: var(--sn-bg-forest-deep);
-  color: #EAE3D2;
+  color: #FDF6DA;
   font-size: 0.8125rem;
   padding: 8px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
@@ -101,7 +101,7 @@ img {
   position: sticky;
   top: 0;
   z-index: 90;
-  background-color: rgba(250, 246, 238, 0.95);
+  background-color: rgba(253, 246, 218, 0.95);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--sn-border-warm);
 }
@@ -133,7 +133,7 @@ img {
 
 .sn-header-search:focus-within {
   border-color: var(--sn-bg-forest);
-  box-shadow: 0 0 0 2px rgba(22, 48, 36, 0.1);
+  box-shadow: 0 0 0 2px rgba(33, 44, 100, 0.12);
 }
 
 .sn-header-search-input {
@@ -178,10 +178,23 @@ img {
 }
 
 .sn-brand {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.sn-brand-logo-img {
+  height: 46px;
+  width: auto;
+  object-fit: contain;
+  display: block;
+}
+
+.sn-brand-text {
+  display: flex;
+  flex-direction: column;
 }
 
 .sn-brand-title {
@@ -259,7 +272,7 @@ img {
 .sn-nav-dropdown-wrap.sn-popover-open .sn-nav-dropdown-trigger {
   background-color: var(--sn-bg-forest);
   border-color: var(--sn-bg-forest);
-  color: #FAF6EE;
+  color: #FDF6DA;
 }
 
 .sn-nav-dropdown-chevron {
@@ -438,7 +451,7 @@ img {
 
 .sn-btn-forest {
   background-color: var(--sn-bg-forest);
-  color: #FAF6EE;
+  color: #FDF6DA;
 }
 
 .sn-btn-forest:hover {
@@ -556,7 +569,7 @@ img {
 
 .sn-hero-caption {
   background-color: var(--sn-bg-forest);
-  color: #FAF6EE;
+  color: #FDF6DA;
   padding: 14px 20px;
   display: flex;
   align-items: center;
@@ -724,7 +737,7 @@ img {
 
 .sn-badge-bestseller {
   background-color: var(--sn-bg-forest);
-  color: #FAF6EE;
+  color: #FDF6DA;
 }
 
 .sn-badge-new {
@@ -815,7 +828,7 @@ img {
 
 .sn-pack-pill.sn-active {
   background-color: var(--sn-bg-forest);
-  color: #FAF6EE;
+  color: #FDF6DA;
   border-color: var(--sn-bg-forest);
 }
 
@@ -1125,7 +1138,7 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
 
 .sn-admin-sidebar {
   background-color: var(--sn-bg-forest);
-  color: #FAF6EE;
+  color: #FDF6DA;
   border-radius: var(--sn-radius-md);
   padding: 20px;
   position: sticky;
@@ -1146,7 +1159,7 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
   text-align: left;
   background: transparent;
   border: none;
-  color: #D8D0C0;
+  color: #EAE4CC;
   padding: 10px 12px;
   min-height: 38px;
   border-radius: var(--sn-radius-sm);
@@ -1182,7 +1195,7 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
   min-height: 30px;
   font-size: 0.77rem;
   font-weight: 500;
-  color: #C7D3CA;
+  color: #C5CCE0;
   border-radius: 4px;
 }
 
@@ -1231,8 +1244,8 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
 .sn-admin-subtab-pill.sn-active {
   background-color: var(--sn-bg-forest);
   border-color: var(--sn-bg-forest);
-  color: #FAF6EE;
-  box-shadow: 0 2px 6px rgba(20, 48, 34, 0.18);
+  color: #FDF6DA;
+  box-shadow: 0 2px 6px rgba(33, 44, 100, 0.20);
 }
 
 @media (max-width: 960px) {
@@ -1336,7 +1349,7 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
 .sn-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 35, 26, 0.55);
+  background-color: rgba(22, 30, 71, 0.58);
   z-index: 150;
   display: none;
   justify-content: flex-end;
@@ -1359,7 +1372,7 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
 .sn-drawer-head {
   padding: 20px 24px;
   background-color: var(--sn-bg-forest);
-  color: #FAF6EE;
+  color: #FDF6DA;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1385,7 +1398,7 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
   max-width: 460px;
   z-index: 220;
   background-color: var(--sn-bg-forest-deep);
-  color: #FAF6EE;
+  color: #FDF6DA;
   padding: 12px 18px;
   border-radius: var(--sn-radius-sm);
   box-shadow: var(--sn-shadow-elevated);
@@ -1660,7 +1673,7 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
 .sn-footer {
   margin-top: auto;
   background-color: var(--sn-bg-forest-deep);
-  color: #D8D0C0;
+  color: #EAE4CC;
   padding: 56px 0 32px;
   font-size: 0.875rem;
 }
@@ -1674,7 +1687,7 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
 
 .sn-footer h4 {
   font-family: var(--sn-font-serif);
-  color: #FAF6EE;
+  color: #FDF6DA;
   font-size: 1.1rem;
   margin: 0 0 14px;
 }
@@ -1701,7 +1714,7 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
   gap: 12px;
   font-family: var(--sn-font-mono);
   font-size: 0.75rem;
-  color: #9BA69D;
+  color: #A7B0CC;
 }
 
 /* Tablet & Mobile Responsive Architecture (<= 960px) */
@@ -1734,6 +1747,10 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
     min-height: auto;
     padding: 8px 16px;
     gap: 8px 12px;
+  }
+
+  .sn-brand-logo-img {
+    height: 38px;
   }
 
   .sn-brand-title {
@@ -2211,6 +2228,10 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
     padding: 8px 16px;
   }
 
+  .sn-brand-logo-img {
+    height: 32px;
+  }
+
   .sn-brand-title {
     font-size: 1.05rem;
   }
@@ -2366,7 +2387,7 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
   position: fixed;
   inset: 0;
   z-index: 210;
-  background-color: rgba(20, 35, 25, 0.62);
+  background-color: rgba(22, 30, 71, 0.62);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -2391,7 +2412,7 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
 .sn-admin-modal-header {
   padding: 14px 20px;
   background-color: var(--sn-bg-forest);
-  color: #FAF6EE;
+  color: #FDF6DA;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2447,7 +2468,7 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
 }
 
 .sn-pack-pill.sn-active .sn-pack-pill-save {
-  color: #E7B971;
+  color: var(--sn-accent-turmeric);
 }
 
 .sn-pdp-spec-card {

@@ -14,8 +14,11 @@
   <meta property="og:url" content="https://sasynaturals.com/admin" />
   <meta property="og:site_name" content="Sasya Naturals" />
   <meta property="og:image" content="https://sasynaturals.com/images/hero-pantry.jpg" />
+  <link rel="icon" type="image/webp" href="/sasya_naturals/images/favicon.webp?v=2.7.0" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/sasya_naturals/images/favicon-32.png?v=2.7.0" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/sasya_naturals/images/apple-touch-icon.png?v=2.7.0" />
   <link rel="stylesheet" href="/sasya_naturals/assets/sasya-core.css?v=2.7.0" />
-  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://sasynaturals.com/#organization","name":"Sasya Naturals","url":"https://sasynaturals.com/","logo":{"@type":"ImageObject","url":"https://sasynaturals.com/images/hero-pantry.jpg"},"contactPoint":{"@type":"ContactPoint","telephone":"+91-80-4568-2200","contactType":"customer service","areaServed":"IN","availableLanguage":["en","hi","kn"]}},{"@type":"WebSite","@id":"https://sasynaturals.com/#website","url":"https://sasynaturals.com/","name":"Sasya Naturals","publisher":{"@id":"https://sasynaturals.com/#organization"},"potentialAction":{"@type":"SearchAction","target":"https://sasynaturals.com/shop?q={search_term_string}","query-input":"required name=search_term_string"}},{"@type":"BreadcrumbList","@id":"https://sasynaturals.com/admin#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://sasynaturals.com/"},{"@type":"ListItem","position":2,"name":"Admin Portal","item":"https://sasynaturals.com/admin"}]},{"@type":"WebPage","@id":"https://sasynaturals.com/admin#webpage","url":"https://sasynaturals.com/admin","name":"Staff RBAC Administration Portal | Sasya Naturals","description":"Role-based administration portal for Sasya Naturals Super Admin, Product Manager, Order Manager, Accounts Manager, and Staff.","isPartOf":{"@id":"https://sasynaturals.com/#website"},"breadcrumb":{"@id":"https://sasynaturals.com/admin#breadcrumb"}}]}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://sasynaturals.com/#organization","name":"Sasya Naturals","url":"https://sasynaturals.com/","logo":{"@type":"ImageObject","url":"https://sasynaturals.com/images/logo-horizontal.webp"},"contactPoint":{"@type":"ContactPoint","telephone":"+91-80-4568-2200","contactType":"customer service","areaServed":"IN","availableLanguage":["en","hi","kn"]}},{"@type":"WebSite","@id":"https://sasynaturals.com/#website","url":"https://sasynaturals.com/","name":"Sasya Naturals","publisher":{"@id":"https://sasynaturals.com/#organization"},"potentialAction":{"@type":"SearchAction","target":"https://sasynaturals.com/shop?q={search_term_string}","query-input":"required name=search_term_string"}},{"@type":"BreadcrumbList","@id":"https://sasynaturals.com/admin#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://sasynaturals.com/"},{"@type":"ListItem","position":2,"name":"Admin Portal","item":"https://sasynaturals.com/admin"}]},{"@type":"WebPage","@id":"https://sasynaturals.com/admin#webpage","url":"https://sasynaturals.com/admin","name":"Staff RBAC Administration Portal | Sasya Naturals","description":"Role-based administration portal for Sasya Naturals Super Admin, Product Manager, Order Manager, Accounts Manager, and Staff.","isPartOf":{"@id":"https://sasynaturals.com/#website"},"breadcrumb":{"@id":"https://sasynaturals.com/admin#breadcrumb"}}]}</script>
 </head>
 <body>
   <div class="sn-topbar">
@@ -31,9 +34,8 @@
 
   <header class="sn-header">
     <div class="sn-container sn-header-inner">
-      <a href="/sasya_naturals/" class="sn-brand" id="nav-brand-logo">
-        <span class="sn-brand-title">Sasya Naturals</span>
-        <span class="sn-brand-sub">Pure Indian Pantry</span>
+      <a href="/sasya_naturals/" class="sn-brand" id="nav-brand-logo" aria-label="Sasya Naturals — Rooted in Trust">
+        <img src="/sasya_naturals/images/logo-horizontal.webp" alt="Sasya Naturals — Rooted in Trust" class="sn-brand-logo-img" width="160" height="46" />
       </a>
       <nav class="sn-nav " id="sn-main-nav" aria-label="Main Navigation" data-nav-cat-count="3">
         <form action="/sasya_naturals/shop" method="GET" class="sn-mobile-nav-search">
@@ -150,10 +152,10 @@
     <section class="sn-section" id="sn-admin-portal">
       <div class="sn-container">
         <!-- Separate Staff Authentication & RBAC Session Bar (Section 5 & Section 10) -->
-        <div class="sn-filter-bar sn-admin-session-bar" style="background-color:var(--sn-bg-forest);color:#FAF6EE;border-color:var(--sn-bg-forest);margin-bottom:12px;">
+        <div class="sn-filter-bar sn-admin-session-bar" style="background-color:var(--sn-bg-forest);color:#FDF6DA;border-color:var(--sn-bg-forest);margin-bottom:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:10px;flex-wrap:wrap;">
             <div>
-              <span class="sn-eyebrow" style="color:#E7B971;margin-bottom:2px;">Separate Authenticated Staff Portal • Server-Side RBAC &amp; Write-Only API Vault</span>
+              <span class="sn-eyebrow" style="color:#FBD977;margin-bottom:2px;">Separate Authenticated Staff Portal • Server-Side RBAC &amp; Write-Only API Vault</span>
               <h1 style="font-family:var(--sn-font-serif);font-size:1.45rem;margin:0;color:#FFFFFF;">Sasya Naturals Operations &amp; Role Management</h1>
             </div>
             <button
@@ -226,7 +228,7 @@
 
         <div class="sn-admin-grid">
           <aside class="sn-admin-sidebar">
-            <div class="sn-admin-sidebar-label" style="font-family:var(--sn-font-mono);font-size:0.73rem;text-transform:uppercase;color:#B8C4BB;">Admin Modules (Section 5.1)</div>
+            <div class="sn-admin-sidebar-label" style="font-family:var(--sn-font-mono);font-size:0.73rem;text-transform:uppercase;color:#C5CCE0;">Admin Modules (Section 5.1)</div>
             <ul class="sn-admin-menu">
               <li><button type="button" class="sn-active" data-admin-tab-btn="orders" id="tab-btn-orders">1. Orders &amp; Manual Shipping</button></li>
               <li><button type="button" data-admin-tab-btn="vault" id="tab-btn-vault">2. API &amp; Razorpay Key Vault</button></li>
@@ -264,7 +266,7 @@
                 <button type="button" data-admin-tab-btn="rbac" id="tab-btn-rbac">7. Staff RBAC &amp; Audit Logs ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="rbac">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="rbac:staff">7.1 Staff Accounts &amp; RBAC (5)</button></li>
-                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="rbac:audit-logs">7.2 Immutable Audit Logs (30)</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="rbac:audit-logs">7.2 Immutable Audit Logs (21)</button></li>
                 </ul>
               </li>
               <li>
@@ -272,7 +274,7 @@
                 <ul class="sn-admin-submenu" data-admin-submenu-for="compliance">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="compliance:shipping">8.1 Delivery Pricing (4-Zone)</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="compliance:legal-templates">8.2 GSTIN, FSSAI &amp; Templates</button></li>
-                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="compliance:notif-logs">8.3 Notification Logs (7)</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="compliance:notif-logs">8.3 Notification Logs (5)</button></li>
                 </ul>
               </li>
               <li>
@@ -913,10 +915,10 @@
                 <div class="sn-admin-modal-card" style="max-width:860px;">
                   <div class="sn-admin-modal-header">
                     <div>
-                      <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">RBAC: SUPER_ADMIN &amp; ORDER_MANAGER • RUST WASM GST + 4-ZONE SHIPPING ENGINE</span>
-                      <h3 id="sn-create-order-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.25rem;color:#FAF6EE;">Create Manual Order &amp; Auto-Generate GST Tax Invoice</h3>
+                      <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#FBD977;letter-spacing:0.05em;">RBAC: SUPER_ADMIN &amp; ORDER_MANAGER • RUST WASM GST + 4-ZONE SHIPPING ENGINE</span>
+                      <h3 id="sn-create-order-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.25rem;color:#FDF6DA;">Create Manual Order &amp; Auto-Generate GST Tax Invoice</h3>
                     </div>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-create-order-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-create-order-modal style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border-color:rgba(255,255,255,0.35);">✕ Close</button>
                   </div>
 
                   <div class="sn-admin-modal-body">
@@ -2916,14 +2918,14 @@
                             data-prod-fssai="100% Natural Tree Nut. Store in an airtight jar away from moisture."
                             data-prod-variants-json="[{&quot;id&quot;:1,&quot;sku&quot;:&quot;SN-DF-ALM-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:360,&quot;sellInr&quot;:320,&quot;stockQty&quot;:45},{&quot;id&quot;:2,&quot;sku&quot;:&quot;SN-DF-ALM-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:845,&quot;sellInr&quot;:750,&quot;stockQty&quot;:60},{&quot;id&quot;:3,&quot;sku&quot;:&quot;SN-DF-ALM-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:1600,&quot;sellInr&quot;:1425,&quot;stockQty&quot;:35},{&quot;id&quot;:4,&quot;sku&quot;:&quot;SN-DF-ALM-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:3060,&quot;sellInr&quot;:2720,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:609,&quot;protein_g&quot;:20.8,&quot;carbs_g&quot;:10.5,&quot;dietary_fiber_g&quot;:12.5,&quot;total_sugars_g&quot;:4.2,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:58.9,&quot;saturated_fat_g&quot;:4.5,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:2,&quot;bioactive_label&quot;:&quot;Natural Vitamin E &amp; Almond Oil&quot;,&quot;bioactive_value&quot;:&quot;26 mg Vitamin E / 58.9% Oil&quot;}"
-                            data-prod-img="/sasya_naturals/images/prod-almonds.jpg"
+                            data-prod-img="/sasya_naturals/images/cat-dry-fruits.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="1"
                             data-prod-featured="1"
                             data-prod-new="0"
                           >
                             <td data-label="Photo">
-                              <img src="/sasya_naturals/images/prod-almonds.jpg" alt="Kashmiri Mamra Giri Almonds" data-product-img-id="1" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                              <img src="/sasya_naturals/images/cat-dry-fruits.jpg" alt="Kashmiri Mamra Giri Almonds" data-product-img-id="1" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
                             </td>
                             <td data-label="SKU, HSN &amp; Flags" style="font-family:var(--sn-font-mono);font-size:0.75rem;">
                               <div>
@@ -5063,11 +5065,11 @@
                     <div style="display:flex;align-items:center;gap:12px;">
                       <img id="sn-edit-modal-thumb" src="/sasya_naturals/images/cat-dry-fruits.jpg" alt="Product Preview" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
                       <div>
-                        <span id="sn-edit-modal-sku" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">SN-DF-ALM</span>
-                        <h3 id="sn-edit-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF6EE;">Edit Product Details, Per-Weight Discounts &amp; FSSAI Nutrition</h3>
+                        <span id="sn-edit-modal-sku" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#FBD977;letter-spacing:0.05em;">SN-DF-ALM</span>
+                        <h3 id="sn-edit-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FDF6DA;">Edit Product Details, Per-Weight Discounts &amp; FSSAI Nutrition</h3>
                       </div>
                     </div>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-prod-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-prod-modal style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border-color:rgba(255,255,255,0.35);">✕ Close</button>
                   </div>
 
                   <div class="sn-admin-modal-body">
@@ -5408,11 +5410,11 @@
                     <div style="display:flex;align-items:center;gap:12px;">
                       <img id="sn-edit-cat-modal-thumb" src="/sasya_naturals/images/cat-dry-fruits.jpg" alt="Category Banner Preview" style="width:60px;height:42px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
                       <div>
-                        <span id="sn-edit-cat-modal-slug" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">/category/dry-fruits</span>
-                        <h3 id="sn-edit-cat-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF6EE;">Edit Category Details &amp; Banner Photo</h3>
+                        <span id="sn-edit-cat-modal-slug" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#FBD977;letter-spacing:0.05em;">/category/dry-fruits</span>
+                        <h3 id="sn-edit-cat-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FDF6DA;">Edit Category Details &amp; Banner Photo</h3>
                       </div>
                     </div>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-cat-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-cat-modal style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border-color:rgba(255,255,255,0.35);">✕ Close</button>
                   </div>
 
                   <div class="sn-admin-modal-body">
@@ -9897,10 +9899,10 @@
                 <div class="sn-admin-modal-card" style="max-width:780px;">
                   <div class="sn-admin-modal-header">
                     <div>
-                      <span id="sn-user-purchases-modal-eyebrow" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#E6D7B9;letter-spacing:0.05em;">USER PURCHASE LEDGER</span>
-                      <h3 id="sn-user-purchases-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.2rem;color:#FAF6EE;">Customer Purchase History &amp; GST Invoices</h3>
+                      <span id="sn-user-purchases-modal-eyebrow" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#FBD977;letter-spacing:0.05em;">USER PURCHASE LEDGER</span>
+                      <h3 id="sn-user-purchases-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.2rem;color:#FDF6DA;">Customer Purchase History &amp; GST Invoices</h3>
                     </div>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-user-purchases-modal style="background-color:rgba(255,255,255,0.14);color:#FAF6EE;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-user-purchases-modal style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border-color:rgba(255,255,255,0.35);">✕ Close</button>
                   </div>
                   <div class="sn-admin-modal-body" id="sn-user-purchases-modal-body">
                   </div>
@@ -9918,7 +9920,7 @@
               <!-- In-Panel Segmented Sub-Module Bar (Synced with Desktop Sidebar Accordion) -->
               <div class="sn-admin-subnav-bar" role="tablist">
                 <button type="button" class="sn-admin-subtab-pill sn-active" data-admin-subtab-btn="rbac:staff">👥 7.1 Staff Accounts &amp; RBAC Roles (5)</button>
-                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="rbac:audit-logs">🛡️ 7.2 Immutable Admin Audit Logs (30)</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="rbac:audit-logs">🛡️ 7.2 Immutable Admin Audit Logs (21)</button>
               </div>
 
               <!-- Sub-Panel 7.1 (Default): Staff Accounts & RBAC Role Manager -->
@@ -10160,7 +10162,7 @@
                   <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;">Immutable Admin Audit Logs (Section 10)</h3>
                   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                     <input type="search" id="sn-admin-audit-search" placeholder="Search actor email, role, action, or entity..." class="sn-input" style="max-width:260px;padding:6px 10px;font-size:0.78rem;" />
-                    <span id="sn-admin-audit-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">Showing 30 of 30</span>
+                    <span id="sn-admin-audit-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">Showing 21 of 21</span>
                   </div>
                 </div>
                 <div class="sn-table-wrap">
@@ -10171,7 +10173,7 @@
                     <tbody>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:34:33</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:51:41</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
@@ -10180,7 +10182,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:34:32</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:51:41</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
@@ -10189,7 +10191,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:34:32</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:51:41</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_RESET_VIA_OTP</td>
@@ -10198,7 +10200,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:34:31</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:51:40</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">ADMIN_SESSION_LOGIN</td>
@@ -10207,7 +10209,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:34:31</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:51:40</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">VAULT_CREDENTIAL_SEALED</td>
@@ -10216,7 +10218,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:34:31</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:51:40</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">RBAC_VERIFICATION_GATE_TEST</td>
@@ -10225,7 +10227,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:34:31</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:51:40</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
@@ -10234,7 +10236,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:34:31</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:51:40</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
@@ -10243,7 +10245,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:34:31</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:51:40</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">CATEGORY_IMAGE_CHANGED</td>
@@ -10252,7 +10254,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:34:31</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:51:40</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">PRODUCT_GALLERY_IMAGE_ADDED</td>
@@ -10261,7 +10263,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:33:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:43:45</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
@@ -10270,7 +10272,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:33:14</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:43:44</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
@@ -10279,7 +10281,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:33:14</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:43:44</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_RESET_VIA_OTP</td>
@@ -10288,7 +10290,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:33:13</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:43:44</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">ADMIN_SESSION_LOGIN</td>
@@ -10297,7 +10299,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:33:13</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:43:43</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">VAULT_CREDENTIAL_SEALED</td>
@@ -10306,7 +10308,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:33:13</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:43:43</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">RBAC_VERIFICATION_GATE_TEST</td>
@@ -10315,7 +10317,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:33:13</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:43:43</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
@@ -10324,7 +10326,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:33:13</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:43:43</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
@@ -10333,7 +10335,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:33:13</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:43:43</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">CATEGORY_IMAGE_CHANGED</td>
@@ -10342,7 +10344,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:33:13</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:43:43</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">PRODUCT_GALLERY_IMAGE_ADDED</td>
@@ -10351,93 +10353,12 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:31:55</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
-                          <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">USER:ananya.iyer@example.com</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;role&quot;:&quot;CUSTOMER&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:31:54</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
-                          <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">USER:ananya.iyer@example.com</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;role&quot;:&quot;CUSTOMER&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:31:54</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
-                          <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_RESET_VIA_OTP</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">USER:ananya.iyer@example.com</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;role&quot;:&quot;CUSTOMER&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:31:54</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 11:43:42</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">ADMIN_SESSION_LOGIN</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">AUTH:superadmin@sasynaturals.com</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;ip&quot;:&quot;10.0.0.99&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:31:54</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">VAULT_CREDENTIAL_SEALED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">CREDENTIAL_VAULT:SMTP_API_KEY</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;maskedHint&quot;:&quot;re_l••••••••4321 (Hidden)&quot;,&quot;status&quot;:&quot;ENCRYPTED_AND_HIDDEN&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:31:54</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">RBAC_VERIFICATION_GATE_TEST</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">SYSTEM:GATE_4</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;verifiedRoles&quot;:5}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:31:54</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">STORE_SETTINGS:SHIPPING_ENGINE</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;shipping_free_mode&quot;:&quot;THRESHOLD_WITH_WEIGHT_CAP&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:31:53</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">STORE_SETTINGS:SHIPPING_ENGINE</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;shipping_free_mode&quot;:&quot;DISABLED&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:31:53</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">CATEGORY_IMAGE_CHANGED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">CATEGORY:dry-fruits</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;publicUrl&quot;:&quot;/uploads/cat-dry-fruits-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;}</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 07:31:53</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
-                          <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">PRODUCT_GALLERY_IMAGE_ADDED</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">PRODUCT:SN-DF-ALM</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;publicUrl&quot;:&quot;/uploads/kashmiri-mamra-almonds-431ced6916a2.png&quot;,&quot;bytes&quot;:68,&quot;mime&quot;:&quot;image/png&quot;,&quot;setAsPrimary&quot;:false}</td>
+                          <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SYSTEM_SEED_INITIALIZED</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;max-width:160px;overflow-wrap:anywhere;">CATALOG:ALL</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.73rem;max-width:310px;overflow-wrap:anywhere;word-break:break-word;">{&quot;categories&quot;:3,&quot;products&quot;:16,&quot;variants&quot;:64}</td>
                         </tr>
                       
                     </tbody>
@@ -10458,7 +10379,7 @@
               <div class="sn-admin-subnav-bar" role="tablist">
                 <button type="button" class="sn-admin-subtab-pill sn-active" data-admin-subtab-btn="compliance:shipping">🚚 8.1 Delivery Pricing Engine (4-Zone)</button>
                 <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="compliance:legal-templates">🏛️ 8.2 GSTIN, FSSAI &amp; Email/SMS Templates</button>
-                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="compliance:notif-logs">📨 8.3 Notification Dispatch Logs (7)</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="compliance:notif-logs">📨 8.3 Notification Dispatch Logs (5)</button>
               </div>
 
               
@@ -10593,7 +10514,7 @@
                   <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">Recent Customer Notification Dispatch Logs (Section 8)</h3>
                   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                     <input type="search" id="sn-admin-notif-search" placeholder="Search order no., recipient, event, or subject..." class="sn-input" style="max-width:260px;padding:6px 10px;font-size:0.78rem;" />
-                    <span id="sn-admin-notif-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">Showing 7 of 7</span>
+                    <span id="sn-admin-notif-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">Showing 5 of 5</span>
                   </div>
                 </div>
                 <div class="sn-table-wrap">
@@ -10604,61 +10525,43 @@
                     <tbody>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 07:34:32</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 11:51:41</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">AUTH_OTP</td>
                           <td><span class="sn-status sn-status-paid">EMAIL</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">PASSWORD_RESET_OTP</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 740479 (valid for 10 minutes).</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 687888 (valid for 10 minutes).</td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 07:34:31</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 11:51:40</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">COD_OTP</td>
                           <td><span class="sn-status sn-status-paid">SMS_WHATSAPP</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">9845077889</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">COD_OTP_DISPATCHED</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 504352. Valid for 10 minutes.</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 418936. Valid for 10 minutes.</td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 07:33:14</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 11:43:44</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">AUTH_OTP</td>
                           <td><span class="sn-status sn-status-paid">EMAIL</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">PASSWORD_RESET_OTP</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 329113 (valid for 10 minutes).</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 227463 (valid for 10 minutes).</td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 07:33:13</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 11:43:43</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">COD_OTP</td>
                           <td><span class="sn-status sn-status-paid">SMS_WHATSAPP</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">9845077889</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">COD_OTP_DISPATCHED</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 333729. Valid for 10 minutes.</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 897237. Valid for 10 minutes.</td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 07:31:54</td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;">AUTH_OTP</td>
-                          <td><span class="sn-status sn-status-paid">EMAIL</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">PASSWORD_RESET_OTP</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 438221 (valid for 10 minutes).</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 07:31:53</td>
-                          <td style="font-family:var(--sn-font-mono);font-weight:600;">COD_OTP</td>
-                          <td><span class="sn-status sn-status-paid">SMS_WHATSAPP</span></td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">9845077889</td>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">COD_OTP_DISPATCHED</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 866359. Valid for 10 minutes.</td>
-                        </tr>
-                      
-                        <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 07:16:27</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 11:43:42</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">SN-2026-1001</td>
                           <td><span class="sn-status sn-status-paid">EMAIL</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
@@ -11004,10 +10907,10 @@ Every product is offered in 100 g, 250 g, 500 g, and 1 kg nitrogen-flushed packs
       <div class="sn-footer-grid">
         <div>
           <h4>Sasya Naturals</h4>
-          <p style="color:#B9C2BA;margin:0 0 14px;">
+          <p style="color:#DCE1F0;margin:0 0 14px;">
             Direct-to-customer Indian pantry delivering unbleached dry fruits, rain-fed unpolished millets, and cold-milled heirloom spices in 100 g, 250 g, 500 g, and 1 kg packs.
           </p>
-          <div style="font-family:var(--sn-font-mono);font-size:0.76rem;color:#9BA69D;">
+          <div style="font-family:var(--sn-font-mono);font-size:0.76rem;color:#A7B0CC;">
             Domain: sasynaturals.com | Support: care@sasynaturals.com
           </div>
         </div>
