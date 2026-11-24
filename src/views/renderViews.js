@@ -328,10 +328,10 @@ function renderShell({
       <div class="sn-footer-grid">
         <div>
           <h4>Sasya Naturals</h4>
-          <p style="color:#DCE1F0;margin:0 0 14px;">
+          <p style="color:#EAEFF8;margin:0 0 14px;">
             ${escapeHtml(hp.footerBlurb)}
           </p>
-          <div style="font-family:var(--sn-font-mono);font-size:0.76rem;color:#A7B0CC;">
+          <div style="font-family:var(--sn-font-mono);font-size:0.76rem;color:#C8D0E8;">
             ${escapeHtml(hp.footerSupportLine)}
           </div>
         </div>
@@ -2126,10 +2126,10 @@ function renderAdminPortalPage({
       <div class="sn-container">
         <input type="hidden" id="sn-admin-active-email" value="${escapeHtml(activeAdminEmail)}" />
         <!-- Staff Authentication & RBAC Session Bar -->
-        <div class="sn-filter-bar sn-admin-session-bar" style="background-color:var(--sn-bg-forest);color:#FDF6DA;border-color:var(--sn-bg-forest);margin-bottom:12px;">
+        <div class="sn-filter-bar sn-admin-session-bar" style="background-color:var(--sn-bg-forest);color:#FAF5E4;border-color:var(--sn-bg-forest);margin-bottom:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:10px;flex-wrap:wrap;">
             <div>
-              <span class="sn-eyebrow" style="color:#FBD977;margin-bottom:2px;">${isShowcase ? 'Interactive RBAC Showcase • 5 Staff Roles &amp; Write-Only API Vault' : 'Authenticated Staff Operations Portal'}</span>
+              <span class="sn-eyebrow" style="color:var(--sn-accent-turmeric);margin-bottom:2px;">${isShowcase ? 'Interactive RBAC Showcase • 5 Staff Roles &amp; Write-Only API Vault' : 'Authenticated Staff Operations Portal'}</span>
               <h1 style="font-family:var(--sn-font-serif);font-size:1.45rem;margin:0;color:#FFFFFF;">Sasya Naturals Operations &amp; Administration</h1>
             </div>
             ${isShowcase ? `
@@ -2138,14 +2138,13 @@ function renderAdminPortalPage({
                 class="sn-btn sn-btn-outline sn-btn-sm sn-admin-auth-toggle"
                 id="sn-admin-auth-toggle-btn"
                 data-toggle-admin-login
-                style="background-color:rgba(255,255,255,0.14);color:#FFFFFF;border-color:rgba(255,255,255,0.45);"
               >🔑 Staff Login / Sign Out</button>
             ` : `
               <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-                <span class="sn-status sn-status-paid" style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border:1px solid rgba(255,255,255,0.28);">
+                <span class="sn-status sn-status-paid" style="background-color:rgba(255,255,255,0.14);color:#FAF5E4;border:1px solid rgba(255,255,255,0.28);">
                   Signed In: ${escapeHtml(activeAdminName)} (${escapeHtml(activeAdminRole)})
                 </span>
-                <button type="button" id="sn-admin-logout-btn" class="sn-btn sn-btn-outline sn-btn-sm" style="background-color:rgba(255,255,255,0.14);color:#FFFFFF;border-color:rgba(255,255,255,0.45);">Sign Out</button>
+                <button type="button" id="sn-admin-logout-btn" class="sn-btn sn-btn-outline sn-btn-sm">Sign Out</button>
               </div>
             `}
           </div>
@@ -2155,7 +2154,7 @@ function renderAdminPortalPage({
                 <input type="email" name="email" id="sn-admin-auth-email" value="${escapeHtml(activeAdminEmail)}" placeholder="Staff Email" class="sn-input sn-admin-email-input" style="padding:6px 10px;font-size:0.78rem;" />
                 <input type="password" name="password" value="Sasya@2026" placeholder="Password" class="sn-input sn-admin-pass-input" style="padding:6px 10px;font-size:0.78rem;" />
                 <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Staff Sign In</button>
-                <button type="button" id="sn-admin-logout-btn" class="sn-btn sn-btn-outline sn-btn-sm" style="background-color:rgba(255,255,255,0.14);color:#FFFFFF;border-color:rgba(255,255,255,0.45);">Sign Out</button>
+                <button type="button" id="sn-admin-logout-btn" class="sn-btn sn-btn-outline sn-btn-sm">Sign Out</button>
               </form>
               <div class="sn-admin-role-wrap" style="display:flex;align-items:center;gap:6px;flex:1;min-width:240px;">
                 <label for="sn-admin-role-switcher" style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">Active Role:</label>
@@ -2205,7 +2204,7 @@ function renderAdminPortalPage({
 
         <div class="sn-admin-grid">
           <aside class="sn-admin-sidebar">
-            <div class="sn-admin-sidebar-label" style="font-family:var(--sn-font-mono);font-size:0.73rem;text-transform:uppercase;color:#C5CCE0;">${isShowcase ? 'Admin Modules (Section 5.1)' : `Assigned Modules (${escapeHtml(activeAdminRole)})`}</div>
+            <div class="sn-admin-sidebar-label" style="font-family:var(--sn-font-mono);font-size:0.73rem;text-transform:uppercase;color:#DCE2F2;">${isShowcase ? 'Admin Modules (Section 5.1)' : `Assigned Modules (${escapeHtml(activeAdminRole)})`}</div>
             <ul class="sn-admin-menu">
               <li style="${modDisplayStyle('orders')}"><button type="button" class="sn-active" data-admin-tab-btn="orders" id="tab-btn-orders">1. Orders &amp; Manual Shipping</button></li>
               <li style="${modDisplayStyle('vault')}"><button type="button" data-admin-tab-btn="vault" id="tab-btn-vault">2. API &amp; Razorpay Key Vault</button></li>
@@ -2494,10 +2493,10 @@ function renderAdminPortalPage({
                 <div class="sn-admin-modal-card" style="max-width:860px;">
                   <div class="sn-admin-modal-header">
                     <div>
-                      <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#FBD977;letter-spacing:0.05em;">RBAC: SUPER_ADMIN &amp; ORDER_MANAGER • RUST WASM GST + 4-ZONE SHIPPING ENGINE</span>
-                      <h3 id="sn-create-order-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.25rem;color:#FDF6DA;">Create Manual Order &amp; Auto-Generate GST Tax Invoice</h3>
+                      <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-accent-turmeric);letter-spacing:0.05em;">RBAC: SUPER_ADMIN &amp; ORDER_MANAGER • RUST WASM GST + 4-ZONE SHIPPING ENGINE</span>
+                      <h3 id="sn-create-order-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.25rem;color:#FAF5E4;">Create Manual Order &amp; Auto-Generate GST Tax Invoice</h3>
                     </div>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-create-order-modal style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-create-order-modal>✕ Close</button>
                   </div>
 
                   <div class="sn-admin-modal-body">
@@ -3046,11 +3045,11 @@ function renderAdminPortalPage({
                     <div style="display:flex;align-items:center;gap:12px;">
                       <img id="sn-edit-modal-thumb" src="${basePath}/images/cat-dry-fruits.jpg" alt="Product Preview" style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
                       <div>
-                        <span id="sn-edit-modal-sku" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#FBD977;letter-spacing:0.05em;">SN-DF-ALM</span>
-                        <h3 id="sn-edit-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FDF6DA;">Edit Product Details, Per-Weight Discounts &amp; FSSAI Nutrition</h3>
+                        <span id="sn-edit-modal-sku" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-accent-turmeric);letter-spacing:0.05em;">SN-DF-ALM</span>
+                        <h3 id="sn-edit-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF5E4;">Edit Product Details, Per-Weight Discounts &amp; FSSAI Nutrition</h3>
                       </div>
                     </div>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-prod-modal style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-prod-modal>✕ Close</button>
                   </div>
 
                   <div class="sn-admin-modal-body">
@@ -3330,11 +3329,11 @@ function renderAdminPortalPage({
                     <div style="display:flex;align-items:center;gap:12px;">
                       <img id="sn-edit-cat-modal-thumb" src="${basePath}/images/cat-dry-fruits.jpg" alt="Category Banner Preview" style="width:60px;height:42px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.25);" />
                       <div>
-                        <span id="sn-edit-cat-modal-slug" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#FBD977;letter-spacing:0.05em;">/category/dry-fruits</span>
-                        <h3 id="sn-edit-cat-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FDF6DA;">Edit Category Details &amp; Banner Photo</h3>
+                        <span id="sn-edit-cat-modal-slug" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-accent-turmeric);letter-spacing:0.05em;">/category/dry-fruits</span>
+                        <h3 id="sn-edit-cat-modal-heading" style="font-family:var(--sn-font-serif);margin:0;font-size:1.15rem;color:#FAF5E4;">Edit Category Details &amp; Banner Photo</h3>
                       </div>
                     </div>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-cat-modal style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-cat-modal>✕ Close</button>
                   </div>
 
                   <div class="sn-admin-modal-body">
@@ -4011,10 +4010,10 @@ function renderAdminPortalPage({
                 <div class="sn-admin-modal-card" style="max-width:780px;">
                   <div class="sn-admin-modal-header">
                     <div>
-                      <span id="sn-user-purchases-modal-eyebrow" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:#FBD977;letter-spacing:0.05em;">USER PURCHASE LEDGER</span>
-                      <h3 id="sn-user-purchases-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.2rem;color:#FDF6DA;">Customer Purchase History &amp; GST Invoices</h3>
+                      <span id="sn-user-purchases-modal-eyebrow" style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-accent-turmeric);letter-spacing:0.05em;">USER PURCHASE LEDGER</span>
+                      <h3 id="sn-user-purchases-modal-heading" style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.2rem;color:#FAF5E4;">Customer Purchase History &amp; GST Invoices</h3>
                     </div>
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-user-purchases-modal style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border-color:rgba(255,255,255,0.35);">✕ Close</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-close-user-purchases-modal>✕ Close</button>
                   </div>
                   <div class="sn-admin-modal-body" id="sn-user-purchases-modal-body">
                   </div>
