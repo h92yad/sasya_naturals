@@ -350,6 +350,7 @@ img {
 
 .sn-nav-dropdown-trigger:hover,
 .sn-nav-dropdown-trigger.sn-active,
+.sn-nav-dropdown-wrap:hover .sn-nav-dropdown-trigger,
 .sn-nav-dropdown-wrap.sn-popover-open .sn-nav-dropdown-trigger {
   background-color: var(--sn-bg-forest);
   border-color: var(--sn-bg-forest);
@@ -363,6 +364,19 @@ img {
 
 .sn-nav-dropdown-wrap.sn-popover-open .sn-nav-dropdown-chevron {
   transform: rotate(180deg);
+}
+
+/* Invisible hover bridge spanning the 10px gap (and diagonal path to the 520px-wide popover) */
+.sn-nav-dropdown-wrap::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: -190px;
+  right: -190px;
+  height: 14px;
+  background: transparent;
+  z-index: 129;
+  display: none;
 }
 
 .sn-nav-categories-popover {
@@ -383,14 +397,22 @@ img {
   display: none;
 }
 
-.sn-nav-dropdown-wrap.sn-popover-open .sn-nav-categories-popover {
+.sn-nav-dropdown-wrap.sn-popover-open .sn-nav-categories-popover,
+.sn-nav-dropdown-wrap.sn-popover-open::after {
   display: block;
 }
 
 @media (min-width: 961px) {
   .sn-nav-dropdown-wrap:hover .sn-nav-categories-popover,
-  .sn-nav-dropdown-wrap:focus-within .sn-nav-categories-popover {
+  .sn-nav-dropdown-wrap:focus-within .sn-nav-categories-popover,
+  .sn-nav-dropdown-wrap:hover::after,
+  .sn-nav-dropdown-wrap:focus-within::after {
     display: block;
+  }
+
+  .sn-nav-dropdown-wrap:hover .sn-nav-dropdown-chevron,
+  .sn-nav-dropdown-wrap:focus-within .sn-nav-dropdown-chevron {
+    transform: rotate(180deg);
   }
 }
 
