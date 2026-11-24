@@ -360,13 +360,13 @@ function renderShell({
             <li><a href="${basePath}/shipping-returns">Shipping, Cancellation &amp; Refunds</a></li>
             <li><a href="${basePath}/privacy">Privacy Policy</a></li>
             <li><a href="${basePath}/terms">Terms of Service</a></li>
-            <li><a href="${basePath}/admin" id="footer-admin-link">Staff RBAC Admin Portal</a></li>
+            ${staticShowcaseScript ? `<li><a href="${basePath}/admin" id="footer-admin-link">Staff RBAC Admin Portal</a></li>` : ''}
           </ul>
         </div>
       </div>
       <div class="sn-footer-bottom">
         <span>© 2026 Sasya Naturals (sasynaturals.com). All rights reserved.</span>
-        <span>Engine: Node.js 22 SSR + Rust WASM Commerce Core (v${APP_VERSION})</span>
+        <span>${staticShowcaseScript ? `Engine: Node.js 22 SSR + Rust WASM Commerce Core (v${APP_VERSION})` : 'FSSAI Licensed &amp; GST Compliant • 100% Farm-Direct Indian Pantry'}</span>
       </div>
     </div>
   </footer>
@@ -426,7 +426,10 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
           </p>
           <div class="sn-hero-ctas">
             <a href="${basePath}/shop" class="sn-btn sn-btn-primary" id="hero-shop-all-btn">${escapeHtml(hp.heroPrimaryCtaLabel)}</a>
-            <a href="${basePath}/track-order?order=SN-2026-1001" class="sn-btn sn-btn-outline" id="hero-track-demo-btn">${escapeHtml(hp.heroSecondaryCtaLabel)}</a>
+            ${staticShowcaseScript
+              ? `<a href="${basePath}/track-order?order=SN-2026-1001" class="sn-btn sn-btn-outline" id="hero-track-demo-btn">${escapeHtml(hp.heroSecondaryCtaLabel)}</a>`
+              : `<a href="${basePath}/shop?tag=bestseller" class="sn-btn sn-btn-outline" id="hero-track-demo-btn">Explore Bestsellers</a>`
+            }
           </div>
           <div class="sn-trust-strip">
             <div class="sn-trust-item">
@@ -962,15 +965,16 @@ function renderCheckoutPage({
     breadcrumbs: [{ name: 'Home', url: '/' }, { name: 'Checkout', url: '/checkout' }]
   });
 
+  const isShowcase = Boolean(staticShowcaseScript);
   const defAddr = addresses.find(a => a.is_default) || addresses[0] || null;
-  const initName = defAddr ? defAddr.recipient_name : (customer ? customer.full_name : 'Arjun Krishnamurthy');
-  const initPhone = defAddr ? defAddr.phone : (customer ? customer.phone : '+91 98450 11223');
-  const initEmail = customer ? customer.email : 'arjun.k@example.com';
-  const initLine1 = defAddr ? defAddr.line1 : 'No. 18, 4th Cross, Malleshwaram';
-  const initLine2 = defAddr ? defAddr.line2 : 'Near Sankey Tank';
-  const initCity = defAddr ? defAddr.city : 'Bengaluru';
-  const initState = defAddr ? defAddr.state : 'Karnataka';
-  const initPin = defAddr ? defAddr.pincode : '560003';
+  const initName = defAddr ? defAddr.recipient_name : (customer ? customer.full_name : (isShowcase ? 'Arjun Krishnamurthy' : ''));
+  const initPhone = defAddr ? defAddr.phone : (customer ? customer.phone : (isShowcase ? '+91 98450 11223' : ''));
+  const initEmail = customer ? customer.email : (isShowcase ? 'arjun.k@example.com' : '');
+  const initLine1 = defAddr ? defAddr.line1 : (isShowcase ? 'No. 18, 4th Cross, Malleshwaram' : '');
+  const initLine2 = defAddr ? defAddr.line2 : (isShowcase ? 'Near Sankey Tank' : '');
+  const initCity = defAddr ? defAddr.city : (isShowcase ? 'Bengaluru' : '');
+  const initState = defAddr ? defAddr.state : (isShowcase ? 'Karnataka' : '');
+  const initPin = defAddr ? defAddr.pincode : (isShowcase ? '560003' : '');
 
   const bodyHtml = `
     <section class="sn-section">
@@ -1026,37 +1030,37 @@ function renderCheckoutPage({
             <div class="sn-grid-2" style="margin-bottom:14px;">
               <div>
                 <label for="chk-name" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Full Name *</label>
-                <input type="text" id="chk-name" name="customerName" required value="${escapeHtml(initName)}" class="sn-input" />
+                <input type="text" id="chk-name" name="customerName" required value="${escapeHtml(initName)}" placeholder="e.g. Ananya Iyer" class="sn-input" />
               </div>
               <div>
                 <label for="chk-phone" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Mobile Number (India) *</label>
-                <input type="tel" id="chk-phone" name="customerPhone" required value="${escapeHtml(initPhone)}" class="sn-input" />
+                <input type="tel" id="chk-phone" name="customerPhone" required value="${escapeHtml(initPhone)}" placeholder="+91 98450 11223" class="sn-input" />
               </div>
             </div>
             <div style="margin-bottom:14px;">
               <label for="chk-email" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Email Address (for Order &amp; Courier Notifications) *</label>
-              <input type="email" id="chk-email" name="customerEmail" required value="${escapeHtml(initEmail)}" class="sn-input" />
+              <input type="email" id="chk-email" name="customerEmail" required value="${escapeHtml(initEmail)}" placeholder="you@example.com" class="sn-input" />
             </div>
             <div style="margin-bottom:14px;">
               <label for="chk-line1" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">House / Flat No., Building &amp; Street Address *</label>
-              <input type="text" id="chk-line1" name="shippingLine1" required value="${escapeHtml(initLine1)}" class="sn-input" />
+              <input type="text" id="chk-line1" name="shippingLine1" required value="${escapeHtml(initLine1)}" placeholder="House / Flat No., Building &amp; Street" class="sn-input" />
             </div>
             <div style="margin-bottom:14px;">
               <label for="chk-line2" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Landmark / Area (Optional)</label>
-              <input type="text" id="chk-line2" name="shippingLine2" value="${escapeHtml(initLine2)}" class="sn-input" />
+              <input type="text" id="chk-line2" name="shippingLine2" value="${escapeHtml(initLine2)}" placeholder="Locality / Landmark" class="sn-input" />
             </div>
             <div class="sn-grid-3" style="margin-bottom:14px;">
               <div>
                 <label for="chk-city" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">City *</label>
-                <input type="text" id="chk-city" name="shippingCity" required value="${escapeHtml(initCity)}" class="sn-input" />
+                <input type="text" id="chk-city" name="shippingCity" required value="${escapeHtml(initCity)}" placeholder="e.g. Bengaluru" class="sn-input" />
               </div>
               <div>
                 <label for="chk-state" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">State *</label>
-                <input type="text" id="chk-state" name="shippingState" required value="${escapeHtml(initState)}" class="sn-input" />
+                <input type="text" id="chk-state" name="shippingState" required value="${escapeHtml(initState)}" placeholder="e.g. Karnataka" class="sn-input" />
               </div>
               <div>
                 <label for="chk-pin" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">6-Digit PIN Code *</label>
-                <input type="text" id="chk-pin" name="shippingPincode" required pattern="\\d{6}" value="${escapeHtml(initPin)}" class="sn-input" />
+                <input type="text" id="chk-pin" name="shippingPincode" required pattern="\\d{6}" value="${escapeHtml(initPin)}" placeholder="560038" class="sn-input" />
               </div>
             </div>
             <div style="margin-bottom:20px;">
@@ -1149,7 +1153,19 @@ function renderCheckoutPage({
   });
 }
 
-function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', basePath = '', staticShowcaseScript = '', isNoIndex = false }) {
+function renderTrackOrderPage({
+  order,
+  orderItems = [],
+  queryOrderNumber = '',
+  contactQuery = '',
+  lookupError = '',
+  customer = null,
+  customerOrders = [],
+  basePath = '',
+  staticShowcaseScript = '',
+  isNoIndex = false
+}) {
+  const isShowcase = Boolean(staticShowcaseScript);
   const title = `Track Order & Manual Courier Status | ${BRAND_NAME}`;
   const description = 'Track your Sasya Naturals order status, separate payment and fulfilment states, and manual courier AWB tracking reference.';
   const schemaGraph = buildMasterSchemaGraph({
@@ -1162,6 +1178,9 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
 
   const steps = ['Pending Payment', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'Delivered'];
   const taxRegimeLabel = order && order.tax_supply_type === 'IGST' ? 'Inter-State IGST' : 'Intra-State CGST + SGST';
+  const invoiceHref = order
+    ? `${basePath}/orders/${escapeHtml(order.order_number)}/invoice${contactQuery ? `?contact=${encodeURIComponent(contactQuery)}` : ''}`
+    : '#';
 
   const bodyHtml = `
     <section class="sn-section">
@@ -1171,15 +1190,63 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
             <span class="sn-eyebrow">Dual Payment &amp; Fulfilment Status + Manual Courier Reference</span>
             <h1>Track Your Sasya Naturals Order</h1>
           </div>
+          ${customer ? `
+            <div>
+              <span class="sn-status sn-status-paid">Signed In: ${escapeHtml(customer.full_name)}</span>
+            </div>
+          ` : ''}
         </div>
+
+        ${customer && customerOrders.length > 0 ? `
+          <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:12px 16px;margin-bottom:16px;">
+            <div style="font-family:var(--sn-font-mono);font-size:0.74rem;text-transform:uppercase;color:var(--sn-text-muted);margin-bottom:8px;">
+              📦 Your Account Orders (${customerOrders.length}) — Select to View Live Status &amp; GST Invoice
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              ${customerOrders.map(co => `
+                <a
+                  href="${basePath}/track-order?order=${encodeURIComponent(co.order_number)}"
+                  class="sn-btn ${order && order.order_number === co.order_number ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
+                >${escapeHtml(co.order_number)} • ${escapeHtml(co.fulfilment_status)} (${formatInr(co.total_paise)})</a>
+              `).join('')}
+            </div>
+          </div>
+        ` : ''}
 
         <form class="sn-filter-bar" method="GET" action="${basePath}/track-order" id="track-order-form">
           <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;width:100%;">
-            <input type="text" name="order" value="${escapeHtml(queryOrderNumber || (order ? order.order_number : 'SN-2026-1001'))}" placeholder="Enter Order Number (e.g. SN-2026-1001 or SN-2026-1002)" class="sn-input" style="max-width:360px;" id="track-order-input" />
+            <input
+              type="text"
+              name="order"
+              required
+              value="${escapeHtml(queryOrderNumber || (isShowcase && order ? order.order_number : ''))}"
+              placeholder="Order Number (e.g. SN-2026-1001)"
+              class="sn-input"
+              style="flex:1 1 240px;max-width:320px;"
+              id="track-order-input"
+            />
+            ${!isShowcase && !customer ? `
+              <input
+                type="text"
+                name="contact"
+                required
+                value="${escapeHtml(contactQuery)}"
+                placeholder="Registered Mobile No. or Email"
+                class="sn-input"
+                style="flex:1 1 260px;max-width:340px;"
+                id="track-order-contact-input"
+              />
+            ` : ''}
             <button type="submit" class="sn-btn sn-btn-forest" id="track-order-submit-btn">Lookup Order Status</button>
-            <span style="font-family:var(--sn-font-mono);font-size:0.78rem;color:var(--sn-text-muted);">
-              Sample orders: <a href="${basePath}/track-order?order=SN-2026-1001" style="color:var(--sn-accent-terracotta);text-decoration:underline;">SN-2026-1001 (Shipped via Blue Dart)</a> or <a href="${basePath}/track-order?order=SN-2026-1002" style="color:var(--sn-accent-terracotta);text-decoration:underline;">SN-2026-1002 (COD Confirmed)</a>
-            </span>
+            ${isShowcase ? `
+              <span style="font-family:var(--sn-font-mono);font-size:0.78rem;color:var(--sn-text-muted);">
+                Sample orders: <a href="${basePath}/track-order?order=SN-2026-1001" style="color:var(--sn-accent-terracotta);text-decoration:underline;">SN-2026-1001 (Shipped via Blue Dart)</a> or <a href="${basePath}/track-order?order=SN-2026-1002" style="color:var(--sn-accent-terracotta);text-decoration:underline;">SN-2026-1002 (COD Confirmed)</a>
+              </span>
+            ` : (!customer ? `
+              <span style="font-size:0.8rem;color:var(--sn-text-muted);">
+                Have an account? <a href="${basePath}/account" style="color:var(--sn-accent-terracotta);font-weight:600;text-decoration:underline;">Sign in</a> for 1-click order tracking.
+              </span>
+            ` : '')}
           </div>
         </form>
 
@@ -1207,7 +1274,7 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
                   <strong style="font-family:var(--sn-font-mono);font-size:1.1rem;color:var(--sn-bg-forest);">${formatInr(order.total_paise)}</strong>
                 </div>
                 <div>
-                  <a href="${basePath}/orders/${escapeHtml(order.order_number)}/invoice" class="sn-btn sn-btn-outline sn-btn-sm" id="download-gst-invoice-btn">GST Tax Invoice &rarr;</a>
+                  <a href="${invoiceHref}" class="sn-btn sn-btn-outline sn-btn-sm" id="download-gst-invoice-btn">GST Tax Invoice &rarr;</a>
                 </div>
               </div>
             </div>
@@ -1296,9 +1363,20 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
               `).join('')}
             </div>
           </div>
+        ` : (lookupError ? `
+          <div class="sn-card" style="border-left:4px solid var(--sn-status-warn);">
+            <strong style="color:var(--sn-bg-forest);display:block;margin-bottom:4px;">Order Verification Required</strong>
+            <p style="margin:0;color:var(--sn-text-secondary);font-size:0.9rem;">${escapeHtml(lookupError)}</p>
+          </div>
         ` : `
-          <div class="sn-card"><p>No order found matching "${escapeHtml(queryOrderNumber)}". Try <strong>SN-2026-1001</strong> or <strong>SN-2026-1002</strong>.</p></div>
-        `}
+          <div class="sn-card">
+            <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Track Your Shipment &amp; Download GST Tax Invoices</h3>
+            <p style="margin:0;color:var(--sn-text-secondary);font-size:0.9rem;">
+              Enter your <strong>Order Number</strong> and the <strong>Mobile Number or Email Address</strong> used at checkout above to view real-time fulfilment milestones, courier AWB tracking numbers, and your official GST Tax Invoice.
+              ${!customer ? ` You can also <a href="${basePath}/account" style="color:var(--sn-accent-terracotta);font-weight:600;text-decoration:underline;">sign in to your customer account</a> to view all past orders automatically.` : ''}
+            </p>
+          </div>
+        `)}
       </div>
     </section>
   `;
@@ -1316,7 +1394,7 @@ function renderTrackOrderPage({ order, orderItems = [], queryOrderNumber = '', b
   });
 }
 
-function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, basePath = '' }) {
+function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, verifiedContact = '', basePath = '' }) {
   const title = `GST Tax Invoice ${order.order_number} | ${BRAND_NAME}`;
   const isIntra = (order.tax_supply_type || 'CGST_SGST') === 'CGST_SGST';
   const cgst = order.cgst_paise || Math.floor(order.gst_paise / 2);
@@ -1344,11 +1422,13 @@ function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, basePa
     breadcrumbs: [{ name: 'Home', url: '/' }, { name: 'Track Order', url: '/track-order' }, { name: `Invoice ${order.order_number}`, url: `/orders/${order.order_number}/invoice` }]
   });
 
+  const backToTrackerHref = `${basePath}/track-order?order=${encodeURIComponent(order.order_number)}${verifiedContact ? `&contact=${encodeURIComponent(verifiedContact)}` : ''}`;
+
   const bodyHtml = `
     <section class="sn-section">
       <div class="sn-container" style="max-width:920px;">
         <div class="sn-no-print" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:20px;">
-          <a href="${basePath}/track-order?order=${encodeURIComponent(order.order_number)}" class="sn-btn sn-btn-outline sn-btn-sm">&larr; Back to Order Tracker</a>
+          <a href="${backToTrackerHref}" class="sn-btn sn-btn-outline sn-btn-sm">&larr; Back to Order Tracker</a>
           <button type="button" onclick="window.print()" class="sn-btn sn-btn-forest sn-btn-sm" id="print-invoice-btn">Print / Save GST Invoice PDF</button>
         </div>
 
@@ -1472,12 +1552,13 @@ function renderCustomerAccountPage({
     breadcrumbs: [{ name: 'Home', url: '/' }, { name: 'Customer Account', url: '/account' }]
   });
 
+  const isShowcase = Boolean(staticShowcaseScript);
   const isSignedIn = Boolean(customer && customer.id);
   const activeCustomer = customer || {
     id: 0,
-    email: 'ananya.iyer@example.com',
-    full_name: 'Ananya Iyer',
-    phone: '+91 98450 22334',
+    email: isShowcase ? 'ananya.iyer@example.com' : '',
+    full_name: isShowcase ? 'Ananya Iyer' : '',
+    phone: isShowcase ? '+91 98450 22334' : '',
     role: 'CUSTOMER'
   };
 
@@ -1491,7 +1572,7 @@ function renderCustomerAccountPage({
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
             <span class="sn-status ${isSignedIn ? 'sn-status-paid' : 'sn-status-warn'}" id="sn-account-active-badge">
-              ${isSignedIn ? `Signed In: ${escapeHtml(activeCustomer.full_name)} (${escapeHtml(activeCustomer.email)})` : 'Logged Out • Please Sign In or Register'}
+              ${isSignedIn ? `Signed In: ${escapeHtml(activeCustomer.full_name)} (${escapeHtml(activeCustomer.email)})` : 'Not Signed In • Please Sign In or Register'}
             </span>
             <button
               type="button"
@@ -1514,16 +1595,19 @@ function renderCustomerAccountPage({
             <form class="sn-card" id="sn-customer-login-form" style="background-color:var(--sn-bg-parchment);">
               <h3 style="font-family:var(--sn-font-serif);margin:0 0 8px;color:var(--sn-bg-forest);">Customer Sign In</h3>
               <p style="font-size:0.82rem;color:var(--sn-text-secondary);margin:0 0 12px;">
-                Demo customer account pre-filled (<strong>ananya.iyer@example.com</strong> / <strong>Sasya@2026</strong>).
+                ${isShowcase
+                  ? 'Demo customer account pre-filled (<strong>ananya.iyer@example.com</strong> / <strong>Sasya@2026</strong>).'
+                  : 'Sign in with your registered email address and password to access your saved delivery addresses, order tracking, and GST tax invoices.'
+                }
               </p>
               <div class="sn-form-row-2-action">
                 <div>
                   <label style="font-size:0.75rem;font-weight:600;">Email Address *</label>
-                  <input type="email" name="email" required value="${escapeHtml(activeCustomer.email)}" class="sn-input" />
+                  <input type="email" name="email" required value="${escapeHtml(isShowcase ? activeCustomer.email : '')}" placeholder="you@example.com" class="sn-input" />
                 </div>
                 <div>
                   <label style="font-size:0.75rem;font-weight:600;">Password *</label>
-                  <input type="password" name="password" required value="Sasya@2026" class="sn-input" />
+                  <input type="password" name="password" required value="${isShowcase ? 'Sasya@2026' : ''}" placeholder="Enter password" class="sn-input" />
                 </div>
                 <button type="submit" class="sn-btn sn-btn-forest">Sign In</button>
               </div>
@@ -1535,13 +1619,13 @@ function renderCustomerAccountPage({
               <form id="sn-customer-reset-otp-request-form" class="sn-form-row-1-action" style="margin-bottom:10px;">
                 <div>
                   <label style="font-size:0.74rem;font-weight:600;">Registered Email Address *</label>
-                  <input type="email" name="email" id="sn-reset-otp-email" required value="${escapeHtml(activeCustomer.email)}" class="sn-input" />
+                  <input type="email" name="email" id="sn-reset-otp-email" required value="${escapeHtml(isShowcase ? activeCustomer.email : '')}" placeholder="you@example.com" class="sn-input" />
                 </div>
                 <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Send 6-Digit OTP</button>
               </form>
 
               <form id="sn-customer-reset-otp-confirm-form" class="sn-form-row-2-action">
-                <input type="hidden" name="email" id="sn-reset-confirm-email" value="${escapeHtml(activeCustomer.email)}" />
+                <input type="hidden" name="email" id="sn-reset-confirm-email" value="${escapeHtml(isShowcase ? activeCustomer.email : '')}" />
                 <div>
                   <label style="font-size:0.74rem;font-weight:600;">6-Digit OTP Code *</label>
                   <input type="text" name="otpCode" id="sn-reset-otp-code" required pattern="\\d{6}" placeholder="e.g. 482910" class="sn-input" style="font-family:var(--sn-font-mono);" />
@@ -1584,7 +1668,8 @@ function renderCustomerAccountPage({
           </form>
         </div>
 
-        <!-- Authenticated Customer Sections (Shown Above-the-Fold when Signed In) -->
+        <!-- Authenticated Customer Sections (Rendered only when Signed In or in Static Showcase) -->
+        ${(isSignedIn || isShowcase) ? `
         <div id="sn-customer-authenticated-sections" style="display:${isSignedIn ? 'block' : 'none'};">
           <!-- Profile Management, Change Password & Saved Delivery Addresses -->
           <div class="sn-pdp-grid" style="margin-bottom:28px;">
@@ -1752,6 +1837,7 @@ function renderCustomerAccountPage({
             </div>
           </div>
         </div>
+        ` : `<div id="sn-customer-authenticated-sections" style="display:none;"></div>`}
       </div>
     </section>
   `;
@@ -1784,21 +1870,21 @@ function renderAdminLoginRequiredPage({ basePath = '' }) {
     <section class="sn-section">
       <div class="sn-container" style="max-width:520px;">
         <div class="sn-card" style="padding:32px;">
-          <span class="sn-eyebrow">Section 5 Separate Staff Authentication Gate</span>
+          <span class="sn-eyebrow">Staff Operations &amp; Role-Based Administration</span>
           <h1 style="font-family:var(--sn-font-serif);font-size:1.75rem;margin:0 0 8px;color:var(--sn-bg-forest);">Sasya Naturals Staff Sign In</h1>
           <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0 0 20px;">
-            This administration portal is separate from the customer storefront and protected by PBKDF2-SHA512 authentication and role-based access control.
+            Sign in with your authorized staff credentials to access your role-assigned administration modules.
           </p>
           <form id="sn-admin-login-form">
             <div style="margin-bottom:14px;">
               <label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Staff Email Address *</label>
-              <input type="email" name="email" required value="superadmin@sasynaturals.com" class="sn-input" />
+              <input type="email" name="email" required value="" placeholder="staff@sasynaturals.com" class="sn-input" />
             </div>
             <div style="margin-bottom:18px;">
               <label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Password *</label>
-              <input type="password" name="password" required value="Sasya@2026" class="sn-input" />
+              <input type="password" name="password" required value="" placeholder="Enter staff password" class="sn-input" />
             </div>
-            <button type="submit" class="sn-btn sn-btn-forest" style="width:100%;padding:12px;">Sign In to Admin Portal -></button>
+            <button type="submit" class="sn-btn sn-btn-forest" style="width:100%;padding:12px;">Sign In to Admin Portal &rarr;</button>
           </form>
         </div>
       </div>
@@ -2018,43 +2104,71 @@ function renderAdminPortalPage({
     .filter(Boolean)
     .join('');
 
+  const isShowcase = Boolean(staticShowcaseScript);
+  const activeAdminRole = (!isShowcase && authenticatedAdmin && authenticatedAdmin.role)
+    ? authenticatedAdmin.role
+    : 'SUPER_ADMIN';
+  const activeAdminEmail = (authenticatedAdmin && authenticatedAdmin.email) || 'superadmin@sasynaturals.com';
+  const activeAdminName = (authenticatedAdmin && authenticatedAdmin.full_name) || 'Super Administrator';
+  const roleAllowedModulesMap = {
+    SUPER_ADMIN: ['orders', 'vault', 'products', 'inventory', 'payments', 'customers', 'rbac', 'compliance', 'content'],
+    PRODUCT_MANAGER: ['products', 'inventory'],
+    ORDER_MANAGER: ['orders', 'inventory', 'customers'],
+    ACCOUNTS_MANAGER: ['payments', 'orders', 'customers'],
+    STAFF: ['orders', 'inventory']
+  };
+  const allowedModules = roleAllowedModulesMap[activeAdminRole] || roleAllowedModulesMap.SUPER_ADMIN;
+  const modDisplayStyle = (modKey) => (isShowcase || allowedModules.includes(modKey)) ? '' : 'display:none;';
+
   const bodyHtml = `
-    <section class="sn-section" id="sn-admin-portal">
+    <section class="sn-section" id="sn-admin-portal" data-active-admin-role="${escapeHtml(activeAdminRole)}">
       <div class="sn-container">
-        <!-- Separate Staff Authentication & RBAC Session Bar (Section 5 & Section 10) -->
+        <input type="hidden" id="sn-admin-active-email" value="${escapeHtml(activeAdminEmail)}" />
+        <!-- Staff Authentication & RBAC Session Bar -->
         <div class="sn-filter-bar sn-admin-session-bar" style="background-color:var(--sn-bg-forest);color:#FDF6DA;border-color:var(--sn-bg-forest);margin-bottom:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:10px;flex-wrap:wrap;">
             <div>
-              <span class="sn-eyebrow" style="color:#FBD977;margin-bottom:2px;">Separate Authenticated Staff Portal • Server-Side RBAC &amp; Write-Only API Vault</span>
-              <h1 style="font-family:var(--sn-font-serif);font-size:1.45rem;margin:0;color:#FFFFFF;">Sasya Naturals Operations &amp; Role Management</h1>
+              <span class="sn-eyebrow" style="color:#FBD977;margin-bottom:2px;">${isShowcase ? 'Interactive RBAC Showcase • 5 Staff Roles &amp; Write-Only API Vault' : 'Authenticated Staff Operations Portal'}</span>
+              <h1 style="font-family:var(--sn-font-serif);font-size:1.45rem;margin:0;color:#FFFFFF;">Sasya Naturals Operations &amp; Administration</h1>
             </div>
-            <button
-              type="button"
-              class="sn-btn sn-btn-outline sn-btn-sm sn-admin-auth-toggle"
-              id="sn-admin-auth-toggle-btn"
-              data-toggle-admin-login
-              style="background-color:rgba(255,255,255,0.14);color:#FFFFFF;border-color:rgba(255,255,255,0.45);"
-            >🔑 Staff Login / Sign Out</button>
+            ${isShowcase ? `
+              <button
+                type="button"
+                class="sn-btn sn-btn-outline sn-btn-sm sn-admin-auth-toggle"
+                id="sn-admin-auth-toggle-btn"
+                data-toggle-admin-login
+                style="background-color:rgba(255,255,255,0.14);color:#FFFFFF;border-color:rgba(255,255,255,0.45);"
+              >🔑 Staff Login / Sign Out</button>
+            ` : `
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span class="sn-status sn-status-paid" style="background-color:rgba(255,255,255,0.14);color:#FDF6DA;border:1px solid rgba(255,255,255,0.28);">
+                  Signed In: ${escapeHtml(activeAdminName)} (${escapeHtml(activeAdminRole)})
+                </span>
+                <button type="button" id="sn-admin-logout-btn" class="sn-btn sn-btn-outline sn-btn-sm" style="background-color:rgba(255,255,255,0.14);color:#FFFFFF;border-color:rgba(255,255,255,0.45);">Sign Out</button>
+              </div>
+            `}
           </div>
-          <div class="sn-admin-session-controls" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;">
-            <form id="sn-admin-login-form" class="sn-admin-login-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-              <input type="email" name="email" id="sn-admin-auth-email" value="${escapeHtml(authenticatedAdmin ? authenticatedAdmin.email : 'superadmin@sasynaturals.com')}" placeholder="Staff Email" class="sn-input sn-admin-email-input" style="padding:6px 10px;font-size:0.78rem;" />
-              <input type="password" name="password" value="Sasya@2026" placeholder="Password" class="sn-input sn-admin-pass-input" style="padding:6px 10px;font-size:0.78rem;" />
-              <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Staff Sign In</button>
-              <button type="button" id="sn-admin-logout-btn" class="sn-btn sn-btn-outline sn-btn-sm" style="background-color:rgba(255,255,255,0.14);color:#FFFFFF;border-color:rgba(255,255,255,0.45);">Sign Out</button>
-            </form>
-            <div class="sn-admin-role-wrap" style="display:flex;align-items:center;gap:6px;flex:1;min-width:240px;">
-              <label for="sn-admin-role-switcher" style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">Active Role:</label>
-              <select id="sn-admin-role-switcher" class="sn-select sn-admin-role-select" style="font-weight:600;padding:6px 10px;font-size:0.78rem;flex:1;">
-                ${staffUsers.map(u => `
-                  <option value="${escapeHtml(u.email)}">${escapeHtml(u.role)} - ${escapeHtml(u.full_name)}${u.is_active ? '' : ' (Inactive)'}</option>
-                `).join('')}
-              </select>
+          ${isShowcase ? `
+            <div class="sn-admin-session-controls" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;">
+              <form id="sn-admin-login-form" class="sn-admin-login-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                <input type="email" name="email" id="sn-admin-auth-email" value="${escapeHtml(activeAdminEmail)}" placeholder="Staff Email" class="sn-input sn-admin-email-input" style="padding:6px 10px;font-size:0.78rem;" />
+                <input type="password" name="password" value="Sasya@2026" placeholder="Password" class="sn-input sn-admin-pass-input" style="padding:6px 10px;font-size:0.78rem;" />
+                <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Staff Sign In</button>
+                <button type="button" id="sn-admin-logout-btn" class="sn-btn sn-btn-outline sn-btn-sm" style="background-color:rgba(255,255,255,0.14);color:#FFFFFF;border-color:rgba(255,255,255,0.45);">Sign Out</button>
+              </form>
+              <div class="sn-admin-role-wrap" style="display:flex;align-items:center;gap:6px;flex:1;min-width:240px;">
+                <label for="sn-admin-role-switcher" style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">Active Role:</label>
+                <select id="sn-admin-role-switcher" class="sn-select sn-admin-role-select" style="font-weight:600;padding:6px 10px;font-size:0.78rem;flex:1;">
+                  ${staffUsers.map(u => `
+                    <option value="${escapeHtml(u.email)}">${escapeHtml(u.role)} - ${escapeHtml(u.full_name)}${u.is_active ? '' : ' (Inactive)'}</option>
+                  `).join('')}
+                </select>
+              </div>
             </div>
-          </div>
+          ` : ''}
         </div>
 
-        <!-- Section 8 Operational Admin Alerts Strip (New Orders, Low Stock, Payment/COD Exceptions) -->
+        <!-- Operational Admin Alerts Strip (New Orders, Low Stock, Payment/COD Exceptions) -->
         <div class="sn-card sn-admin-alerts-bar" style="background-color:var(--sn-bg-mortar);padding:10px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
           <div style="font-family:var(--sn-font-mono);font-size:0.76rem;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <strong>🔔 Alerts:</strong>
@@ -2090,25 +2204,25 @@ function renderAdminPortalPage({
 
         <div class="sn-admin-grid">
           <aside class="sn-admin-sidebar">
-            <div class="sn-admin-sidebar-label" style="font-family:var(--sn-font-mono);font-size:0.73rem;text-transform:uppercase;color:#C5CCE0;">Admin Modules (Section 5.1)</div>
+            <div class="sn-admin-sidebar-label" style="font-family:var(--sn-font-mono);font-size:0.73rem;text-transform:uppercase;color:#C5CCE0;">${isShowcase ? 'Admin Modules (Section 5.1)' : `Assigned Modules (${escapeHtml(activeAdminRole)})`}</div>
             <ul class="sn-admin-menu">
-              <li><button type="button" class="sn-active" data-admin-tab-btn="orders" id="tab-btn-orders">1. Orders &amp; Manual Shipping</button></li>
-              <li><button type="button" data-admin-tab-btn="vault" id="tab-btn-vault">2. API &amp; Razorpay Key Vault</button></li>
-              <li>
+              <li style="${modDisplayStyle('orders')}"><button type="button" class="sn-active" data-admin-tab-btn="orders" id="tab-btn-orders">1. Orders &amp; Manual Shipping</button></li>
+              <li style="${modDisplayStyle('vault')}"><button type="button" data-admin-tab-btn="vault" id="tab-btn-vault">2. API &amp; Razorpay Key Vault</button></li>
+              <li style="${modDisplayStyle('products')}">
                 <button type="button" data-admin-tab-btn="products" id="tab-btn-products">3. Categories, Products &amp; Media ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="products">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="products:catalogue">3.1 Products Catalogue (${products.length})</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="products:categories">3.2 Categories &amp; Banners (${categories.length})</button></li>
                 </ul>
               </li>
-              <li>
+              <li style="${modDisplayStyle('inventory')}">
                 <button type="button" data-admin-tab-btn="inventory" id="tab-btn-inventory">4. Inventory &amp; Stock Ledger (${variants.length}) ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="inventory">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="inventory:variants">4.1 Variant Stock (${variants.length} SKUs)</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="inventory:movements">4.2 Stock Movement Ledger</button></li>
                 </ul>
               </li>
-              <li>
+              <li style="${modDisplayStyle('payments')}">
                 <button type="button" data-admin-tab-btn="payments" id="tab-btn-payments">5. Payments, COD &amp; Reports ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="payments">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="payments:reconciliation">5.1 Payments, COD &amp; Refunds</button></li>
@@ -2117,21 +2231,21 @@ function renderAdminPortalPage({
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="payments:gst-summaries">5.4 GST Tax &amp; Gateway Summaries</button></li>
                 </ul>
               </li>
-              <li>
+              <li style="${modDisplayStyle('customers')}">
                 <button type="button" data-admin-tab-btn="customers" id="tab-btn-customers">6. Users, Purchases &amp; Export ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="customers">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="customers:users">6.1 Signed-Up Users &amp; Purchases (${customerDirectoryRows.length})</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="customers:addresses">6.2 Saved Addresses Directory (${customerAddresses.length})</button></li>
                 </ul>
               </li>
-              <li>
+              <li style="${modDisplayStyle('rbac')}">
                 <button type="button" data-admin-tab-btn="rbac" id="tab-btn-rbac">7. Staff RBAC &amp; Audit Logs ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="rbac">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="rbac:staff">7.1 Staff Accounts &amp; RBAC (${staffUsers.length})</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="rbac:audit-logs">7.2 Immutable Audit Logs (${auditLogs.length})</button></li>
                 </ul>
               </li>
-              <li>
+              <li style="${modDisplayStyle('compliance')}">
                 <button type="button" data-admin-tab-btn="compliance" id="tab-btn-compliance">8. Shipping, GST, FSSAI &amp; Templates ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="compliance">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="compliance:shipping">8.1 Delivery Pricing (4-Zone)</button></li>
@@ -2139,7 +2253,7 @@ function renderAdminPortalPage({
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="compliance:notif-logs">8.3 Notification Logs (${notificationLogs.length})</button></li>
                 </ul>
               </li>
-              <li>
+              <li style="${modDisplayStyle('content')}">
                 <button type="button" data-admin-tab-btn="content" id="tab-btn-content">9. Storefront Content &amp; SEO ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="content">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="content:homepage">9.1 Homepage Hero, Topbar &amp; Footer</button></li>

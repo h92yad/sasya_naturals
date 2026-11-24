@@ -188,9 +188,8 @@ function sendHtml(res, statusCode, html, canonicalPath = '/') {
 }
 
 /**
- * Resolves authenticated staff user:
- * 1. First checks signed HttpOnly session cookie (sn_admin_session).
- * 2. In non-production mode (NODE_ENV !== 'production'), falls back to x-admin-email header for RBAC demo testing.
+ * Resolves authenticated staff user from signed HttpOnly session cookie (sn_admin_session).
+ * Never auto-logs in unauthenticated visitors on Staging or Production.
  */
 function resolveAdminUser(req) {
   const db = getDb();
@@ -202,9 +201,9 @@ function resolveAdminUser(req) {
       if (user) return user;
     }
   }
-  if (!IS_PROD) {
-    const headerEmail = req.headers['x-admin-email'] || 'superadmin@sasynaturals.com';
-    return db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1').get(String(headerEmail).trim());
+  if (process.env.ALLOW_DEV_HEADER_AUTH === 'true' && req.headers['x-admin-email']) {
+    const headerEmail = String(req.headers['x-admin-email']).trim();
+    return db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1').get(headerEmail);
   }
   return null;
 }
@@ -213,21 +212,41 @@ function resolveCustomerUser(req) {
   const db = getDb();
   const cookies = parseCookies(req.headers.cookie || '');
   const cookieVal = cookies[CUSTOMER_COOKIE_NAME];
-  if (cookieVal === 'LOGGED_OUT') {
+  if (!cookieVal || cookieVal === 'LOGGED_OUT') {
     return null;
   }
-  if (cookieVal) {
-    const verified = verifySessionToken(cookieVal);
-    if (verified && verified.email) {
-      const user = db.prepare('SELECT * FROM users WHERE lower(email) = ? AND is_active = 1').get(verified.email.toLowerCase());
-      if (user) return user;
-    }
-    return null;
-  }
-  if (!IS_PROD) {
-    return db.prepare("SELECT * FROM users WHERE email = 'ananya.iyer@example.com'").get();
+  const verified = verifySessionToken(cookieVal);
+  if (verified && verified.email) {
+    const user = db.prepare('SELECT * FROM users WHERE lower(email) = ? AND is_active = 1').get(verified.email.toLowerCase());
+    if (user) return user;
   }
   return null;
+}
+
+/**
+ * Verifies whether a visitor is authorized to view full PII & GST Tax Invoice for an order:
+ * 1. Authenticated Staff/Admin user
+ * 2. Authenticated Customer who owns the order (by user_id or email)
+ * 3. Guest visitor who supplied matching email or last 4+ digits of the order's mobile number
+ */
+function doesOrderMatchVerification(order, { customer = null, adminUser = null, contactQuery = '' } = {}) {
+  if (!order) return false;
+  if (adminUser && adminUser.id) return true;
+  if (customer && customer.id) {
+    if (Number(order.user_id) === Number(customer.id)) return true;
+    if (String(order.customer_email || '').toLowerCase() === String(customer.email || '').toLowerCase()) return true;
+  }
+  const cleanContact = String(contactQuery || '').trim();
+  if (!cleanContact) return false;
+  if (cleanContact.includes('@')) {
+    return cleanContact.toLowerCase() === String(order.customer_email || '').trim().toLowerCase();
+  }
+  const contactDigits = cleanContact.replace(/\D/g, '');
+  const orderPhoneDigits = String(order.customer_phone || '').replace(/\D/g, '');
+  if (contactDigits.length >= 4 && orderPhoneDigits.length >= 4) {
+    return orderPhoneDigits.endsWith(contactDigits);
+  }
+  return false;
 }
 
 function createServerHandler() {
@@ -1580,10 +1599,19 @@ function createServerHandler() {
           res.writeHead(404);
           return res.end('Order invoice not found');
         }
+        const customer = resolveCustomerUser(req);
+        const adminUser = resolveAdminUser(req);
+        const contactQuery = (parsedUrl.searchParams.get('contact') || '').trim();
+        if (!doesOrderMatchVerification(order, { customer, adminUser, contactQuery })) {
+          res.writeHead(302, {
+            Location: `/track-order?order=${encodeURIComponent(ordNum)}&error=verify_required`
+          });
+          return res.end();
+        }
         const orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
         const settingsRows = db.prepare('SELECT * FROM store_settings').all();
         const settingsMap = Object.fromEntries(settingsRows.map(r => [r.key, r.value]));
-        const html = renderGstInvoicePage({ order, orderItems, settingsMap });
+        const html = renderGstInvoicePage({ order, orderItems, settingsMap, verifiedContact: contactQuery });
         return sendHtml(res, 200, html, pathname);
       }
 
@@ -1716,12 +1744,47 @@ function createServerHandler() {
       }
 
       if (pathname === '/track-order') {
-        const ordNum = (parsedUrl.searchParams.get('order') || 'SN-2026-1001').trim().toUpperCase();
-        const order = db.prepare('SELECT * FROM orders WHERE order_number = ?').get(ordNum);
-        const orderItems = order
-          ? db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id)
+        const customer = resolveCustomerUser(req);
+        const adminUser = resolveAdminUser(req);
+        const customerOrders = customer
+          ? db.prepare('SELECT * FROM orders WHERE user_id = ? OR lower(customer_email) = ? ORDER BY id DESC').all(customer.id, customer.email.toLowerCase())
           : [];
-        const html = renderTrackOrderPage({ order, orderItems, queryOrderNumber: ordNum });
+        const ordNumParam = (parsedUrl.searchParams.get('order') || '').trim().toUpperCase();
+        const contactQuery = (parsedUrl.searchParams.get('contact') || '').trim();
+        const errorParam = (parsedUrl.searchParams.get('error') || '').trim();
+
+        let order = null;
+        let orderItems = [];
+        let lookupError = '';
+        let activeOrderNum = ordNumParam;
+
+        if (ordNumParam) {
+          const rawOrder = db.prepare('SELECT * FROM orders WHERE order_number = ?').get(ordNumParam);
+          if (!rawOrder) {
+            lookupError = `No order found matching "${ordNumParam}". Please verify your Order Number.`;
+          } else if (doesOrderMatchVerification(rawOrder, { customer, adminUser, contactQuery })) {
+            order = rawOrder;
+            orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+          } else {
+            lookupError = errorParam === 'verify_required'
+              ? `Please verify the mobile number (last 4 or full 10 digits) or email address used for Order ${ordNumParam} to view tracking and download the GST Tax Invoice.`
+              : `Please enter the registered mobile number (last 4 or full 10 digits) or email address used for Order ${ordNumParam} to view tracking and delivery details.`;
+          }
+        } else if (customerOrders.length > 0) {
+          order = customerOrders[0];
+          activeOrderNum = order.order_number;
+          orderItems = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+        }
+
+        const html = renderTrackOrderPage({
+          order,
+          orderItems,
+          queryOrderNumber: activeOrderNum,
+          contactQuery,
+          lookupError,
+          customer,
+          customerOrders
+        });
         return sendHtml(res, 200, html, '/track-order');
       }
 
@@ -1732,8 +1795,8 @@ function createServerHandler() {
           : [];
         const custOrders = customer
           ? db.prepare('SELECT * FROM orders WHERE user_id = ? OR lower(customer_email) = ? ORDER BY id DESC').all(customer.id, customer.email.toLowerCase())
-          : db.prepare('SELECT * FROM orders ORDER BY id DESC LIMIT 5').all();
-        const allOrderItems = db.prepare('SELECT * FROM order_items').all();
+          : [];
+        const allOrderItems = customer ? db.prepare('SELECT * FROM order_items').all() : [];
         const html = renderCustomerAccountPage({
           customer,
           addresses,

@@ -10,7 +10,9 @@
     "export:gh-pages": "node --no-warnings scripts/export_gh_pages.js",
     "test": "node --no-warnings tests/run_all_gates.js",
     "bookmark": "node --no-warnings scripts/create_bookmark.js",
-    "deploy:vps": "node --no-warnings scripts/deploy_live_hardened.js"
+    "deploy:vps": "node --no-warnings scripts/deploy_live_hardened.js",
+    "staging:seed": "node --no-warnings scripts/seed_staging_showcase.js --apply",
+    "staging:reset-live": "node --no-warnings scripts/seed_staging_showcase.js --reset-live"
   },
   "engines": {
     "node": ">=22.0.0"

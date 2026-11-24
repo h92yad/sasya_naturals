@@ -30,9 +30,9 @@ function runVerifyDatabase() {
     assert(row && row.name === tbl, `Missing required database table: ${tbl}`);
   }
 
-  // Verify 3 categories
+  // Verify at least 3 core categories exist
   const cats = db.prepare('SELECT * FROM categories').all();
-  assert.strictEqual(cats.length, 3, 'Expected 3 initial categories (Dry Fruits, Millets & Grains, Spices)');
+  assert(cats.length >= 3, 'Expected at least 3 core categories (Dry Fruits, Millets & Grains, Spices)');
 
   // Verify products have 4 pack-size variants (100 g, 250 g, 500 g, 1 kg)
   const products = db.prepare('SELECT * FROM products').all();

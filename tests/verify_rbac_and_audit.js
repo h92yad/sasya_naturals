@@ -108,7 +108,7 @@ function runVerifyRbacAndAudit() {
   assert.strictEqual(monthlyWin.ordersCount, 3, 'Monthly window (2026-11 MTD) must contain 3 orders (SN-2026-1000, SN-2026-1001, SN-2026-1002)');
   assert(reports.dailySales.length >= 3, 'Granular daily time-series must list at least 3 distinct dates');
   assert(reports.weeklySales.length >= 2, 'Granular weekly time-series must list at least 2 distinct ISO weeks');
-  assert.strictEqual(reports.productSales.length, 22, 'Product-wise sales report must cover all 22 products without truncation');
+  assert(reports.productSales.length >= 22, 'Product-wise sales report must cover all active catalogue products without truncation');
   assert.strictEqual(reports.orderStatusSummary.length, 9, 'Order status summary must cover all 9 fulfilment statuses');
   assert.strictEqual(reports.paymentMethodSummary.length, 4, 'Payment method summary must cover UPI, Card, NetBanking, and COD');
 

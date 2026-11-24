@@ -892,6 +892,7 @@
 
         saveCart([]);
         if (resultEl) {
+          const contactParam = encodeURIComponent(payload.customerPhone || payload.customerEmail || '');
           resultEl.style.display = 'block';
           resultEl.innerHTML = `
             <div class="sn-card" style="border-color:var(--sn-status-paid);background-color:var(--sn-status-paid-bg);">
@@ -902,8 +903,8 @@
                 Fulfilment Status: <strong>Confirmed</strong>
               </p>
               <div style="display:flex;gap:10px;flex-wrap:wrap;">
-                <a href="${BASE_PATH}/track-order?order=${encodeURIComponent(orderNumber)}" class="sn-btn sn-btn-forest">Track Order ${orderNumber} -></a>
-                ${!IS_STATIC_SHOWCASE ? `<a href="${BASE_PATH}/orders/${encodeURIComponent(orderNumber)}/invoice" class="sn-btn sn-btn-outline">View GST Tax Invoice -></a>` : ''}
+                <a href="${BASE_PATH}/track-order?order=${encodeURIComponent(orderNumber)}${!IS_STATIC_SHOWCASE && contactParam ? `&contact=${contactParam}` : ''}" class="sn-btn sn-btn-forest">Track Order ${orderNumber} &rarr;</a>
+                ${!IS_STATIC_SHOWCASE ? `<a href="${BASE_PATH}/orders/${encodeURIComponent(orderNumber)}/invoice${contactParam ? `?contact=${contactParam}` : ''}" class="sn-btn sn-btn-outline">View GST Tax Invoice &rarr;</a>` : ''}
               </div>
             </div>
           `;
@@ -920,13 +921,16 @@
     if (!adminRoot) return;
 
     const roleSelect = document.getElementById('sn-admin-role-switcher');
+    const activeEmailInput = document.getElementById('sn-admin-active-email');
     const savedEmail = localStorage.getItem(ADMIN_ROLE_STORAGE_KEY);
     if (roleSelect && savedEmail) {
       roleSelect.value = savedEmail;
     }
 
     function getActiveAdminEmail() {
-      return roleSelect ? roleSelect.value : 'superadmin@sasynaturals.com';
+      if (roleSelect) return roleSelect.value;
+      if (activeEmailInput && activeEmailInput.value) return activeEmailInput.value;
+      return 'superadmin@sasynaturals.com';
     }
 
     if (roleSelect) {
@@ -1047,14 +1051,27 @@
       });
     });
 
-    // Restore previously active Admin Module & Sub-Tab after reloads
+    // Restore previously active Admin Module & Sub-Tab after reloads (only if permitted/visible for current staff role)
     try {
+      const isModVisible = (modKey) => {
+        const btn = document.querySelector(`[data-admin-tab-btn="${modKey}"]`);
+        if (!btn) return false;
+        const li = btn.closest('li');
+        return !li || li.style.display !== 'none';
+      };
       const savedSubtab = sessionStorage.getItem('sn_admin_active_subtab');
       const savedMod = sessionStorage.getItem('sn_admin_active_module');
-      if (savedSubtab && document.querySelector(`[data-admin-subpanel="${savedSubtab}"]`)) {
+      const savedSubMod = savedSubtab ? savedSubtab.split(':')[0] : '';
+      if (savedSubtab && isModVisible(savedSubMod) && document.querySelector(`[data-admin-subpanel="${savedSubtab}"]`)) {
         activateAdminSubTab(savedSubtab);
-      } else if (savedMod && document.querySelector(`[data-admin-panel="${savedMod}"]`)) {
+      } else if (savedMod && isModVisible(savedMod) && document.querySelector(`[data-admin-panel="${savedMod}"]`)) {
         activateAdminModule(savedMod, { toggleIfAlreadyActive: false });
+      } else {
+        const firstAllowedBtn = Array.from(document.querySelectorAll('.sn-admin-menu > li')).find(li => li.style.display !== 'none');
+        const tabBtn = firstAllowedBtn ? firstAllowedBtn.querySelector('[data-admin-tab-btn]') : null;
+        if (tabBtn) {
+          activateAdminModule(tabBtn.getAttribute('data-admin-tab-btn'), { toggleIfAlreadyActive: false });
+        }
       }
     } catch {
       // ignore storage errors

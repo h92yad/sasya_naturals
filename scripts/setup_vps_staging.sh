@@ -74,6 +74,8 @@ else
 fi
 
 cd "${STAGING_DIR}"
+echo "     Seeding Staging sample categories & products (use 'npm run staging:reset-live' before live launch)..."
+npm run staging:seed
 echo "     Running 7-suite guardrail verification on VPS..."
 npm test
 
