@@ -17,7 +17,7 @@ This document tracks the server setup, staging environment, external provider in
 - [x] **Step 4 — Staging-Only VPS Deployment (Keep Public Site Offline)**:
   - Deployed the app to `/var/www/sasya_naturals_staging` on port `3021` (`sasya-staging.service`).
   - Installed Cloudflare Origin SSL + Let's Encrypt Certbot SSL (`sashyanaturals.com`, `www.sashyanaturals.com`, `staging.sashyanaturals.com`).
-  - Configured Nginx so `https://sashyanaturals.com` serves the "Launching Soon" page to the public while `https://staging.sashyanaturals.com` (and `https://sashyanaturals.com/?staging=1`) serves the full staging storefront & `/admin` portal.
+  - Configured Nginx so `https://sashyanaturals.com` and `https://www.sashyanaturals.com` strictly serve the "Launching Soon" page only, while `https://staging.sashyanaturals.com` serves the staging storefront & `/admin` portal.
 - [ ] **Step 5 — Final Production Cutover (Only After Sign-Off)**:
   - Point `sashyanaturals.com` and `www.sashyanaturals.com` in Nginx to primary port `3020` (with `:3021` as hot-standby) and remove the staging gate.
 

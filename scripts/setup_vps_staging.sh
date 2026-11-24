@@ -177,60 +177,43 @@ EOF
 echo ""
 echo "---> [Step 4.6] Configuring Nginx & UFW Firewall..."
 
+if [ -s "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ] && [ -s "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" ]; then
+  ACTIVE_SSL_CERT="/etc/letsencrypt/live/${DOMAIN}/fullchain.pem"
+  ACTIVE_SSL_KEY="/etc/letsencrypt/live/${DOMAIN}/privkey.pem"
+else
+  ACTIVE_SSL_CERT="${SSL_DIR}/origin.pem"
+  ACTIVE_SSL_KEY="${SSL_DIR}/origin.key"
+fi
+
 cat <<EOF > "${NGINX_AVAILABLE}"
 # 1. Drop direct IP requests (e.g. someone visiting http://189.72.179.46 directly)
 server {
     listen 80 default_server;
     listen 443 ssl default_server;
     server_name _;
-    ssl_certificate ${SSL_DIR}/origin.pem;
-    ssl_certificate_key ${SSL_DIR}/origin.key;
+    ssl_certificate ${ACTIVE_SSL_CERT};
+    ssl_certificate_key ${ACTIVE_SSL_KEY};
     return 444;
 }
 
-# 2. MAIN PUBLIC DOMAIN -> Serves "Launching Soon" page to public,
-#    OR proxies to Staging (:3021) ONLY if you unlock with https://sashyanaturals.com/?staging=1
+# 2. MAIN PUBLIC DOMAIN -> Strictly serves "Launching Soon" page ONLY (No staging proxy)
 server {
     listen 80;
     listen 443 ssl;
     server_name ${DOMAIN} www.${DOMAIN};
 
-    ssl_certificate ${SSL_DIR}/origin.pem;
-    ssl_certificate_key ${SSL_DIR}/origin.key;
+    ssl_certificate ${ACTIVE_SSL_CERT};
+    ssl_certificate_key ${ACTIVE_SSL_KEY};
 
-    client_max_body_size 15M;
     root ${COMING_SOON_DIR};
     index index.html;
 
     location / {
-        add_header X-Robots-Tag "noindex, nofollow" always;
-
-        set \$show_staging 0;
-        if (\$http_cookie ~* "sn_staging=1") {
-            set \$show_staging 1;
-        }
-        if (\$arg_staging = "1") {
-            set \$show_staging 1;
-            add_header Set-Cookie "sn_staging=1; Path=/; Max-Age=604800; HttpOnly; Secure; SameSite=Lax" always;
-        }
-        if (\$arg_staging = "0") {
-            set \$show_staging 0;
-            add_header Set-Cookie "sn_staging=0; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax" always;
-        }
-
-        if (\$show_staging = 1) {
-            proxy_pass http://127.0.0.1:3021;
-            break;
-        }
-
+        add_header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet, noimageindex" always;
+        add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+        add_header Set-Cookie "sn_staging=0; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax" always;
         try_files \$uri \$uri/ /index.html;
     }
-
-    proxy_http_version 1.1;
-    proxy_set_header Host \$host;
-    proxy_set_header X-Real-IP \$remote_addr;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto \$scheme;
 }
 
 # 3. STAGING SUBDOMAIN -> Forwards to Node.js Staging Server (:3021)
@@ -239,13 +222,13 @@ server {
     listen 443 ssl;
     server_name ${STAGING_DOMAIN};
 
-    ssl_certificate ${SSL_DIR}/origin.pem;
-    ssl_certificate_key ${SSL_DIR}/origin.key;
+    ssl_certificate ${ACTIVE_SSL_CERT};
+    ssl_certificate_key ${ACTIVE_SSL_KEY};
 
     client_max_body_size 15M;
 
     location / {
-        add_header X-Robots-Tag "noindex, nofollow" always;
+        add_header X-Robots-Tag "noindex, nofollow, noarchive, nosnippet, noimageindex" always;
         proxy_pass http://127.0.0.1:3021;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
