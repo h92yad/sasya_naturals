@@ -12,11 +12,12 @@ This document tracks the server setup, staging environment, external provider in
 
 ### Infrastructure Progress:
 - [x] **Step 1 — Hostinger KVM2 VPS & SSH Keys**: Provisioned Ubuntu 24.04 VPS at `189.72.179.46` and configured SSH key access (`ssh root@189.72.179.46`).
-- [x] **Step 2 — Cloudflare DNS Setup**: Created Cloudflare account for `sashyanaturals.com` and pointed `A` records to `189.72.179.46`.
-- [ ] **Step 3 — GoDaddy Nameserver Update (Waiting on Client)**: Client to replace GoDaddy default nameservers with the 2 Cloudflare nameservers.
-- [ ] **Step 4 — Staging-Only VPS Deployment (Keep Public Site Offline)**:
-  - Deploy the app to `/var/www/sasya_naturals_staging` on port `3021`.
-  - Expose it only on a staging subdomain (e.g., `staging.sashyanaturals.com`) or behind HTTP Basic Auth / maintenance page on `sashyanaturals.com` so the general public and search engines cannot access the store until sign-off.
+- [x] **Step 2 — Cloudflare DNS Setup**: Created Cloudflare account for `sashyanaturals.com` and pointed `A` records (`@`, `www`, `staging`) to `189.72.179.46`.
+- [x] **Step 3 — GoDaddy Nameserver Update**: Updated GoDaddy nameservers to Cloudflare (`naomi.ns.cloudflare.com`, `ricardo.ns.cloudflare.com`).
+- [x] **Step 4 — Staging-Only VPS Deployment (Keep Public Site Offline)**:
+  - Deployed the app to `/var/www/sasya_naturals_staging` on port `3021` (`sasya-staging.service`).
+  - Installed Cloudflare Origin SSL + Let's Encrypt Certbot SSL (`sashyanaturals.com`, `www.sashyanaturals.com`, `staging.sashyanaturals.com`).
+  - Configured Nginx so `https://sashyanaturals.com` serves the "Launching Soon" page to the public while `https://staging.sashyanaturals.com` (and `https://sashyanaturals.com/?staging=1`) serves the full staging storefront & `/admin` portal.
 - [ ] **Step 5 — Final Production Cutover (Only After Sign-Off)**:
   - Point `sashyanaturals.com` and `www.sashyanaturals.com` in Nginx to primary port `3020` (with `:3021` as hot-standby) and remove the staging gate.
 
