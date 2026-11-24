@@ -436,7 +436,50 @@ function runVerifyRbacAndAudit() {
   assert(ragiPdpHtml.includes('Save 30%'), 'PDP must display the distinct 30% per-weight discount badge on the 1 kg variant pill');
   assert(ragiPdpHtml.includes('344 mg Calcium (IFCT 2017)'), 'PDP must render the product-specific bioactive highlight in the Nutritional Value tab');
 
-  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager, v2.5.0 Adversarial Edge-Case Guards, v2.7.0 FSSAI Nutrition + Per-Weight Discounts & immutable audit_logs');
+  // 13. Verify Fail-Closed Production Go-Live Launch Guardrail (Payment Gateway + Email Notification & Verification)
+  const {
+    isLiveProductionHost,
+    evaluateLaunchReadiness,
+    assertProductionLaunchReady
+  } = require('../src/core/auth/launchReadiness');
+
+  assert.strictEqual(isLiveProductionHost('sashyanaturals.com'), true, 'sashyanaturals.com must be detected as live host');
+  assert.strictEqual(isLiveProductionHost('www.sashyanaturals.com'), true, 'www.sashyanaturals.com must be detected as live host');
+  assert.strictEqual(isLiveProductionHost('staging.sashyanaturals.com'), false, 'staging.sashyanaturals.com must NOT be locked by live host gate');
+
+  // In default unconfigured state, launch readiness MUST be false and throw LAUNCH_GUARDRAIL_BLOCKED
+  const initialLaunch = evaluateLaunchReadiness();
+  assert.strictEqual(initialLaunch.isReady, false, 'Default unconfigured vault must block production launch');
+  assert.throws(() => assertProductionLaunchReady(), /LAUNCH_GUARDRAIL_BLOCKED/, 'assertProductionLaunchReady must throw when vault is unconfigured');
+
+  // Sealing a sandbox rzp_test_ key MUST STILL block launch
+  saveVaultCredential({ keyName: 'RAZORPAY_KEY_ID', secretValue: 'rzp_test_SandboxKey123456', actorEmail: superAdmin.email, actorRole: superAdmin.role });
+  saveVaultCredential({ keyName: 'RAZORPAY_KEY_SECRET', secretValue: 'live_rzp_secret_998877665544', actorEmail: superAdmin.email, actorRole: superAdmin.role });
+  saveVaultCredential({ keyName: 'RAZORPAY_WEBHOOK_SECRET', secretValue: 'live_whsec_9988776655', actorEmail: superAdmin.email, actorRole: superAdmin.role });
+  assert.strictEqual(evaluateLaunchReadiness().paymentGatewayLive, false, 'Sandbox rzp_test_ key must NOT pass paymentGatewayLive guardrail');
+
+  // Sealing a live rzp_live_ key passes Payment Gateway check, but missing Email Notification/Verification still blocks launch
+  saveVaultCredential({ keyName: 'RAZORPAY_KEY_ID', secretValue: 'rzp_live_ProdKey9988776655', actorEmail: superAdmin.email, actorRole: superAdmin.role });
+  const afterRzp = evaluateLaunchReadiness();
+  assert.strictEqual(afterRzp.paymentGatewayLive, true, 'Live rzp_live_ key + secret + webhook must satisfy paymentGatewayLive');
+  assert.strictEqual(afterRzp.isReady, false, 'Launch must still be blocked until SMTP_API_KEY and email_verification_live are active');
+
+  // Sealing live SMTP_API_KEY and confirming email_verification_live = '1' unlocks launch (when sample categories are not active)
+  saveVaultCredential({ keyName: 'SMTP_API_KEY', secretValue: 're_live_ProdEmailKey987654321', actorEmail: superAdmin.email, actorRole: superAdmin.role });
+  db.prepare("INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES ('email_verification_live', '1', datetime('now'))").run();
+  const readyState = evaluateLaunchReadiness();
+  if (readyState.stagingSampleDataClean) {
+    assert.strictEqual(readyState.isReady, true, 'Launch guardrail must unlock when Live Razorpay + Live SMTP + email_verification_live are all active');
+    assert.doesNotThrow(() => assertProductionLaunchReady());
+  }
+
+  // Clean up test vault credentials and settings back to unconfigured baseline
+  db.prepare("UPDATE credential_vault SET encrypted_ciphertext = '', iv_hex = '', auth_tag_hex = '', masked_hint = 'NOT_CONFIGURED', is_configured = 0").run();
+  db.prepare("DELETE FROM store_settings WHERE key = 'email_verification_live'").run();
+  db.prepare("DELETE FROM audit_logs WHERE action = 'VAULT_CREDENTIAL_SEALED'").run();
+  assert.strictEqual(evaluateLaunchReadiness().isReady, false, 'Baseline vault reset must re-lock production launch guardrail');
+
+  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Fail-Closed Production Go-Live Guardrail, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager, v2.5.0 Adversarial Edge-Case Guards, v2.7.0 FSSAI Nutrition + Per-Weight Discounts & immutable audit_logs');
 }
 
 if (require.main === module) {

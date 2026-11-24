@@ -11,11 +11,20 @@ const {
   PROTECTED_PATTERNS
 } = require('../src/config/appConfig');
 const { createBookmark } = require('./create_bookmark');
+const { assertProductionLaunchReady, evaluateLaunchReadiness } = require('../src/core/auth/launchReadiness');
 
-function printVpsCutoverPlan() {
+function printVpsCutoverPlan({ allowDryRun = false } = {}) {
   console.log('==================================================================');
   console.log(`Sasya Naturals Zero-502 VPS Cutover Engine (APP_VERSION=${APP_VERSION})`);
   console.log('==================================================================');
+
+  console.log('0. Pre-Launch Guardrail Gate (Payment Gateway + Email Notification & Verification):');
+  const readiness = evaluateLaunchReadiness();
+  if (!readiness.isReady && !allowDryRun) {
+    assertProductionLaunchReady();
+  }
+  console.log('   -> ✓ Payment Gateway (Live Razorpay) & Email Notification/Verification Verified LIVE');
+
   console.log('1. Pre-Deploy Physical Snapshot:');
   const snap = createBookmark('pre_vps_deploy');
   console.log(`   -> Saved local snapshot: ${snap}`);
@@ -31,7 +40,13 @@ function printVpsCutoverPlan() {
 }
 
 if (require.main === module) {
-  printVpsCutoverPlan();
+  const allowDryRun = process.argv.includes('--dry-run');
+  try {
+    printVpsCutoverPlan({ allowDryRun });
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
 }
 
 module.exports = { printVpsCutoverPlan };

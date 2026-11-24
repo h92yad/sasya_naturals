@@ -13,6 +13,7 @@ const { buildMasterSchemaGraph } = require('../core/content/schemaBuilder');
 const { getShippingPolicyFromDb } = require('../core/checkout/checkoutEngine');
 const { buildComprehensiveReports } = require('../core/reports/reportingEngine');
 const { getStorefrontContentAndSeo } = require('../core/content/contentStore');
+const { evaluateLaunchReadiness } = require('../core/auth/launchReadiness');
 
 function getActiveNavCategories() {
   try {
@@ -2656,8 +2657,34 @@ function renderAdminPortalPage({
               </div>
             </div>
 
-            <!-- Panel 2: Write-Only API & Razorpay Credential Vault -->
+            <!-- Panel 2: Write-Only API & Razorpay Credential Vault + Production Go-Live Guardrail -->
             <div class="sn-card" data-admin-panel="vault" style="display:none;">
+              ${(() => {
+                const lr = evaluateLaunchReadiness();
+                return `
+                  <div class="sn-card" id="sn-launch-readiness-guardrail-card" style="background-color:${lr.isReady ? 'var(--sn-status-paid-bg)' : 'var(--sn-status-warn-bg)'};border-left:4px solid ${lr.isReady ? 'var(--sn-status-paid)' : 'var(--sn-status-warn)'};padding:14px 18px;margin-bottom:18px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px;">
+                      <div>
+                        <span class="sn-eyebrow" style="margin:0;">Fail-Closed Production Go-Live Guardrail</span>
+                        <h3 style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.1rem;color:var(--sn-bg-forest);">
+                          ${lr.isReady
+                            ? '✓ Live Launch Unlocked: Payment Gateway &amp; Email Verification Active'
+                            : '🔒 Live Launch Blocked: Public Domain (sashyanaturals.com) Locked to "Launching Soon"'
+                          }
+                        </h3>
+                      </div>
+                      <span class="sn-status ${lr.isReady ? 'sn-status-paid' : 'sn-status-warn'}">
+                        ${lr.isReady ? 'READY FOR LIVE TRAFFIC' : `${lr.blockers.length} LAUNCH BLOCKERS ACTIVE`}
+                      </span>
+                    </div>
+                    <div class="sn-grid-3" style="gap:8px;font-family:var(--sn-font-mono);font-size:0.75rem;">
+                      <div>${lr.checks.razorpayLiveKeyId && lr.checks.razorpayLiveSecret && lr.checks.razorpayWebhookSecret ? '✓' : '✕'} <strong>Razorpay Live Keys (rzp_live_*)</strong></div>
+                      <div>${lr.checks.smtpApiKeySealed && lr.checks.emailVerificationConfirmed ? '✓' : '✕'} <strong>Live Email Notification &amp; OTP Verification</strong></div>
+                      <div>${lr.checks.stagingSampleCategoriesPurged ? '✓' : '✕'} <strong>Staging Sample Categories Purged</strong></div>
+                    </div>
+                  </div>
+                `;
+              })()}
               <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Write-Only AES-256-GCM API &amp; Payment Credential Vault</h2>
               <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0 0 20px;">
                 Strictly restricted to <strong>SUPER_ADMIN</strong>. Paste your Razorpay, SMTP, or WhatsApp OTP API keys once. Once added, the key is encrypted with AES-256-GCM and <strong>permanently hidden from the console</strong>.

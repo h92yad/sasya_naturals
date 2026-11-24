@@ -49,6 +49,12 @@ const {
   listVaultStatus
 } = require('./src/core/auth/credentialVault');
 const {
+  isLiveProductionHost,
+  evaluateLaunchReadiness,
+  assertProductionLaunchReady,
+  renderLaunchingSoonGuardrailHtml
+} = require('./src/core/auth/launchReadiness');
+const {
   SESSION_COOKIE_NAME,
   CUSTOMER_COOKIE_NAME,
   verifySessionToken,
@@ -293,8 +299,35 @@ function createServerHandler() {
         return res.end(svgFavicon);
       }
 
+      // 2.5 Fail-Closed Production Go-Live Guardrail:
+      // If a request arrives for the live public domain (sashyanaturals.com / www.sashyanaturals.com / sasynaturals.com)
+      // OR when NODE_ENV=production, verify that Live Razorpay Payment Gateway AND Live Email Notification/Verification
+      // are sealed and active. If not ready, lock the response to "Launching Soon" (and Disallow: / in robots.txt).
+      const reqHost = String(req.headers.host || '').toLowerCase();
+      const isLiveDomainRequest = isLiveProductionHost(reqHost) || IS_PROD;
+      if (isLiveDomainRequest) {
+        const launchReadiness = evaluateLaunchReadiness();
+        if (!launchReadiness.isReady) {
+          if (pathname === '/robots.txt') {
+            res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+            return res.end('User-agent: *\nDisallow: /');
+          }
+          if (pathname.startsWith('/api/')) {
+            return sendJson(res, 503, {
+              error: 'Production go-live is locked until Live Payment Gateway and Email Notification & Verification are active.',
+              launchReadiness
+            });
+          }
+          res.writeHead(200, {
+            'Content-Type': 'text/html; charset=utf-8',
+            'X-Robots-Tag': 'noindex, nofollow, noarchive, nosnippet, noimageindex',
+            'Cache-Control': 'no-store, no-cache, must-revalidate'
+          });
+          return res.end(renderLaunchingSoonGuardrailHtml());
+        }
+      }
+
       if (pathname === '/robots.txt') {
-        const reqHost = String(req.headers.host || '').toLowerCase();
         const isStagingHost = IS_STAGING || reqHost.startsWith('staging.');
         const txt = isStagingHost
           ? ['User-agent: *', 'Disallow: /'].join('\n')
@@ -590,7 +623,13 @@ function createServerHandler() {
       if (pathname === '/api/admin/vault/status' && req.method === 'GET') {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'settings.manage');
-        return sendJson(res, 200, { vault: listVaultStatus() });
+        return sendJson(res, 200, { vault: listVaultStatus(), launchReadiness: evaluateLaunchReadiness() });
+      }
+
+      if (pathname === '/api/admin/launch-readiness' && req.method === 'GET') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'settings.manage');
+        return sendJson(res, 200, { launchReadiness: evaluateLaunchReadiness() });
       }
 
       if (pathname === '/api/admin/vault/seal' && req.method === 'POST') {
@@ -603,7 +642,7 @@ function createServerHandler() {
           actorEmail: adminUser.email,
           actorRole: adminUser.role
         });
-        return sendJson(res, 200, sealed);
+        return sendJson(res, 200, { ...sealed, launchReadiness: evaluateLaunchReadiness() });
       }
 
       if (pathname === '/api/admin/settings/shipping' && req.method === 'POST') {
@@ -629,7 +668,8 @@ function createServerHandler() {
           'email_template_order_confirmed',
           'email_template_order_shipped',
           'email_template_order_delivered',
-          'email_template_order_cancelled'
+          'email_template_order_cancelled',
+          'email_verification_live'
         ];
         const upsert = db.prepare("INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))");
         const updated = {};
@@ -1871,6 +1911,9 @@ function createServerHandler() {
 
 function startServer(port = PORT) {
   getDb();
+  if (IS_PROD) {
+    assertProductionLaunchReady();
+  }
   const server = http.createServer(createServerHandler());
   server.on('error', (err) => {
     console.error(`[FATAL_PORT_BIND_ERROR] Failed to bind strictly to port ${port}:`, err.message);
