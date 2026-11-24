@@ -187,7 +187,8 @@ server {
     return 444;
 }
 
-# 2. MAIN PUBLIC DOMAIN -> Serves "Launching Soon" page ONLY (Store stays offline)
+# 2. MAIN PUBLIC DOMAIN -> Serves "Launching Soon" page to public,
+#    OR proxies to Staging (:3021) ONLY if you unlock with https://sashyanaturals.com/?staging=1
 server {
     listen 80;
     listen 443 ssl;
@@ -196,13 +197,39 @@ server {
     ssl_certificate ${SSL_DIR}/origin.pem;
     ssl_certificate_key ${SSL_DIR}/origin.key;
 
+    client_max_body_size 15M;
     root ${COMING_SOON_DIR};
     index index.html;
 
     location / {
         add_header X-Robots-Tag "noindex, nofollow" always;
+
+        set \$show_staging 0;
+        if (\$http_cookie ~* "sn_staging=1") {
+            set \$show_staging 1;
+        }
+        if (\$arg_staging = "1") {
+            set \$show_staging 1;
+            add_header Set-Cookie "sn_staging=1; Path=/; Max-Age=604800; HttpOnly; Secure; SameSite=Lax" always;
+        }
+        if (\$arg_staging = "0") {
+            set \$show_staging 0;
+            add_header Set-Cookie "sn_staging=0; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax" always;
+        }
+
+        if (\$show_staging = 1) {
+            proxy_pass http://127.0.0.1:3021;
+            break;
+        }
+
         try_files \$uri \$uri/ /index.html;
     }
+
+    proxy_http_version 1.1;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$scheme;
 }
 
 # 3. STAGING SUBDOMAIN -> Forwards to Node.js Staging Server (:3021)
