@@ -10,6 +10,7 @@ const {
   IS_PROD,
   PORT,
   CANONICAL_ORIGIN,
+  IS_STAGING,
   BRAND_NAME,
   BRAND_TAGLINE
 } = require('./src/config/appConfig');
@@ -269,16 +270,20 @@ function createServerHandler() {
       }
 
       if (pathname === '/robots.txt') {
-        const txt = [
-          'User-agent: *',
-          'Allow: /',
-          'Allow: /llms.txt',
-          'Disallow: /admin',
-          'Disallow: /orders/',
-          'Disallow: /api/',
-          '',
-          `Sitemap: ${CANONICAL_ORIGIN}/sitemap.xml`
-        ].join('\n');
+        const reqHost = String(req.headers.host || '').toLowerCase();
+        const isStagingHost = IS_STAGING || reqHost.startsWith('staging.');
+        const txt = isStagingHost
+          ? ['User-agent: *', 'Disallow: /'].join('\n')
+          : [
+              'User-agent: *',
+              'Allow: /',
+              'Allow: /llms.txt',
+              'Disallow: /admin',
+              'Disallow: /orders/',
+              'Disallow: /api/',
+              '',
+              `Sitemap: ${CANONICAL_ORIGIN}/sitemap.xml`
+            ].join('\n');
         res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
         return res.end(txt);
       }

@@ -16,6 +16,7 @@ const PORT = Number(process.env.PORT || DEFAULT_PORT);
 const STANDBY_PORT = 3021;
 
 const CANONICAL_ORIGIN = (process.env.CANONICAL_ORIGIN || 'https://sasynaturals.com').replace(/\/+$/, '');
+const IS_STAGING = process.env.IS_STAGING === 'true' || /^https?:\/\/staging\./i.test(CANONICAL_ORIGIN);
 const BRAND_NAME = 'Sasya Naturals';
 const BRAND_TAGLINE = 'Heirloom Dry Fruits, Unpolished Native Millets & Single-Origin Indian Spices';
 
@@ -86,6 +87,7 @@ module.exports = {
   PORT,
   STANDBY_PORT,
   CANONICAL_ORIGIN,
+  IS_STAGING,
   BRAND_NAME,
   BRAND_TAGLINE,
   PROTECTED_PATTERNS,

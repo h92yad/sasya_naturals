@@ -3,6 +3,7 @@
 const {
   APP_VERSION,
   CANONICAL_ORIGIN,
+  IS_STAGING,
   BRAND_NAME,
   BRAND_TAGLINE,
   ORDER_FULFILMENT_STATUSES
@@ -190,7 +191,7 @@ function renderShell({
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escapeHtml(finalTitle)}</title>
   <meta name="description" content="${escapeHtml(finalDescription)}" />
-  <meta name="robots" content="${isNoIndex ? 'noindex, nofollow' : 'index, follow'}" />
+  <meta name="robots" content="${isNoIndex || IS_STAGING ? 'noindex, nofollow' : 'index, follow'}" />
   <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
   <link rel="alternate" type="text/markdown" href="${escapeHtml(CANONICAL_ORIGIN + mdTwinPath)}" title="Markdown Version" />
   <meta property="og:type" content="website" />
