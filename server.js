@@ -69,7 +69,8 @@ const {
   resetPasswordWithOtp,
   parseCookies,
   buildSessionCookieHeader,
-  buildCustomerCookieHeader
+  buildCustomerCookieHeader,
+  normalizeStaffOrCustomerEmail
 } = require('./src/core/auth/sessionManager');
 const { lintContentText } = require('./src/core/content/contentLinter');
 const {
@@ -95,10 +96,10 @@ const {
 
 const INFO_PAGES = {
   about: {
-    title: 'About Sasya Naturals',
+    title: 'About Sashya Naturals',
     subtitle: 'Direct-To-Customer Indian Pantry • Pure Dry Fruits, Native Millets & Heirloom Spices',
     paragraphs: [
-      'Sasya Naturals connects Indian households directly with regional grower cooperatives harvesting unbleached dry fruits, unpolished rain-fed millets, and high-oil single-origin spices.',
+      'Sashya Naturals connects Indian households directly with regional grower cooperatives harvesting unbleached dry fruits, unpolished rain-fed millets, and high-oil single-origin spices.',
       'Every product is offered in 100 g, 250 g, 500 g, and 1 kg nitrogen-flushed packs with full batch traceability, harvest origin disclosure, and clear allergen labelling.'
     ]
   },
@@ -106,7 +107,7 @@ const INFO_PAGES = {
     title: 'Contact Customer Support',
     subtitle: 'Order Assistance, Bulk Enquiries & Dispatch Support',
     paragraphs: [
-      'Customer Support Email: care@sasynaturals.com | Phone: +91 80 4568 2200 (Monday to Saturday, 9:30 AM to 6:30 PM IST).',
+      'Customer Support Email: care@sashyanaturals.com | Phone: +91 80 4568 2200 (Monday to Saturday, 9:30 AM to 6:30 PM IST).',
       'For order tracking queries, please keep your Order Number (for example SN-2026-1001) ready.'
     ]
   },
@@ -123,15 +124,15 @@ const INFO_PAGES = {
     title: 'Privacy Policy',
     subtitle: 'Customer Data Protection & Order Privacy',
     paragraphs: [
-      'Sasya Naturals collects only the contact, delivery address, and payment reference details required to fulfil your order, issue GST tax invoices, and send shipment updates.',
-      'Payment card and UPI credentials are processed directly by our PCI-DSS compliant gateway partner (Razorpay) and are never stored on Sasya Naturals servers.'
+      'Sashya Naturals collects only the contact, delivery address, and payment reference details required to fulfil your order, issue GST tax invoices, and send shipment updates.',
+      'Payment card and UPI credentials are processed directly by our PCI-DSS compliant gateway partner (Razorpay) and are never stored on Sashya Naturals servers.'
     ]
   },
   terms: {
     title: 'Terms of Service',
     subtitle: 'Ordering, Pricing, Tax & Fulfilment Terms',
     paragraphs: [
-      'All prices listed on sasynaturals.com are in Indian Rupees (INR) and indicate applicable GST percentages. Orders are confirmed only after server-side payment verification or COD confirmation.',
+      'All prices listed on sashyanaturals.com are in Indian Rupees (INR) and indicate applicable GST percentages. Orders are confirmed only after server-side payment verification or COD confirmation.',
       'Pack weights (100 g, 250 g, 500 g, 1 kg) represent net product weight at the time of packing.'
     ]
   },
@@ -140,7 +141,7 @@ const INFO_PAGES = {
     subtitle: '4-Zone + 500g Weight-Slab Courier Dispatch, Damaged Parcel Replacement & Refund Timelines',
     paragraphs: [
       'Delivery charges are calculated transparently using our 4-Zone (Local Bengaluru, South India, National, and Remote/NE) + 500g billable weight-slab engine (including 150g protective carton tare weight). Orders meeting the active free-delivery threshold and weight cap qualify for complimentary shipping.',
-      'Orders may be cancelled prior to dispatch. If a parcel arrives damaged or tampered, contact care@sasynaturals.com within 48 hours of delivery for a verified replacement or refund to your original payment source.'
+      'Orders may be cancelled prior to dispatch. If a parcel arrives damaged or tampered, contact care@sashyanaturals.com within 48 hours of delivery for a verified replacement or refund to your original payment source.'
     ]
   },
   account: {
@@ -206,13 +207,16 @@ function resolveAdminUser(req) {
   if (cookies[SESSION_COOKIE_NAME]) {
     const verified = verifySessionToken(cookies[SESSION_COOKIE_NAME]);
     if (verified && verified.email) {
-      const user = db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1').get(verified.email);
+      const clean = normalizeStaffOrCustomerEmail(verified.email);
+      const alt = clean.replace(/@sashyanaturals\.com$/i, '@sasynaturals.com');
+      const user = db.prepare('SELECT * FROM users WHERE lower(email) IN (?, ?) AND is_active = 1').get(clean, alt);
       if (user) return user;
     }
   }
   if (process.env.ALLOW_DEV_HEADER_AUTH === 'true' && req.headers['x-admin-email']) {
-    const headerEmail = String(req.headers['x-admin-email']).trim();
-    return db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1').get(headerEmail);
+    const clean = normalizeStaffOrCustomerEmail(req.headers['x-admin-email']);
+    const alt = clean.replace(/@sashyanaturals\.com$/i, '@sasynaturals.com');
+    return db.prepare('SELECT * FROM users WHERE lower(email) IN (?, ?) AND is_active = 1').get(clean, alt);
   }
   return null;
 }
@@ -308,7 +312,7 @@ function createServerHandler() {
       }
 
       // 2.5 Fail-Closed Production Go-Live Guardrail:
-      // If a request arrives for the live public domain (sashyanaturals.com / www.sashyanaturals.com / sasynaturals.com)
+      // If a request arrives for the live public domain (sashyanaturals.com / www.sashyanaturals.com / sashyanaturals.com)
       // OR when NODE_ENV=production, verify that Live Razorpay Payment Gateway AND Live Email Notification/Verification
       // are sealed and active. If not ready, lock the response to "Launching Soon" (and Disallow: / in robots.txt).
       const reqHost = String(req.headers.host || '').toLowerCase();
@@ -729,7 +733,7 @@ function createServerHandler() {
         const csvContent = exportReportToCsv(reports, reportType);
         res.writeHead(200, {
           'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="sasya-naturals-report-${reportType}.csv"`,
+          'Content-Disposition': `attachment; filename="sashya-naturals-report-${reportType}.csv"`,
           'Cache-Control': 'no-store'
         });
         return res.end(csvContent);
@@ -748,7 +752,7 @@ function createServerHandler() {
         });
         res.writeHead(200, {
           'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="sasya-naturals-${exportType}.csv"`,
+          'Content-Disposition': `attachment; filename="sashya-naturals-${exportType}.csv"`,
           'Cache-Control': 'no-store'
         });
         return res.end(csvContent);
@@ -941,7 +945,7 @@ function createServerHandler() {
         if (newStockQty <= lowStockThreshold && variant.stock_qty > lowStockThreshold) {
           db.prepare(`
             INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
-            VALUES ('ADMIN_PORTAL', 'ADMIN_ALERT', 'catalog@sasynaturals.com', 'LOW_STOCK_ALERT', ?, ?)
+            VALUES ('ADMIN_PORTAL', 'ADMIN_ALERT', 'catalog@sashyanaturals.com', 'LOW_STOCK_ALERT', ?, ?)
           `).run(
             `Low Stock Alert: ${variant.sku} (${newStockQty} remaining)`,
             `Variant ${variant.sku} (${variant.pack_label}) adjusted to ${newStockQty} units (threshold: ${lowStockThreshold}).`
@@ -1561,7 +1565,7 @@ function createServerHandler() {
         const fullName = String(body.fullName || '').trim();
         const email = String(body.email || '').trim().toLowerCase();
         const phone = String(body.phone || '').trim();
-        const password = String(body.password || 'Sasya@2026');
+        const password = String(body.password || 'Sashya@2026');
         const role = String(body.role || 'STAFF').trim().toUpperCase();
         const allowedStaffRoles = ['SUPER_ADMIN', 'PRODUCT_MANAGER', 'ORDER_MANAGER', 'ACCOUNTS_MANAGER', 'STAFF'];
         if (!fullName || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -1976,7 +1980,7 @@ function startServer(port = PORT) {
     process.exit(1);
   });
   server.listen(port, '0.0.0.0', () => {
-    console.log(`[Sasya Naturals SSR + Rust WASM] Live on http://localhost:${port} (APP_VERSION=${APP_VERSION})`);
+    console.log(`[Sashya Naturals SSR + Rust WASM] Live on http://localhost:${port} (APP_VERSION=${APP_VERSION})`);
   });
   return server;
 }

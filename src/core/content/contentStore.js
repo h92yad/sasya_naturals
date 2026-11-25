@@ -11,7 +11,7 @@ const DEFAULT_HOMEPAGE_CONTENT = {
   heroEyebrow: 'Direct-To-Customer Indian Pantry • Batch Traceable',
   heroHeading: 'Single-Origin Dry Fruits, Unpolished Native Millets & Heirloom Spices',
   heroLead:
-    'Every Sasya Naturals harvest is sourced directly from regional grower cooperatives in Kashmir, Goa, Karnataka, Kerala, and Meghalaya. Packed fresh in 100 g, 250 g, 500 g, and 1 kg pouches with transparent batch labels.',
+    'Every Sashya Naturals harvest is sourced directly from regional grower cooperatives in Kashmir, Goa, Karnataka, Kerala, and Meghalaya. Packed fresh in 100 g, 250 g, 500 g, and 1 kg pouches with transparent batch labels.',
   heroPrimaryCtaLabel: 'Explore Full Pantry',
   heroSecondaryCtaLabel: 'Track Your Order',
   heroBatchCaptionLeft: 'Harvest Batch: Nov 2026',
@@ -24,15 +24,15 @@ const DEFAULT_HOMEPAGE_CONTENT = {
   trust3Sub: 'Razorpay UPI, Cards, NetBanking & COD',
   footerBlurb:
     'Direct-to-customer Indian pantry delivering unbleached dry fruits, rain-fed unpolished millets, and cold-milled heirloom spices in 100 g, 250 g, 500 g, and 1 kg packs.',
-  footerSupportLine: 'Domain: sasynaturals.com | Support: care@sasynaturals.com'
+  footerSupportLine: 'Domain: sashyanaturals.com | Support: care@sashyanaturals.com'
 };
 
 const DEFAULT_INFO_PAGES = {
   about: {
-    title: 'About Sasya Naturals',
+    title: 'About Sashya Naturals',
     subtitle: 'Direct-To-Customer Indian Pantry • Pure Dry Fruits, Native Millets & Heirloom Spices',
     paragraphs: [
-      'Sasya Naturals connects Indian households directly with regional grower cooperatives harvesting unbleached dry fruits, unpolished rain-fed millets, and high-oil single-origin spices.',
+      'Sashya Naturals connects Indian households directly with regional grower cooperatives harvesting unbleached dry fruits, unpolished rain-fed millets, and high-oil single-origin spices.',
       'Every product is offered in 100 g, 250 g, 500 g, and 1 kg nitrogen-flushed packs with full batch traceability, harvest origin disclosure, and clear allergen labelling.'
     ]
   },
@@ -40,7 +40,7 @@ const DEFAULT_INFO_PAGES = {
     title: 'Contact Customer Support',
     subtitle: 'Order Assistance, Bulk Enquiries & Dispatch Support',
     paragraphs: [
-      'Customer Support Email: care@sasynaturals.com | Phone: +91 80 4568 2200 (Monday to Saturday, 9:30 AM to 6:30 PM IST).',
+      'Customer Support Email: care@sashyanaturals.com | Phone: +91 80 4568 2200 (Monday to Saturday, 9:30 AM to 6:30 PM IST).',
       'For order tracking queries, please keep your Order Number (for example SN-2026-1001) ready.'
     ]
   },
@@ -57,15 +57,15 @@ const DEFAULT_INFO_PAGES = {
     title: 'Privacy Policy',
     subtitle: 'Customer Data Protection & Order Privacy',
     paragraphs: [
-      'Sasya Naturals collects only the contact, delivery address, and payment reference details required to fulfil your order, issue GST tax invoices, and send shipment updates.',
-      'Payment card and UPI credentials are processed directly by our PCI-DSS compliant gateway partner (Razorpay) and are never stored on Sasya Naturals servers.'
+      'Sashya Naturals collects only the contact, delivery address, and payment reference details required to fulfil your order, issue GST tax invoices, and send shipment updates.',
+      'Payment card and UPI credentials are processed directly by our PCI-DSS compliant gateway partner (Razorpay) and are never stored on Sashya Naturals servers.'
     ]
   },
   terms: {
     title: 'Terms of Service',
     subtitle: 'Ordering, Pricing, Tax & Fulfilment Terms',
     paragraphs: [
-      'All prices listed on sasynaturals.com are in Indian Rupees (INR) and indicate applicable GST percentages. Orders are confirmed only after server-side payment verification or COD confirmation.',
+      'All prices listed on sashyanaturals.com are in Indian Rupees (INR) and indicate applicable GST percentages. Orders are confirmed only after server-side payment verification or COD confirmation.',
       'Pack weights (100 g, 250 g, 500 g, 1 kg) represent net product weight at the time of packing.'
     ]
   },
@@ -74,7 +74,7 @@ const DEFAULT_INFO_PAGES = {
     subtitle: '4-Zone + 500g Weight-Slab Courier Dispatch, Damaged Parcel Replacement & Refund Timelines',
     paragraphs: [
       'Delivery charges are calculated transparently using our 4-Zone (Local Bengaluru, South India, National, and Remote/NE) + 500g billable weight-slab engine (including 150g protective carton tare weight). Orders meeting the active free-delivery threshold and weight cap qualify for complimentary shipping.',
-      'Orders may be cancelled prior to dispatch. If a parcel arrives damaged or tampered, contact care@sasynaturals.com within 48 hours of delivery for a verified replacement or refund to your original payment source.'
+      'Orders may be cancelled prior to dispatch. If a parcel arrives damaged or tampered, contact care@sashyanaturals.com within 48 hours of delivery for a verified replacement or refund to your original payment source.'
     ]
   },
   account: {
@@ -98,26 +98,26 @@ const DEFAULT_SEO_ROUTES = {
     label: 'All Catalogue (/shop)',
     metaTitle: `All Natural Products Catalogue | ${BRAND_NAME}`,
     metaDescription:
-      'Browse all Sasya Naturals dry fruits, unpolished millets, and single-origin spices with 100 g, 250 g, 500 g, and 1 kg pack variants.',
+      'Browse all Sashya Naturals dry fruits, unpolished millets, and single-origin spices with 100 g, 250 g, 500 g, and 1 kg pack variants.',
     ogImagePath: '/images/hero-pantry.jpg'
   },
   '/checkout': {
     label: 'Checkout (/checkout)',
     metaTitle: `Secure Checkout — UPI, Cards, NetBanking & COD | ${BRAND_NAME}`,
     metaDescription:
-      'Complete your Sasya Naturals order with instant UPI, credit/debit card, net banking, or Cash on Delivery across India.',
+      'Complete your Sashya Naturals order with instant UPI, credit/debit card, net banking, or Cash on Delivery across India.',
     ogImagePath: '/images/hero-pantry.jpg'
   },
   '/track-order': {
     label: 'Track Order (/track-order)',
     metaTitle: `Track Order & Manual Courier Status | ${BRAND_NAME}`,
     metaDescription:
-      'Track your Sasya Naturals order status, separate payment and fulfilment states, and manual courier AWB tracking reference.',
+      'Track your Sashya Naturals order status, separate payment and fulfilment states, and manual courier AWB tracking reference.',
     ogImagePath: '/images/hero-pantry.jpg'
   },
   '/about': {
     label: 'About Us (/about)',
-    metaTitle: `About Sasya Naturals | ${BRAND_NAME}`,
+    metaTitle: `About Sashya Naturals | ${BRAND_NAME}`,
     metaDescription: DEFAULT_INFO_PAGES.about.subtitle,
     ogImagePath: '/images/hero-pantry.jpg'
   },
@@ -256,7 +256,7 @@ function updateHomepageContent(payload = {}, actor = {}) {
     VALUES (?, ?, ?, 'HOMEPAGE_CONTENT_UPDATED', 'CONTENT', 'HOMEPAGE_HERO_FOOTER', ?)
   `).run(
     actor.actorId || null,
-    actor.actorEmail || 'superadmin@sasynaturals.com',
+    actor.actorEmail || 'superadmin@sashyanaturals.com',
     actor.actorRole || 'SUPER_ADMIN',
     JSON.stringify({ heroHeading: next.heroHeading, heroEyebrow: next.heroEyebrow })
   );
@@ -307,7 +307,7 @@ function updateInfoPageContent({ slug, title, subtitle, paragraphsText }, actor 
     VALUES (?, ?, ?, 'INFO_PAGE_CONTENT_UPDATED', 'CONTENT_PAGE', ?, ?)
   `).run(
     actor.actorId || null,
-    actor.actorEmail || 'superadmin@sasynaturals.com',
+    actor.actorEmail || 'superadmin@sashyanaturals.com',
     actor.actorRole || 'SUPER_ADMIN',
     cleanSlug,
     JSON.stringify({ slug: cleanSlug, title: cleanTitle, paragraphCount: paragraphs.length })
@@ -358,7 +358,7 @@ function updateRouteSeoMeta({ routePath, metaTitle, metaDescription, ogImagePath
     VALUES (?, ?, ?, 'ROUTE_SEO_META_UPDATED', 'SEO_META', ?, ?)
   `).run(
     actor.actorId || null,
-    actor.actorEmail || 'superadmin@sasynaturals.com',
+    actor.actorEmail || 'superadmin@sashyanaturals.com',
     actor.actorRole || 'SUPER_ADMIN',
     cleanRoute,
     JSON.stringify(savedSeo[cleanRoute])

@@ -71,24 +71,27 @@ function runVerifyRbacAndAudit() {
   assert.strictEqual(getVaultSecret('SMTP_API_KEY'), 're_live_SasyaSecretKey987654321', 'Internal server decryptor must recover exact secret');
   db.prepare("UPDATE credential_vault SET encrypted_ciphertext = '', iv_hex = '', auth_tag_hex = '', masked_hint = 'NOT_CONFIGURED', is_configured = 0 WHERE key_name = 'SMTP_API_KEY'").run();
 
-  // 8. Verify Hardened Session Cookie Login (Staff & Customer) & 5-Attempt Lockout Rate-Limiter
+  // 8. Verify Hardened Session Cookie Login (Staff & Customer, including @sashyanaturals.com + @sasynaturals.com dual-alias) & 5-Attempt Lockout Rate-Limiter
   const { loginAdminWithPassword, loginCustomerWithPassword, verifySessionToken, clearFailedAttempts } = require('../src/core/auth/sessionManager');
-  clearFailedAttempts('10.0.0.99:superadmin@sasynaturals.com');
-  const loginRes = loginAdminWithPassword('superadmin@sasynaturals.com', 'Sasya@2026', '10.0.0.99');
+  clearFailedAttempts('10.0.0.99:superadmin@sashyanaturals.com');
+  const loginRes = loginAdminWithPassword('superadmin@sashyanaturals.com', 'Sashya@2026', '10.0.0.99');
   assert(loginRes.sessionToken && loginRes.csrfToken, 'Valid password login must issue signed sessionToken and csrfToken');
   const decodedSession = verifySessionToken(loginRes.sessionToken);
   assert.strictEqual(decodedSession.role, 'SUPER_ADMIN');
+  // Also verify backward-compatible @sasynaturals.com and Sasya@2026 login
+  const legacyLoginRes = loginAdminWithPassword('superadmin@sasynaturals.com', 'Sasya@2026', '10.0.0.99');
+  assert(legacyLoginRes.sessionToken, 'Backward-compatible @sasynaturals.com + Sasya@2026 login must succeed');
 
   // Customer Account login check (Section 4)
   clearFailedAttempts('cust:10.0.0.99:ananya.iyer@example.com');
-  const custLoginRes = loginCustomerWithPassword('ananya.iyer@example.com', 'Sasya@2026', '10.0.0.99');
+  const custLoginRes = loginCustomerWithPassword('ananya.iyer@example.com', 'Sashya@2026', '10.0.0.99');
   assert(custLoginRes.sessionToken && custLoginRes.user.role === 'CUSTOMER', 'Customer login must issue signed sessionToken');
 
   for (let i = 0; i < 5; i++) {
-    assert.throws(() => loginAdminWithPassword('superadmin@sasynaturals.com', 'WrongPass', '10.0.0.88'), /Invalid staff email or password/);
+    assert.throws(() => loginAdminWithPassword('superadmin@sashyanaturals.com', 'WrongPass', '10.0.0.88'), /Invalid staff email or password/);
   }
-  assert.throws(() => loginAdminWithPassword('superadmin@sasynaturals.com', 'Sasya@2026', '10.0.0.88'), /Too many failed login attempts/);
-  clearFailedAttempts('10.0.0.88:superadmin@sasynaturals.com');
+  assert.throws(() => loginAdminWithPassword('superadmin@sashyanaturals.com', 'Sashya@2026', '10.0.0.88'), /Too many failed login attempts/);
+  clearFailedAttempts('10.0.0.88:superadmin@sashyanaturals.com');
 
   // 9. Verify Section 5.1 Comprehensive Reports Engine (Daily vs Weekly vs Monthly, 22-Product Net Sales, Order & Payment Summaries, CSV Export)
   const { buildComprehensiveReports, exportReportToCsv } = require('../src/core/reports/reportingEngine');
@@ -262,13 +265,13 @@ function runVerifyRbacAndAudit() {
   const updatedSeo = updateRouteSeoMeta(
     {
       routePath: '/shop',
-      metaTitle: 'All Natural Products Catalogue | Sasya Naturals',
-      metaDescription: 'Browse all Sasya Naturals dry fruits, unpolished millets, and single-origin spices with 100 g, 250 g, 500 g, and 1 kg pack variants.',
+      metaTitle: 'All Natural Products Catalogue | Sashya Naturals',
+      metaDescription: 'Browse all Sashya Naturals dry fruits, unpolished millets, and single-origin spices with 100 g, 250 g, 500 g, and 1 kg pack variants.',
       ogImagePath: '/images/hero-pantry.jpg'
     },
     { actorId: superAdmin.id, actorEmail: superAdmin.email, actorRole: superAdmin.role }
   );
-  assert.strictEqual(updatedSeo.metaTitle, 'All Natural Products Catalogue | Sasya Naturals', 'updateRouteSeoMeta must persist route SEO metadata');
+  assert.strictEqual(updatedSeo.metaTitle, 'All Natural Products Catalogue | Sashya Naturals', 'updateRouteSeoMeta must persist route SEO metadata');
   assert.strictEqual(getStorefrontContentAndSeo().homepage.heroBatchCaptionLeft, 'Harvest Batch: Dec 2026');
 
   // Clean up test content overrides back to baseline defaults
@@ -364,7 +367,7 @@ function runVerifyRbacAndAudit() {
     () => updateRouteSeoMeta(
       {
         routePath: '/shop',
-        metaTitle: 'Valid Shop Title | Sasya Naturals',
+        metaTitle: 'Valid Shop Title | Sashya Naturals',
         metaDescription: 'Valid Shop Description',
         ogImagePath: 'https://evil.example.com/tracker.png'
       },

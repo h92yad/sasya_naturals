@@ -78,12 +78,16 @@ function recordFailedAttempt(key) {
 
 function clearFailedAttempts(key) {
   loginAttemptsMap.delete(key);
+  if (typeof key === 'string') {
+    loginAttemptsMap.delete(key.replace(/@sasynaturals\.com$/i, '@sashyanaturals.com'));
+    loginAttemptsMap.delete(key.replace(/@sashyanaturals\.com$/i, '@sasynaturals.com'));
+  }
 }
 
 function normalizeStaffOrCustomerEmail(rawEmail) {
   const clean = String(rawEmail || '').trim().toLowerCase();
-  if (clean.endsWith('@sashyanaturals.com')) {
-    return clean.replace(/@sashyanaturals\.com$/, '@sasynaturals.com');
+  if (clean.endsWith('@sasynaturals.com')) {
+    return clean.replace(/@sasynaturals\.com$/, '@sashyanaturals.com');
   }
   return clean;
 }
@@ -97,11 +101,14 @@ function checkPasswordWithTrimFallback(rawPassword, passwordHash) {
 
 function loginAdminWithPassword(email, password, clientIp = '127.0.0.1') {
   const cleanEmail = normalizeStaffOrCustomerEmail(email);
+  const altEmail = cleanEmail.replace(/@sashyanaturals\.com$/, '@sasynaturals.com');
   const rateKey = `${clientIp}:${cleanEmail}`;
   checkLoginRateLimit(rateKey);
 
   const db = getDb();
-  const user = db.prepare("SELECT * FROM users WHERE lower(email) = ? AND role != 'CUSTOMER' AND is_active = 1").get(cleanEmail);
+  const user = db
+    .prepare("SELECT * FROM users WHERE lower(email) IN (?, ?) AND role != 'CUSTOMER' AND is_active = 1")
+    .get(cleanEmail, altEmail);
   if (!user || !checkPasswordWithTrimFallback(password, user.password_hash)) {
     recordFailedAttempt(rateKey);
     const err = new Error('Invalid staff email or password.');
@@ -274,11 +281,12 @@ function changeUserPassword({ userId, currentPassword, newPassword }) {
 
 function requestPasswordResetOtp(email) {
   const cleanEmail = normalizeStaffOrCustomerEmail(email);
+  const altEmail = cleanEmail.replace(/@sashyanaturals\.com$/, '@sasynaturals.com');
   if (!cleanEmail || !cleanEmail.includes('@')) {
     throw new Error('Please enter a valid registered email address.');
   }
   const db = getDb();
-  const user = db.prepare('SELECT * FROM users WHERE lower(email) = ? AND is_active = 1').get(cleanEmail);
+  const user = db.prepare('SELECT * FROM users WHERE lower(email) IN (?, ?) AND is_active = 1').get(cleanEmail, altEmail);
   if (!user) {
     throw new Error('No active account found with that email address.');
   }
@@ -301,7 +309,7 @@ function requestPasswordResetOtp(email) {
 
   db.prepare(`
     INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
-    VALUES ('AUTH_OTP', 'EMAIL', ?, 'PASSWORD_RESET_OTP', 'Sasya Naturals Password Reset OTP', ?)
+    VALUES ('AUTH_OTP', 'EMAIL', ?, 'PASSWORD_RESET_OTP', 'Sashya Naturals Password Reset OTP', ?)
   `).run(cleanEmail, `Your 6-digit password reset code is ${otpCode} (valid for 10 minutes).`);
 
   return {
@@ -314,6 +322,7 @@ function requestPasswordResetOtp(email) {
 
 function resetPasswordWithOtp({ email, otpCode, newPassword }) {
   const cleanEmail = normalizeStaffOrCustomerEmail(email);
+  const altEmail = cleanEmail.replace(/@sashyanaturals\.com$/, '@sasynaturals.com');
   const cleanOtp = String(otpCode || '').trim();
   const cleanNew = String(newPassword || '').trim();
 
@@ -322,7 +331,7 @@ function resetPasswordWithOtp({ email, otpCode, newPassword }) {
   }
 
   const db = getDb();
-  const user = db.prepare('SELECT * FROM users WHERE lower(email) = ? AND is_active = 1').get(cleanEmail);
+  const user = db.prepare('SELECT * FROM users WHERE lower(email) IN (?, ?) AND is_active = 1').get(cleanEmail, altEmail);
   if (!user) {
     throw new Error('No active account found with that email address.');
   }
@@ -351,7 +360,7 @@ function resetPasswordWithOtp({ email, otpCode, newPassword }) {
   db.prepare('DELETE FROM cod_otps WHERE phone = ?').run(resetKey);
 
   for (const k of loginAttemptsMap.keys()) {
-    if (k.endsWith(cleanEmail)) {
+    if (k.endsWith(cleanEmail) || k.endsWith(altEmail)) {
       loginAttemptsMap.delete(k);
     }
   }
@@ -416,6 +425,7 @@ function buildSessionCookieHeader(sessionToken, clear = false) {
 module.exports = {
   SESSION_COOKIE_NAME,
   CUSTOMER_COOKIE_NAME,
+  normalizeStaffOrCustomerEmail,
   signSessionToken,
   verifySessionToken,
   generateCsrfToken,

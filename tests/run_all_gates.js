@@ -10,7 +10,7 @@ const { runVerifyFootprintAndCadence } = require('./verify_footprint_and_cadence
 
 function runAllGates() {
   console.log('==================================================================');
-  console.log('Sasya Naturals (sasynaturals.com) — 7-Suite Guardrail Verification');
+  console.log('Sashya Naturals (sashyanaturals.com) — 7-Suite Guardrail Verification');
   console.log('==================================================================');
   runVerifyHydration();
   runVerifyDatabase();

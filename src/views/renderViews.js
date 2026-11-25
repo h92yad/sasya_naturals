@@ -58,23 +58,23 @@ function getDynamicShippingCopy() {
     if (pol.freeMode === 'DISABLED') {
       const zoneABaseInr = Math.round(((pol.zones && pol.zones.ZONE_A && pol.zones.ZONE_A.base500gPaise) || 4000) / 100);
       return {
-        topbarHtml: `Pan-India 4-Zone + 500g Weight-Slab Delivery (from ₹${zoneABaseInr}) | Use code <strong>SASYA10</strong> for 10% off`,
+        topbarHtml: `Pan-India 4-Zone + 500g Weight-Slab Delivery (from ₹${zoneABaseInr}) | Use code <strong>SASHYA10</strong> for 10% off`,
         pdpShortText: `4-Zone Weight-Slab Delivery (from ₹${zoneABaseInr} / 500g)`
       };
     }
     if (pol.freeMode === 'UNCONDITIONAL_THRESHOLD') {
       return {
-        topbarHtml: `Complimentary India-Wide Delivery on all orders above ₹${threshInr} | Use code <strong>SASYA10</strong> for 10% off`,
+        topbarHtml: `Complimentary India-Wide Delivery on all orders above ₹${threshInr} | Use code <strong>SASHYA10</strong> for 10% off`,
         pdpShortText: `Free delivery above ₹${threshInr}`
       };
     }
     return {
-      topbarHtml: `Complimentary India-Wide Delivery on orders above ₹${threshInr} (up to ${(pol.freeMaxWeightGrams / 1000).toFixed(1)} kg) | Use code <strong>SASYA10</strong> for 10% off`,
+      topbarHtml: `Complimentary India-Wide Delivery on orders above ₹${threshInr} (up to ${(pol.freeMaxWeightGrams / 1000).toFixed(1)} kg) | Use code <strong>SASHYA10</strong> for 10% off`,
       pdpShortText: `Free delivery above ₹${threshInr} (up to ${(pol.freeMaxWeightGrams / 1000).toFixed(1)} kg)`
     };
   } catch {
     return {
-      topbarHtml: 'Complimentary India-Wide Delivery on orders above ₹799 | Use code <strong>SASYA10</strong> for 10% off',
+      topbarHtml: 'Complimentary India-Wide Delivery on orders above ₹799 | Use code <strong>SASHYA10</strong> for 10% off',
       pdpShortText: 'Free delivery above ₹799'
     };
   }
@@ -342,7 +342,7 @@ function renderShell({
     <div class="sn-container">
       <div class="sn-footer-grid">
         <div>
-          <h4>Sasya Naturals</h4>
+          <h4>Sashya Naturals</h4>
           <p style="color:#EAEFF8;margin:0 0 14px;">
             ${escapeHtml(hp.footerBlurb)}
           </p>
@@ -372,7 +372,7 @@ function renderShell({
         <div>
           <h4>Policies &amp; Governance</h4>
           <ul>
-            <li><a href="${basePath}/about">About Sasya Naturals</a></li>
+            <li><a href="${basePath}/about">About Sashya Naturals</a></li>
             <li><a href="${basePath}/shipping-returns">Shipping, Cancellation &amp; Refunds</a></li>
             <li><a href="${basePath}/privacy">Privacy Policy</a></li>
             <li><a href="${basePath}/terms">Terms of Service</a></li>
@@ -381,7 +381,7 @@ function renderShell({
         </div>
       </div>
       <div class="sn-footer-bottom">
-        <span>© 2026 Sasya Naturals (sasynaturals.com). All rights reserved.</span>
+        <span>© 2026 Sashya Naturals (sashyanaturals.com). All rights reserved.</span>
         <span>${staticShowcaseScript ? `Engine: Node.js 22 SSR + Rust WASM Commerce Core (v${APP_VERSION})` : 'FSSAI Licensed &amp; GST Compliant • 100% Farm-Direct Indian Pantry'}</span>
       </div>
     </div>
@@ -463,7 +463,7 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
           </div>
         </div>
         <div class="sn-hero-media">
-          <img src="${basePath}/images/hero-pantry.jpg" alt="Sasya Naturals dry fruits, unpolished millets, and heirloom spices" />
+          <img src="${basePath}/images/hero-pantry.jpg" alt="Sashya Naturals dry fruits, unpolished millets, and heirloom spices" />
           <div class="sn-hero-caption">
             <span>${escapeHtml(hp.heroBatchCaptionLeft)}</span>
             <span>${escapeHtml(hp.heroBatchCaptionRight)}</span>
@@ -567,7 +567,7 @@ function renderCatalogPage({
     : `All Natural Products Catalogue | ${BRAND_NAME}`;
   const description = activeCategory
     ? activeCategory.description
-    : 'Browse all Sasya Naturals dry fruits, unpolished millets, and single-origin spices with 100 g, 250 g, 500 g, and 1 kg pack variants.';
+    : 'Browse all Sashya Naturals dry fruits, unpolished millets, and single-origin spices with 100 g, 250 g, 500 g, and 1 kg pack variants.';
 
   const breadcrumbs = [{ name: 'Home', url: '/' }];
   if (activeCategory) {
@@ -595,7 +595,7 @@ function renderCatalogPage({
         <div class="sn-section-head">
           <div>
             <span class="sn-eyebrow">${activeCategory ? escapeHtml(activeCategory.subtitle) : 'Complete D2C Pantry Catalogue'}</span>
-            <h1>${activeCategory ? escapeHtml(activeCategory.name) : 'All Sasya Naturals Products'}</h1>
+            <h1>${activeCategory ? escapeHtml(activeCategory.name) : 'All Sashya Naturals Products'}</h1>
             <p style="color:var(--sn-text-secondary);max-width:68ch;margin:8px 0 0;">${escapeHtml(description)}</p>
           </div>
         </div>
@@ -992,7 +992,7 @@ function renderCheckoutPage({
   isNoIndex = false
 }) {
   const title = `Secure Checkout (Razorpay UPI, Cards, NetBanking & COD) | ${BRAND_NAME}`;
-  const description = 'Complete your Sasya Naturals order with server-verified Razorpay online payment or Cash on Delivery across India.';
+  const description = 'Complete your Sashya Naturals order with server-verified Razorpay online payment or Cash on Delivery across India.';
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'webpage',
     canonicalPath: '/checkout',
@@ -1145,14 +1145,14 @@ function renderCheckoutPage({
             <div class="sn-card" style="margin-bottom:20px;">
               <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">Apply Promotional Coupon</h3>
               <div style="display:flex;gap:10px;margin-bottom:10px;">
-                <input type="text" id="sn-checkout-coupon" placeholder="Enter SASYA10 or WELCOME15" value="SASYA10" class="sn-input" />
+                <input type="text" id="sn-checkout-coupon" placeholder="Enter SASHYA10 or WELCOME15" value="SASHYA10" class="sn-input" />
                 <button type="button" class="sn-btn sn-btn-forest" id="sn-apply-coupon-btn">Apply</button>
               </div>
               <div style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);margin-bottom:6px;">
                 Tap a coupon below to apply automatically:
               </div>
               <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                ${coupons.map(c => `
+                ${coupons.filter(c => c.code !== 'SASYA10' || !coupons.some(x => x.code === 'SASHYA10')).map(c => `
                   <button
                     type="button"
                     class="sn-coupon-chip"
@@ -1203,7 +1203,7 @@ function renderTrackOrderPage({
 }) {
   const isShowcase = Boolean(staticShowcaseScript);
   const title = `Track Order & Manual Courier Status | ${BRAND_NAME}`;
-  const description = 'Track your Sasya Naturals order status, separate payment and fulfilment states, and manual courier AWB tracking reference.';
+  const description = 'Track your Sashya Naturals order status, separate payment and fulfilment states, and manual courier AWB tracking reference.';
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'webpage',
     canonicalPath: '/track-order',
@@ -1224,7 +1224,7 @@ function renderTrackOrderPage({
         <div class="sn-section-head">
           <div>
             <span class="sn-eyebrow">Dual Payment &amp; Fulfilment Status + Manual Courier Reference</span>
-            <h1>Track Your Sasya Naturals Order</h1>
+            <h1>Track Your Sashya Naturals Order</h1>
           </div>
           ${customer ? `
             <div>
@@ -1438,7 +1438,7 @@ function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, verifi
   const igst = order.igst_paise || order.gst_paise;
 
   const legalName = (!settingsMap.business_legal_name || settingsMap.business_legal_name.includes('Configurable'))
-    ? 'Sasya Naturals Foods Private Limited'
+    ? 'Sashya Naturals Foods Private Limited'
     : settingsMap.business_legal_name;
   const regAddr = (!settingsMap.registered_address || settingsMap.registered_address.includes('Configurable'))
     ? 'No. 48, 100 Feet Road, Indiranagar, Bengaluru, Karnataka - 560038'
@@ -1454,7 +1454,7 @@ function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, verifi
     pageType: 'webpage',
     canonicalPath: `/orders/${order.order_number}/invoice`,
     title,
-    description: `GST Tax Invoice for Sasya Naturals Order ${order.order_number}`,
+    description: `GST Tax Invoice for Sashya Naturals Order ${order.order_number}`,
     breadcrumbs: [{ name: 'Home', url: '/' }, { name: 'Track Order', url: '/track-order' }, { name: `Invoice ${order.order_number}`, url: `/orders/${order.order_number}/invoice` }]
   });
 
@@ -1579,7 +1579,7 @@ function renderCustomerAccountPage({
   isNoIndex = true
 }) {
   const title = `Customer Account, Saved Addresses & Order History | ${BRAND_NAME}`;
-  const description = 'Manage your Sasya Naturals customer profile, saved Indian delivery addresses, order history, and GST tax invoices.';
+  const description = 'Manage your Sashya Naturals customer profile, saved Indian delivery addresses, order history, and GST tax invoices.';
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'webpage',
     canonicalPath: '/account',
@@ -1604,7 +1604,7 @@ function renderCustomerAccountPage({
         <div class="sn-section-head">
           <div>
             <span class="sn-eyebrow">Customer Account • Saved Delivery Addresses, Order Tracking &amp; Tax Invoices</span>
-            <h1>My Sasya Naturals Pantry Account</h1>
+            <h1>My Sashya Naturals Pantry Account</h1>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
             <span class="sn-status ${isSignedIn ? 'sn-status-paid' : 'sn-status-warn'}" id="sn-account-active-badge">
@@ -1632,7 +1632,7 @@ function renderCustomerAccountPage({
               <h3 style="font-family:var(--sn-font-serif);margin:0 0 8px;color:var(--sn-bg-forest);">Customer Sign In</h3>
               <p style="font-size:0.82rem;color:var(--sn-text-secondary);margin:0 0 12px;">
                 ${isShowcase
-                  ? 'Demo customer account pre-filled (<strong>ananya.iyer@example.com</strong> / <strong>Sasya@2026</strong>).'
+                  ? 'Demo customer account pre-filled (<strong>ananya.iyer@example.com</strong> / <strong>Sashya@2026</strong>).'
                   : 'Sign in with your registered email address and password to access your saved delivery addresses, order tracking, and GST tax invoices.'
                 }
               </p>
@@ -1643,7 +1643,7 @@ function renderCustomerAccountPage({
                 </div>
                 <div>
                   <label style="font-size:0.75rem;font-weight:600;">Password *</label>
-                  <input type="password" name="password" required value="${isShowcase ? 'Sasya@2026' : ''}" placeholder="Enter password" class="sn-input" />
+                  <input type="password" name="password" required value="${isShowcase ? 'Sashya@2026' : ''}" placeholder="Enter password" class="sn-input" />
                 </div>
                 <button type="submit" class="sn-btn sn-btn-forest">Sign In</button>
               </div>
@@ -1893,7 +1893,7 @@ function renderCustomerAccountPage({
 
 function renderAdminLoginRequiredPage({ basePath = '' }) {
   const title = `Staff Authentication Required | ${BRAND_NAME} Admin Portal`;
-  const description = 'Sign in with your Sasya Naturals staff account to access the role-based administration portal.';
+  const description = 'Sign in with your Sashya Naturals staff account to access the role-based administration portal.';
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'webpage',
     canonicalPath: '/admin',
@@ -1907,14 +1907,14 @@ function renderAdminLoginRequiredPage({ basePath = '' }) {
       <div class="sn-container" style="max-width:520px;">
         <div class="sn-card" style="padding:32px;">
           <span class="sn-eyebrow">Staff Operations &amp; Role-Based Administration</span>
-          <h1 style="font-family:var(--sn-font-serif);font-size:1.75rem;margin:0 0 8px;color:var(--sn-bg-forest);">Sasya Naturals Staff Sign In</h1>
+          <h1 style="font-family:var(--sn-font-serif);font-size:1.75rem;margin:0 0 8px;color:var(--sn-bg-forest);">Sashya Naturals Staff Sign In</h1>
           <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0 0 20px;">
             Sign in with your authorized staff credentials to access your role-assigned administration modules.
           </p>
           <form id="sn-admin-login-form">
             <div style="margin-bottom:14px;">
               <label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Staff Email Address *</label>
-              <input type="email" name="email" required value="" placeholder="staff@sasynaturals.com" class="sn-input" />
+              <input type="email" name="email" required value="" placeholder="staff@sashyanaturals.com" class="sn-input" />
             </div>
             <div style="margin-bottom:18px;">
               <label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Password *</label>
@@ -1959,7 +1959,7 @@ function renderAdminPortalPage({
   staticShowcaseScript = ''
 }) {
   const title = `Staff RBAC Administration Portal | ${BRAND_NAME}`;
-  const description = 'Role-based administration portal for Sasya Naturals Super Admin, Product Manager, Order Manager, Accounts Manager, and Staff.';
+  const description = 'Role-based administration portal for Sashya Naturals Super Admin, Product Manager, Order Manager, Accounts Manager, and Staff.';
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'webpage',
     canonicalPath: '/admin',
@@ -2144,7 +2144,7 @@ function renderAdminPortalPage({
   const activeAdminRole = (!isShowcase && authenticatedAdmin && authenticatedAdmin.role)
     ? authenticatedAdmin.role
     : 'SUPER_ADMIN';
-  const activeAdminEmail = (authenticatedAdmin && authenticatedAdmin.email) || 'superadmin@sasynaturals.com';
+  const activeAdminEmail = (authenticatedAdmin && authenticatedAdmin.email) || 'superadmin@sashyanaturals.com';
   const activeAdminName = (authenticatedAdmin && authenticatedAdmin.full_name) || 'Super Administrator';
   const roleAllowedModulesMap = {
     SUPER_ADMIN: ['orders', 'vault', 'products', 'inventory', 'payments', 'customers', 'rbac', 'compliance', 'content'],
@@ -2167,7 +2167,7 @@ function renderAdminPortalPage({
           <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:10px;flex-wrap:wrap;">
             <div>
               <span class="sn-eyebrow" style="color:var(--sn-accent-turmeric);margin-bottom:2px;">${isShowcase ? 'Interactive RBAC Showcase • 5 Staff Roles &amp; Write-Only API Vault' : 'Authenticated Staff Operations Portal'}</span>
-              <h1 style="font-family:var(--sn-font-serif);font-size:1.45rem;margin:0;color:#FFFFFF;">Sasya Naturals Operations &amp; Administration</h1>
+              <h1 style="font-family:var(--sn-font-serif);font-size:1.45rem;margin:0;color:#FFFFFF;">Sashya Naturals Operations &amp; Administration</h1>
             </div>
             ${isShowcase ? `
               <button
@@ -2189,7 +2189,7 @@ function renderAdminPortalPage({
             <div class="sn-admin-session-controls" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;">
               <form id="sn-admin-login-form" class="sn-admin-login-form" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
                 <input type="email" name="email" id="sn-admin-auth-email" value="${escapeHtml(activeAdminEmail)}" placeholder="Staff Email" class="sn-input sn-admin-email-input" style="padding:6px 10px;font-size:0.78rem;" />
-                <input type="password" name="password" value="Sasya@2026" placeholder="Password" class="sn-input sn-admin-pass-input" style="padding:6px 10px;font-size:0.78rem;" />
+                <input type="password" name="password" value="Sashya@2026" placeholder="Password" class="sn-input sn-admin-pass-input" style="padding:6px 10px;font-size:0.78rem;" />
                 <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Staff Sign In</button>
                 <button type="button" id="sn-admin-logout-btn" class="sn-btn sn-btn-outline sn-btn-sm">Sign Out</button>
               </form>
@@ -2674,7 +2674,7 @@ function renderAdminPortalPage({
                         </div>
                         <div>
                           <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Coupon Code</label>
-                          <input type="text" name="couponCode" id="sn-admin-ord-coupon" placeholder="e.g. SASYA10" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                          <input type="text" name="couponCode" id="sn-admin-ord-coupon" placeholder="e.g. SASHYA10" class="sn-input" style="font-family:var(--sn-font-mono);" />
                         </div>
                       </div>
 
@@ -4188,7 +4188,7 @@ function renderAdminPortalPage({
                     </div>
                     <div>
                       <label style="font-size:0.74rem;font-weight:600;">Staff Email *</label>
-                      <input type="email" name="email" required placeholder="deepak@sasynaturals.com" class="sn-input" />
+                      <input type="email" name="email" required placeholder="deepak@sashyanaturals.com" class="sn-input" />
                     </div>
                     <div>
                       <label style="font-size:0.74rem;font-weight:600;">Phone *</label>
@@ -4196,7 +4196,7 @@ function renderAdminPortalPage({
                     </div>
                     <div>
                       <label style="font-size:0.74rem;font-weight:600;">Temporary Password *</label>
-                      <input type="password" name="password" required value="Sasya@2026" class="sn-input" />
+                      <input type="password" name="password" required value="Sashya@2026" class="sn-input" />
                     </div>
                     <div>
                       <label style="font-size:0.74rem;font-weight:600;">Assigned Role *</label>
@@ -4310,7 +4310,7 @@ function renderAdminPortalPage({
                 const threshVal = sMap.free_shipping_threshold_inr || '799';
                 const maxWeightVal = sMap.free_shipping_max_weight_grams || '2000';
                 const legalNameVal = (!sMap.business_legal_name || sMap.business_legal_name.includes('Configurable'))
-                  ? 'Sasya Naturals Foods Private Limited'
+                  ? 'Sashya Naturals Foods Private Limited'
                   : sMap.business_legal_name;
                 const gstinVal = (!sMap.gstin || sMap.gstin.includes('CONFIGURABLE'))
                   ? '29AABCS1429B1Z5'
@@ -4412,7 +4412,7 @@ function renderAdminPortalPage({
                       <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
                         <div>
                           <label style="font-size:0.74rem;font-weight:600;display:block;">Customer Support Email *</label>
-                          <input type="email" name="support_email" required value="${escapeHtml(sMap.support_email || 'care@sasynaturals.com')}" class="sn-input" />
+                          <input type="email" name="support_email" required value="${escapeHtml(sMap.support_email || 'care@sashyanaturals.com')}" class="sn-input" />
                         </div>
                         <div>
                           <label style="font-size:0.74rem;font-weight:600;display:block;">Support Phone *</label>
@@ -4683,7 +4683,7 @@ function renderAdminPortalPage({
                   <!-- Live Google SERP Snippet Preview -->
                   <div class="sn-card" id="sn-admin-seo-serp-preview" style="background-color:#FFFFFF;border:1px solid var(--sn-border-strong);padding:14px 16px;margin-bottom:14px;">
                     <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);text-transform:uppercase;margin-bottom:6px;">🔍 Live Google Search &amp; OpenGraph Snippet Preview</div>
-                    <div id="sn-serp-preview-url" style="font-size:0.78rem;color:#202124;font-family:var(--sn-font-sans);margin-bottom:2px;">https://sasynaturals.com/</div>
+                    <div id="sn-serp-preview-url" style="font-size:0.78rem;color:#202124;font-family:var(--sn-font-sans);margin-bottom:2px;">https://sashyanaturals.com/</div>
                     <div id="sn-serp-preview-title" style="font-size:1.12rem;color:#1a0dab;font-weight:600;line-height:1.3;margin-bottom:4px;">${escapeHtml(contentAndSeo.seoRoutes['/'].metaTitle)}</div>
                     <div id="sn-serp-preview-desc" style="font-size:0.84rem;color:#4d5156;line-height:1.45;">${escapeHtml(contentAndSeo.seoRoutes['/'].metaDescription)}</div>
                   </div>
@@ -4756,7 +4756,7 @@ function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath
         <div class="sn-card" style="background-color:var(--sn-bg-parchment);">
           <span class="sn-eyebrow">Order &amp; Bulk Enquiries</span>
           <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Email Customer Care</h3>
-          <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">care@sasynaturals.com<br/>Responses within 4 business hours</p>
+          <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">care@sashyanaturals.com<br/>Responses within 4 business hours</p>
         </div>
         <div class="sn-card" style="background-color:var(--sn-bg-parchment);">
           <span class="sn-eyebrow">Bengaluru Dispatch Hub</span>
@@ -4829,7 +4829,7 @@ function renderMarkdownTwin({ title, canonicalPath, description, sections = [] }
     `title: "${title.replace(/"/g, '\\"')}"`,
     `description: "${description.replace(/"/g, '\\"')}"`,
     `canonical_url: "${canonicalUrl}"`,
-    `platform: "${BRAND_NAME} (sasynaturals.com)"`,
+    `platform: "${BRAND_NAME} (sashyanaturals.com)"`,
     '---',
     '',
     `# ${title}`,

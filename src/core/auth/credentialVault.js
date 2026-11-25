@@ -30,7 +30,7 @@ function buildMaskedHint(rawSecret) {
   return `${prefix}••••••••${suffix} (Hidden)`;
 }
 
-function saveVaultCredential({ keyName, secretValue, actorEmail = 'superadmin@sasynaturals.com', actorRole = 'SUPER_ADMIN' }) {
+function saveVaultCredential({ keyName, secretValue, actorEmail = 'superadmin@sashyanaturals.com', actorRole = 'SUPER_ADMIN' }) {
   const cleanKey = String(keyName || '').trim().toUpperCase();
   if (!ALLOWED_VAULT_KEYS.includes(cleanKey)) {
     throw new Error(`Unsupported vault credential key: ${cleanKey}`);

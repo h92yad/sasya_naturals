@@ -44,10 +44,11 @@ function runVerifyDatabase() {
     'Product must have 100 g, 250 g, 500 g, and 1 kg pack variants'
   );
 
-  // Verify PBKDF2 password hashing (never plaintext)
-  const admin = db.prepare("SELECT * FROM users WHERE email = 'superadmin@sasynaturals.com'").get();
+  // Verify PBKDF2 password hashing (never plaintext) and dual-alias password verification
+  const admin = db.prepare("SELECT * FROM users WHERE email IN ('superadmin@sashyanaturals.com', 'superadmin@sasynaturals.com')").get();
   assert(admin && admin.password_hash.startsWith('pbkdf2_sha512$'), 'Passwords must be hashed with PBKDF2-SHA512');
-  assert(verifyPassword('Sasya@2026', admin.password_hash), 'Password verification failed');
+  assert(verifyPassword('Sashya@2026', admin.password_hash), 'Password verification failed for Sashya@2026');
+  assert(verifyPassword('Sasya@2026', admin.password_hash), 'Dual-alias password verification failed for Sasya@2026');
 
   // Verify PROTECTED_PATTERNS guardrail
   assert(PROTECTED_PATTERNS.includes('data/sasya_store.db'), 'PROTECTED_PATTERNS must protect data/sasya_store.db');

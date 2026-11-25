@@ -165,7 +165,7 @@ function resolveShippingZone(pincode = '560001', policy = getShippingPolicyFromD
   return policy.zones.ZONE_C;
 }
 
-function updateShippingPolicySettings(updates = {}, actorEmail = 'superadmin@sasynaturals.com', actorRole = 'SUPER_ADMIN') {
+function updateShippingPolicySettings(updates = {}, actorEmail = 'superadmin@sashyanaturals.com', actorRole = 'SUPER_ADMIN') {
   const db = getDb();
   const allowedKeys = [
     'shipping_free_mode',
@@ -700,7 +700,7 @@ function createOrder({
         if (remainingStock <= item.lowStockThreshold) {
           db.prepare(`
             INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
-            VALUES (?, 'ADMIN_ALERT', 'catalog@sasynaturals.com', 'LOW_STOCK_ALERT', ?, ?)
+            VALUES (?, 'ADMIN_ALERT', 'catalog@sashyanaturals.com', 'LOW_STOCK_ALERT', ?, ?)
           `).run(
             orderNumber,
             `Low Stock Alert: ${item.sku} (${remainingStock} remaining)`,
@@ -732,7 +732,7 @@ function createOrder({
       orderNumber,
       cleanEmail,
       isCod ? 'ORDER_CONFIRMED_COD' : 'ORDER_CREATED_AWAITING_PAYMENT',
-      `Sasya Naturals Order ${orderNumber} (${fulfilmentStatus})`,
+      `Sashya Naturals Order ${orderNumber} (${fulfilmentStatus})`,
       `Order total Rs. ${(pricing.totalPaise / 100).toFixed(2)} via ${paymentMethod}. Tax Invoice: /orders/${orderNumber}/invoice`
     );
 
@@ -775,7 +775,7 @@ function createAdminOrder({
   paymentStatus = null,
   gatewayPaymentId = '',
   actorId = null,
-  actorEmail = 'superadmin@sasynaturals.com',
+  actorEmail = 'superadmin@sashyanaturals.com',
   actorRole = 'SUPER_ADMIN'
 }) {
   const cleanName = String(customerName || '').trim();
@@ -942,7 +942,7 @@ function createAdminOrder({
         if (remainingStock <= item.lowStockThreshold) {
           db.prepare(`
             INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
-            VALUES (?, 'ADMIN_ALERT', 'catalog@sasynaturals.com', 'LOW_STOCK_ALERT', ?, ?)
+            VALUES (?, 'ADMIN_ALERT', 'catalog@sashyanaturals.com', 'LOW_STOCK_ALERT', ?, ?)
           `).run(
             orderNumber,
             `Low Stock Alert: ${item.sku} (${remainingStock} remaining)`,
@@ -977,7 +977,7 @@ function createAdminOrder({
     `).run(
       orderNumber,
       String(customerEmail).trim(),
-      `Sasya Naturals Order ${orderNumber} & GST Tax Invoice (${fulfilmentStatus})`,
+      `Sashya Naturals Order ${orderNumber} & GST Tax Invoice (${fulfilmentStatus})`,
       `Manual order created by ${actorEmail}. Total Rs. ${(pricing.totalPaise / 100).toFixed(2)} (${finalPaymentStatus}). GST Invoice: ${invoiceUrl}`
     );
 
@@ -1084,7 +1084,7 @@ function verifyAndCaptureOnlinePayment({
         if (remaining <= threshold) {
           db.prepare(`
             INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
-            VALUES (?, 'ADMIN_ALERT', 'catalog@sasynaturals.com', 'LOW_STOCK_ALERT', ?, ?)
+            VALUES (?, 'ADMIN_ALERT', 'catalog@sashyanaturals.com', 'LOW_STOCK_ALERT', ?, ?)
           `).run(
             orderNumber,
             `Low Stock Alert: ${item.sku} (${remaining} remaining)`,
@@ -1120,7 +1120,7 @@ function verifyAndCaptureOnlinePayment({
     `).run(
       orderNumber,
       order.customer_email,
-      `Payment Confirmed for Sasya Naturals Order ${orderNumber}`,
+      `Payment Confirmed for Sashya Naturals Order ${orderNumber}`,
       `Server-verified payment ${gatewayPaymentId} of Rs. ${(order.total_paise / 100).toFixed(2)}. Invoice: /orders/${orderNumber}/invoice`
     );
 
@@ -1148,7 +1148,7 @@ function updateOrderFulfilmentAndShipping({
   trackingUrl = '',
   dispatchDate = '',
   manualShippingChargePaise = null,
-  actorEmail = 'admin@sasynaturals.com',
+  actorEmail = 'admin@sashyanaturals.com',
   actorRole = 'ORDER_MANAGER'
 }) {
   if (!ORDER_FULFILMENT_STATUSES.includes(fulfilmentStatus)) {
@@ -1351,7 +1351,7 @@ function recordPaymentAdminAction({
   actionType = 'MARK_COD_COLLECTED', // MARK_COD_COLLECTED | RECORD_REFUND
   refundReason = 'Customer requested refund',
   refundAmountPaise = null,
-  actorEmail = 'accounts@sasynaturals.com',
+  actorEmail = 'accounts@sashyanaturals.com',
   actorRole = 'ACCOUNTS_MANAGER'
 }) {
   const db = getDb();
@@ -1454,7 +1454,7 @@ function updateOrderDeliveryAddress({
   shippingState,
   shippingPincode,
   deliveryInstructions = '',
-  actorEmail = 'orders@sasynaturals.com',
+  actorEmail = 'orders@sashyanaturals.com',
   actorRole = 'ORDER_MANAGER'
 }) {
   const db = getDb();

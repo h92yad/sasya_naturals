@@ -184,9 +184,14 @@ function applyStagingSampleCatalogue() {
   const db = getDb();
   const { hashPassword } = require('../src/db/database');
 
-  // Ensure all 5 default staff roles and demo customer account have active status and baseline password Sasya@2026 on Staging
-  const baselinePassHash = hashPassword('Sasya@2026');
+  // Ensure all 5 default staff roles and demo customer account have active status and baseline password Sashya@2026 on Staging
+  const baselinePassHash = hashPassword('Sashya@2026');
   const baselineEmails = [
+    'superadmin@sashyanaturals.com',
+    'catalog@sashyanaturals.com',
+    'orders@sashyanaturals.com',
+    'accounts@sashyanaturals.com',
+    'dispatch@sashyanaturals.com',
     'superadmin@sasynaturals.com',
     'catalog@sasynaturals.com',
     'orders@sasynaturals.com',

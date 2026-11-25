@@ -114,7 +114,7 @@ function recordAuditLog({
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
     actorId,
-    actorEmail || 'system@sasynaturals.com',
+    actorEmail || 'system@sashyanaturals.com',
     actorRole || 'SYSTEM',
     action,
     entityType,

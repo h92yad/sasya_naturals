@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Sasya Naturals - Zero-Deviation Client Hydration + Dual-Mode (Node SSR Server & GitHub Pages Static WASM Showcase)
+ * Sashya Naturals - Zero-Deviation Client Hydration + Dual-Mode (Node SSR Server & GitHub Pages Static WASM Showcase)
  */
 (function () {
   const CART_STORAGE_KEY = 'sn_cart_v1';
@@ -477,7 +477,7 @@
       footEl.innerHTML = `
         ${freeDeliveryBanner}
         <div style="padding:7px 10px;border-radius:6px;background-color:var(--sn-bg-parchment);border:1px dashed var(--sn-border-strong);font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-bg-forest);margin-bottom:10px;">
-          🏷️ Promo Codes at Checkout: <strong>SASYA10</strong> (10% off) • <strong>WELCOME15</strong> (15% off &ge; ₹999)
+          🏷️ Promo Codes at Checkout: <strong>SASHYA10</strong> (10% off) • <strong>WELCOME15</strong> (15% off &ge; ₹999)
         </div>
         <div style="font-size:0.85rem;display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
           <div style="display:flex;justify-content:space-between;"><span>Subtotal (incl. GST ${formatInr(p.gstPaise)})</span><strong style="font-family:var(--sn-font-mono);">${formatInr(p.subtotalPaise)}</strong></div>
@@ -1202,15 +1202,17 @@
 
     const roleSelect = document.getElementById('sn-admin-role-switcher');
     const activeEmailInput = document.getElementById('sn-admin-active-email');
-    const savedEmail = localStorage.getItem(ADMIN_ROLE_STORAGE_KEY);
+    const rawSavedEmail = localStorage.getItem(ADMIN_ROLE_STORAGE_KEY);
+    const savedEmail = rawSavedEmail ? rawSavedEmail.replace(/@sasynaturals\.com$/i, '@sashyanaturals.com') : '';
     if (roleSelect && savedEmail) {
       roleSelect.value = savedEmail;
     }
 
     function getActiveAdminEmail() {
-      if (roleSelect) return roleSelect.value;
-      if (activeEmailInput && activeEmailInput.value) return activeEmailInput.value;
-      return 'superadmin@sasynaturals.com';
+      const val = (roleSelect && roleSelect.value)
+        ? roleSelect.value
+        : (activeEmailInput && activeEmailInput.value ? activeEmailInput.value : 'superadmin@sashyanaturals.com');
+      return String(val).trim().replace(/@sasynaturals\.com$/i, '@sashyanaturals.com');
     }
 
     if (roleSelect) {
@@ -1400,7 +1402,7 @@
 
         if (IS_STATIC_SHOWCASE) {
           const email = getActiveAdminEmail();
-          if (email !== 'superadmin@sasynaturals.com') {
+          if (email !== 'superadmin@sashyanaturals.com') {
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can access the Credential Vault.');
             return;
           }
@@ -1480,7 +1482,7 @@
 
           if (IS_STATIC_SHOWCASE) {
             const email = getActiveAdminEmail();
-            if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+            if (email !== 'superadmin@sashyanaturals.com' && email !== 'catalog@sashyanaturals.com') {
               showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can create categories.');
               return;
             }
@@ -1534,7 +1536,7 @@
           const imageBase64 = await readFileAsDataUrl(file);
           if (IS_STATIC_SHOWCASE) {
             const email = getActiveAdminEmail();
-            if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+            if (email !== 'superadmin@sashyanaturals.com' && email !== 'catalog@sashyanaturals.com') {
               showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can change category images.');
               return;
             }
@@ -1577,7 +1579,7 @@
 
       if (IS_STATIC_SHOWCASE) {
         const email = getActiveAdminEmail();
-        if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+        if (email !== 'superadmin@sashyanaturals.com' && email !== 'catalog@sashyanaturals.com') {
           showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can upload product images.');
           return;
         }
@@ -1668,7 +1670,7 @@
 
         if (IS_STATIC_SHOWCASE) {
           const email = getActiveAdminEmail();
-          if (email === 'catalog@sasynaturals.com' || email === 'accounts@sasynaturals.com') {
+          if (email === 'catalog@sashyanaturals.com' || email === 'accounts@sashyanaturals.com') {
             showToast(`RBAC Permission Denied: ${email} cannot update shipping/fulfilment.`);
             return;
           }
@@ -1727,7 +1729,7 @@
         const email = getActiveAdminEmail();
 
         if (IS_STATIC_SHOWCASE) {
-          if (email === 'catalog@sasynaturals.com' || email === 'accounts@sasynaturals.com') {
+          if (email === 'catalog@sashyanaturals.com' || email === 'accounts@sashyanaturals.com') {
             showToast(`403 RBAC Permission Denied: ${email} cannot edit order delivery addresses.`);
             return;
           }
@@ -1789,7 +1791,7 @@
 
         if (IS_STATIC_SHOWCASE) {
           const email = getActiveAdminEmail();
-          if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+          if (email !== 'superadmin@sashyanaturals.com' && email !== 'catalog@sashyanaturals.com') {
             showToast(`RBAC Permission Denied: ${email} cannot modify inventory.`);
             return;
           }
@@ -2144,7 +2146,7 @@
         };
 
         if (IS_STATIC_SHOWCASE) {
-          if (email !== 'superadmin@sasynaturals.com' && email !== 'orders@sasynaturals.com') {
+          if (email !== 'superadmin@sashyanaturals.com' && email !== 'orders@sashyanaturals.com') {
             showToast(`403 RBAC Permission Denied: ${email} is not authorized for orders.write.`);
             return;
           }
@@ -2935,7 +2937,7 @@
 
           if (IS_STATIC_SHOWCASE) {
             const email = getActiveAdminEmail();
-            if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+            if (email !== 'superadmin@sashyanaturals.com' && email !== 'catalog@sashyanaturals.com') {
               showToast(`RBAC Permission Denied: ${email} cannot create products.`);
               return;
             }
@@ -3044,7 +3046,7 @@
 
         if (IS_STATIC_SHOWCASE) {
           const email = getActiveAdminEmail();
-          if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+          if (email !== 'superadmin@sashyanaturals.com' && email !== 'catalog@sashyanaturals.com') {
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can edit products.');
             return;
           }
@@ -3159,7 +3161,7 @@
           const imageBase64 = await readFileAsDataUrl(file);
           if (IS_STATIC_SHOWCASE) {
             const email = getActiveAdminEmail();
-            if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+            if (email !== 'superadmin@sashyanaturals.com' && email !== 'catalog@sashyanaturals.com') {
               showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can edit categories.');
               return;
             }
@@ -3219,7 +3221,7 @@
         const nextActive = curActive ? 0 : 1;
         if (IS_STATIC_SHOWCASE) {
           const email = getActiveAdminEmail();
-          if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+          if (email !== 'superadmin@sashyanaturals.com' && email !== 'catalog@sashyanaturals.com') {
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can publish/deactivate products.');
             return;
           }
@@ -3255,7 +3257,7 @@
         const nextActive = curActive ? 0 : 1;
         if (IS_STATIC_SHOWCASE) {
           const email = getActiveAdminEmail();
-          if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
+          if (email !== 'superadmin@sashyanaturals.com' && email !== 'catalog@sashyanaturals.com') {
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can toggle categories.');
             return;
           }
@@ -3290,7 +3292,7 @@
         const orderNumber = btn.getAttribute('data-order-number');
         if (IS_STATIC_SHOWCASE) {
           const email = getActiveAdminEmail();
-          if (email !== 'superadmin@sasynaturals.com' && email !== 'accounts@sasynaturals.com') {
+          if (email !== 'superadmin@sashyanaturals.com' && email !== 'accounts@sashyanaturals.com') {
             showToast(`403 RBAC Permission Denied: Role for ${email} cannot perform ${actionType}.`);
             return;
           }
@@ -3347,7 +3349,7 @@
         const email = getActiveAdminEmail();
 
         if (IS_STATIC_SHOWCASE) {
-          if (email !== 'superadmin@sasynaturals.com' && email !== 'accounts@sasynaturals.com') {
+          if (email !== 'superadmin@sashyanaturals.com' && email !== 'accounts@sashyanaturals.com') {
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and ACCOUNTS_MANAGER can export financial reports.');
             return;
           }
@@ -3359,8 +3361,8 @@
               return txt.includes(',') ? `"${txt.replace(/"/g, '""')}"` : txt;
             }).join(',')
           );
-          triggerCsvDownload(rows.join('\n') + '\n', `sasya-naturals-report-${type}.csv`);
-          showToast(`Exported sasya-naturals-report-${type}.csv`);
+          triggerCsvDownload(rows.join('\n') + '\n', `sashya-naturals-report-${type}.csv`);
+          showToast(`Exported sashya-naturals-report-${type}.csv`);
           return;
         }
 
@@ -3373,8 +3375,8 @@
           return;
         }
         const csvText = await res.text();
-        triggerCsvDownload(csvText, `sasya-naturals-report-${type}.csv`);
-        showToast(`Downloaded sasya-naturals-report-${type}.csv`);
+        triggerCsvDownload(csvText, `sashya-naturals-report-${type}.csv`);
+        showToast(`Downloaded sashya-naturals-report-${type}.csv`);
       });
     });
 
@@ -3386,7 +3388,7 @@
         const fd = new FormData(createStaffForm);
         const payload = Object.fromEntries(fd.entries());
         if (IS_STATIC_SHOWCASE) {
-          if (getActiveAdminEmail() !== 'superadmin@sasynaturals.com') {
+          if (getActiveAdminEmail() !== 'superadmin@sashyanaturals.com') {
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can create staff accounts.');
             return;
           }
@@ -3418,7 +3420,7 @@
         const fd = new FormData(form);
         const payload = Object.fromEntries(fd.entries());
         if (IS_STATIC_SHOWCASE) {
-          if (getActiveAdminEmail() !== 'superadmin@sasynaturals.com') {
+          if (getActiveAdminEmail() !== 'superadmin@sashyanaturals.com') {
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can modify staff roles and permissions.');
             return;
           }
@@ -3452,7 +3454,7 @@
         const payload = Object.fromEntries(fd.entries());
         if (IS_STATIC_SHOWCASE) {
           const email = getActiveAdminEmail();
-          if (email !== 'superadmin@sasynaturals.com') {
+          if (email !== 'superadmin@sashyanaturals.com') {
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can modify Delivery Policy.');
             return;
           }
@@ -3486,7 +3488,7 @@
         const fd = new FormData(complianceForm);
         const payload = Object.fromEntries(fd.entries());
         if (IS_STATIC_SHOWCASE) {
-          if (getActiveAdminEmail() !== 'superadmin@sasynaturals.com') {
+          if (getActiveAdminEmail() !== 'superadmin@sashyanaturals.com') {
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can update compliance & notification templates.');
             return;
           }
@@ -3649,12 +3651,12 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `sasya-naturals-${exportType}.csv`;
+            a.download = `sashya-naturals-${exportType}.csv`;
             document.body.appendChild(a);
             a.click();
             a.remove();
             URL.revokeObjectURL(url);
-            showToast(`Exported sasya-naturals-${exportType}.csv!`);
+            showToast(`Exported sashya-naturals-${exportType}.csv!`);
             return;
           } catch (err) {
             showToast(err.message || 'CSV export failed');
@@ -3663,7 +3665,7 @@
         }
 
         // Static Showcase fallback
-        if (email !== 'superadmin@sasynaturals.com' && email !== 'orders@sasynaturals.com') {
+        if (email !== 'superadmin@sashyanaturals.com' && email !== 'orders@sashyanaturals.com') {
           showToast(`403 RBAC Permission Denied: ${email} cannot export customer & purchase data.`);
           return;
         }
@@ -3681,12 +3683,12 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sasya-naturals-${exportType}.csv`;
+        a.download = `sashya-naturals-${exportType}.csv`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-        showToast(`[Showcase Verified] Exported sasya-naturals-${exportType}.csv!`);
+        showToast(`[Showcase Verified] Exported sashya-naturals-${exportType}.csv!`);
       });
     });
 
@@ -3700,7 +3702,7 @@
         const payload = Object.fromEntries(fd.entries());
 
         if (IS_STATIC_SHOWCASE) {
-          if (email !== 'superadmin@sasynaturals.com') {
+          if (email !== 'superadmin@sashyanaturals.com') {
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can edit Homepage & Global Shell copy.');
             return;
           }
@@ -3765,7 +3767,7 @@
         };
 
         if (IS_STATIC_SHOWCASE) {
-          if (email !== 'superadmin@sasynaturals.com') {
+          if (email !== 'superadmin@sashyanaturals.com') {
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can edit Storefront Info & Policy Pages.');
             return;
           }
@@ -3829,10 +3831,10 @@
         seoDescCountEl.textContent = `${descVal.length} chars (Optimal: 120–160)`;
       }
       if (serpUrlEl) {
-        serpUrlEl.textContent = `https://sasynaturals.com${routePath === '/' ? '/' : routePath}`;
+        serpUrlEl.textContent = `https://sashyanaturals.com${routePath === '/' ? '/' : routePath}`;
       }
       if (serpTitleEl) {
-        serpTitleEl.textContent = titleVal || 'Sasya Naturals';
+        serpTitleEl.textContent = titleVal || 'Sashya Naturals';
       }
       if (serpDescEl) {
         serpDescEl.textContent = descVal || '';
@@ -3865,7 +3867,7 @@
         };
 
         if (IS_STATIC_SHOWCASE) {
-          if (email !== 'superadmin@sasynaturals.com') {
+          if (email !== 'superadmin@sashyanaturals.com') {
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can update Route SEO Meta Tags.');
             return;
           }

@@ -15,7 +15,7 @@ const { assertProductionLaunchReady, evaluateLaunchReadiness } = require('../src
 
 function printVpsCutoverPlan({ allowDryRun = false } = {}) {
   console.log('==================================================================');
-  console.log(`Sasya Naturals Zero-502 VPS Cutover Engine (APP_VERSION=${APP_VERSION})`);
+  console.log(`Sashya Naturals Zero-502 VPS Cutover Engine (APP_VERSION=${APP_VERSION})`);
   console.log('==================================================================');
 
   console.log('0. Pre-Launch Guardrail Gate (Payment Gateway + Email Notification & Verification):');

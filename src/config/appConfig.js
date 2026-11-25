@@ -2,7 +2,7 @@
 
 const path = require('node:path');
 
-const APP_VERSION = '2.9.0';
+const APP_VERSION = '3.0.0';
 const WIKIDATA_MORATORIUM_UNTIL = '2027-11-20';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'sasya_naturals_session_hmac_secret_2026_v1';
 const SELLER_ORIGIN_STATE = 'Karnataka';
@@ -15,9 +15,9 @@ const DEFAULT_PORT = IS_PROD ? 3020 : 5060;
 const PORT = Number(process.env.PORT || DEFAULT_PORT);
 const STANDBY_PORT = 3021;
 
-const CANONICAL_ORIGIN = (process.env.CANONICAL_ORIGIN || 'https://sasynaturals.com').replace(/\/+$/, '');
+const CANONICAL_ORIGIN = (process.env.CANONICAL_ORIGIN || 'https://sashyanaturals.com').replace(/\/+$/, '');
 const IS_STAGING = process.env.IS_STAGING === 'true' || /^https?:\/\/staging\./i.test(CANONICAL_ORIGIN);
-const BRAND_NAME = 'Sasya Naturals';
+const BRAND_NAME = 'Sashya Naturals';
 const BRAND_TAGLINE = 'Heirloom Dry Fruits, Unpolished Native Millets & Single-Origin Indian Spices';
 
 const PROTECTED_PATTERNS = [

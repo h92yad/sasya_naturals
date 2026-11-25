@@ -214,8 +214,8 @@ function requestCodOtp(rawPhone) {
 
   db.prepare(`
     INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
-    VALUES ('COD_OTP', 'SMS_WHATSAPP', ?, 'COD_OTP_DISPATCHED', 'Sasya Naturals COD Verification OTP', ?)
-  `).run(phone, `Your 6-digit verification code for Sasya Naturals Cash on Delivery is ${otpCode}. Valid for 10 minutes.`);
+    VALUES ('COD_OTP', 'SMS_WHATSAPP', ?, 'COD_OTP_DISPATCHED', 'Sashya Naturals COD Verification OTP', ?)
+  `).run(phone, `Your 6-digit verification code for Sashya Naturals Cash on Delivery is ${otpCode}. Valid for 10 minutes.`);
 
   return {
     phone,

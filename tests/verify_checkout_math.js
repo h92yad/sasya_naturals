@@ -20,13 +20,16 @@ function runVerifyCheckoutMath() {
   assert.strictEqual(wasmInclusiveGstPaise(105000, 5), 5000, 'Rust WASM 5% inclusive GST mismatch');
   assert.strictEqual(wasmCouponDiscountPaise(100000, 'PERCENT', 10, 49900, 50000), 10000, 'Rust WASM 10% coupon mismatch');
 
-  // 2. Cart Pricing with SASYA10 coupon & free shipping threshold
-  const cartCalc = calculateCartPricing([{ variantId: 2, quantity: 2 }], 'SASYA10', 'ONLINE_UPI');
+  // 2. Cart Pricing with SASHYA10 (and backward-compatible SASYA10 alias) coupon & free shipping threshold
+  const cartCalc = calculateCartPricing([{ variantId: 2, quantity: 2 }], 'SASHYA10', 'ONLINE_UPI');
   assert.strictEqual(cartCalc.engine, 'rust-wasm-v1.2-zone-slab');
+  assert.strictEqual(cartCalc.appliedCoupon, 'SASHYA10');
   assert.strictEqual(cartCalc.subtotalPaise, 150000); // 2 x Rs 750 = Rs 1500
   assert.strictEqual(cartCalc.discountPaise, 15000);  // 10% off = Rs 150
   assert.strictEqual(cartCalc.shippingPaise, 0);      // >= Rs 799 -> FREE
   assert.strictEqual(cartCalc.totalPaise, 135000);    // Rs 1350.00
+  const legacyCouponCalc = calculateCartPricing([{ variantId: 2, quantity: 2 }], 'SASYA10', 'ONLINE_UPI');
+  assert.strictEqual(legacyCouponCalc.discountPaise, 15000, 'Backward-compatible SASYA10 coupon must also apply 10% discount');
 
   // 3. Test Online Order Creation -> Server HMAC-SHA256 Verification -> Atomic Stock Decrement -> Cancellation Stock Restoration
   const beforeStock = db.prepare('SELECT stock_qty FROM product_variants WHERE id = 3').get().stock_qty;

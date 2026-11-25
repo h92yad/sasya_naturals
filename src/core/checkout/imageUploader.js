@@ -79,7 +79,7 @@ function uploadProductImage({
   imageBase64,
   caption = 'Front / Nutrition Pack View',
   setAsPrimary = true,
-  actorEmail = 'catalog@sasynaturals.com',
+  actorEmail = 'catalog@sashyanaturals.com',
   actorRole = 'PRODUCT_MANAGER'
 }) {
   const db = getDb();
@@ -137,7 +137,7 @@ function uploadProductImage({
 function uploadCategoryImage({
   categoryId,
   imageBase64,
-  actorEmail = 'catalog@sasynaturals.com',
+  actorEmail = 'catalog@sashyanaturals.com',
   actorRole = 'PRODUCT_MANAGER'
 }) {
   const db = getDb();

@@ -1,4 +1,4 @@
-# Sasya Naturals (`sasynaturals.com`) — E-Commerce Storefront & 5-Role Admin Portal
+# Sashya Naturals (`sashyanaturals.com`) — E-Commerce Storefront & 5-Role Admin Portal
 
 Direct-to-customer Indian e-commerce platform for **Dry Fruits**, **Millets & Grains**, and **Spices** with `100 g`, `250 g`, `500 g`, and `1 kg` pack-size variants, server-side **Rust WebAssembly (`wasm_core.wasm`)** checkout/GST math, **Razorpay HMAC-SHA256** verification + **Cash on Delivery (COD)**, dual Payment/Fulfilment status tracking, manual courier dispatch, and a separate **5-Role RBAC Admin Portal**.
 
@@ -7,7 +7,7 @@ Direct-to-customer Indian e-commerce platform for **Dry Fruits**, **Millets & Gr
 ## 1. Architecture & Language Hub (Option A)
 
 - **Storefront & SSR Micro-Kernel (`Node.js 22`)**: Zero-flash isomorphic SSR (`data-ssr-rendered="true"`), dedicated `sn-` Vanilla CSS design system, JSON-LD `@graph` builder (`src/core/content/schemaBuilder.js`), `.md` Markdown twins, `/sitemap.xml`, and `/llms.txt`.
-- **Deterministic Commerce Core (`Rust -> WebAssembly`)**: `rust/sasya_commerce_core/` compiled to a 951-byte `wasm_core.wasm` binary executing `i64` integer-paise line totals, 5%/12% inclusive GST calculations, coupon caps (`SASYA10`, `WELCOME15`, `PANTRY100`), and free-shipping thresholds (`₹799`).
+- **Deterministic Commerce Core (`Rust -> WebAssembly`)**: `rust/sasya_commerce_core/` compiled to a 951-byte `wasm_core.wasm` binary executing `i64` integer-paise line totals, 5%/12% inclusive GST calculations, coupon caps (`SASHYA10`, `SASYA10`, `WELCOME15`, `PANTRY100`), and free-shipping thresholds (`₹799`).
 - **Database (`SQLite WAL` -> `PostgreSQL` ready)**: 13 transactional tables in `src/db/database.js` with PBKDF2-SHA512 salted password hashes and atomic stock movements.
 - **Dual-Mode GitHub Pages Showcase (`/docs`)**: Pre-rendered static showcase powered in-browser by `wasm_core.wasm` + `localStorage` with `<meta name="robots" content="noindex, nofollow">` so search engines never index the `github.io` preview URL.
 
