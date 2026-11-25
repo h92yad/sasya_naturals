@@ -2760,11 +2760,11 @@ function renderAdminPortalPage({
                 <div>
                   <h2 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Categories, Products, Pack Variants &amp; Media Manager</h2>
                   <p style="font-size:0.86rem;color:var(--sn-text-secondary);margin:0;">
-                    Authorized for <strong>SUPER_ADMIN</strong> and <strong>PRODUCT_MANAGER</strong>. Click <strong>✏️ Edit</strong> on any product row to open its pre-populated details, pack pricing, flags, and photo/gallery editor.
+                    Authorized for <strong>SUPER_ADMIN</strong> and <strong>PRODUCT_MANAGER</strong>. Click <strong>+ Add New Product</strong> or <strong>✏️ Edit</strong> on any product row to open the full 4-Tab Product Editor (Core Info &amp; Flags, 4-Pack Pricing/Discounts/Stock, FSSAI Nutrition, and Delivery PIN Rules).
                   </p>
                 </div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                  <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" data-toggle-admin-form="sn-admin-create-product-body" data-force-subtab="products:catalogue" data-toggle-open-text="− Hide Product Form" data-toggle-closed-text="+ Add New Product">+ Add New Product</button>
+                  <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" data-open-create-prod-modal="true" data-force-subtab="products:catalogue">+ Add New Product</button>
                   <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-toggle-admin-form="sn-admin-create-category-form" data-force-subtab="products:categories" data-toggle-open-text="− Hide Category Form" data-toggle-closed-text="+ New Category">+ New Category</button>
                 </div>
               </div>
@@ -2775,66 +2775,15 @@ function renderAdminPortalPage({
                 <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="products:categories">🗂️ 3.2 Categories &amp; Banner Photos (${categories.length})</button>
               </div>
 
-              <!-- Sub-Panel 3.1 (Default): Products Catalogue + On-Demand Add Product Form -->
+              <!-- Sub-Panel 3.1 (Default): Products Catalogue -->
               <div data-admin-subpanel="products:catalogue">
-                <div id="sn-admin-create-product-body" class="sn-admin-collapsible-all" style="margin-bottom:18px;">
-                  <form id="sn-admin-create-product-form" class="sn-card" style="background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-strong);">
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;">
-                      <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.05rem;color:var(--sn-bg-forest);">Add New Product (with Auto-Generated 100g, 250g, 500g, 1kg Variants)</h3>
-                      <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-toggle-admin-form="sn-admin-create-product-body" data-toggle-open-text="− Hide Product Form" data-toggle-closed-text="+ Add New Product">✕ Close</button>
-                    </div>
-                    <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
-                      <div>
-                        <label style="font-size:0.75rem;font-weight:600;">Product Name *</label>
-                        <input type="text" name="name" required placeholder="e.g. Guntur Cold-Milled Cumin Powder" class="sn-input" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.75rem;font-weight:600;">SKU Prefix *</label>
-                        <input type="text" name="skuBase" required placeholder="e.g. SN-SP-CMN" class="sn-input" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.75rem;font-weight:600;">Category *</label>
-                        <select name="categoryId" class="sn-select" id="sn-create-prod-cat-select">
-                          ${categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
-                        </select>
-                      </div>
-                    </div>
-                    <div class="sn-grid-4" style="gap:12px;margin-bottom:12px;">
-                      <div>
-                        <label style="font-size:0.75rem;font-weight:600;">100g Base Selling Price (INR) *</label>
-                        <input type="number" name="base100gInr" required value="140" class="sn-input" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.75rem;font-weight:600;">GST Slab (%) *</label>
-                        <select name="gstPercent" class="sn-select">
-                          <option value="5">5% GST (Natural Staples)</option>
-                          <option value="12">12% GST (Processed / Blended)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label style="font-size:0.75rem;font-weight:600;">Growing Region *</label>
-                        <input type="text" name="originRegion" required value="Unjha &amp; Guntur Belt" class="sn-input" />
-                      </div>
-                      <div>
-                        <label style="font-size:0.75rem;font-weight:600;">Product Photo (JPEG/PNG/WebP)</label>
-                        <input type="file" name="productImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input" />
-                      </div>
-                    </div>
-                    <div style="margin-bottom:12px;">
-                      <label style="font-size:0.75rem;font-weight:600;">Short Description (Humanizer-Checked) *</label>
-                      <input type="text" name="shortDescription" required value="Aromatic whole cumin seeds stone-ground in small batches without filler husk." class="sn-input" />
-                    </div>
-                    <button type="submit" class="sn-btn sn-btn-primary">Create Product &amp; 4 Pack Variants</button>
-                  </form>
-                </div>
-
                 <!-- Product Catalogue Filter, Search & Pagination Toolbar -->
                 <div class="sn-card" id="sn-admin-products-filter-bar" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:14px;">
                   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
                     <strong style="font-family:var(--sn-font-serif);font-size:1.05rem;color:var(--sn-bg-forest);">Storefront Product Catalogue (${products.length} Products • ${variants.length} Pack Variants)</strong>
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                       <span id="sn-admin-prod-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);">Showing ${products.length} of ${products.length} Products</span>
-                      <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" data-toggle-admin-form="sn-admin-create-product-body" data-force-subtab="products:catalogue" data-toggle-open-text="− Hide Product Form" data-toggle-closed-text="+ Add New Product">+ Add New Product</button>
+                      <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" data-open-create-prod-modal="true" data-force-subtab="products:catalogue">+ Add New Product</button>
                     </div>
                   </div>
                   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
@@ -3108,20 +3057,25 @@ function renderAdminPortalPage({
                     <!-- Isolated Modal Sub-Navigation Bar (Does not touch background Admin Module sessionStorage) -->
                     <div class="sn-admin-subnav-bar" role="tablist" aria-label="Product Editor Sections" style="margin-bottom:14px;">
                       <button type="button" class="sn-admin-subtab-pill sn-active" data-prod-modal-tab="core">🏷️ 1. Core Info, Flags &amp; Photos</button>
-                      <button type="button" class="sn-admin-subtab-pill" data-prod-modal-tab="pricing">⚖️ 2. Pack-Weight Pricing &amp; Discounts</button>
+                      <button type="button" class="sn-admin-subtab-pill" data-prod-modal-tab="pricing">⚖️ 2. Pack-Weight Pricing, Discounts &amp; Stock</button>
                       <button type="button" class="sn-admin-subtab-pill" data-prod-modal-tab="nutrition">🥗 3. FSSAI Nutrition (Per 100g) &amp; Labelling</button>
                       <button type="button" class="sn-admin-subtab-pill" data-prod-modal-tab="pincode">📍 4. Delivery PIN &amp; Zone Rules</button>
                     </div>
 
                     <form id="sn-admin-edit-product-form" style="margin-bottom:14px;">
+                      <input type="hidden" name="modalMode" id="sn-edit-prod-mode" value="edit" />
                       <input type="hidden" name="productId" id="sn-edit-prod-select" value="${products[0] ? products[0].id : 1}" />
 
-                      <!-- Modal Pane 1: Core Product Info, Batch, Descriptions & Flags -->
+                      <!-- Modal Pane 1: Core Product Info, SKU Prefix, Batch, Descriptions, Flags & Primary Photo -->
                       <div data-prod-modal-pane="core">
-                        <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
+                        <div class="sn-grid-4" style="gap:12px;margin-bottom:12px;">
                           <div>
                             <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Product Title *</label>
-                            <input type="text" name="name" id="sn-edit-prod-name" required class="sn-input" />
+                            <input type="text" name="name" id="sn-edit-prod-name" required placeholder="e.g. Guntur Cold-Milled Cumin Powder" class="sn-input" />
+                          </div>
+                          <div>
+                            <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">SKU Prefix *</label>
+                            <input type="text" name="skuBase" id="sn-edit-prod-sku-input" required placeholder="e.g. SN-SP-CMN" class="sn-input" style="font-family:var(--sn-font-mono);text-transform:uppercase;" />
                           </div>
                           <div>
                             <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Storefront Category *</label>
@@ -3131,7 +3085,7 @@ function renderAdminPortalPage({
                           </div>
                           <div>
                             <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Growing Region / Origin *</label>
-                            <input type="text" name="originRegion" id="sn-edit-prod-origin" required class="sn-input" />
+                            <input type="text" name="originRegion" id="sn-edit-prod-origin" required placeholder="e.g. Unjha &amp; Guntur Belt" class="sn-input" />
                           </div>
                         </div>
 
@@ -3167,7 +3121,7 @@ function renderAdminPortalPage({
                           <textarea name="description" id="sn-edit-prod-full-desc" rows="2" required class="sn-textarea"></textarea>
                         </div>
 
-                        <div class="sn-grid-4" style="gap:12px;margin-bottom:14px;">
+                        <div class="sn-grid-4" style="gap:12px;margin-bottom:12px;">
                           <div>
                             <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Storefront Status</label>
                             <select name="isActive" id="sn-edit-prod-active" class="sn-select">
@@ -3197,14 +3151,22 @@ function renderAdminPortalPage({
                             </select>
                           </div>
                         </div>
+
+                        <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                          <div>
+                            <strong style="font-size:0.8rem;color:var(--sn-bg-forest);">🖼️ Primary Storefront Product Photo (JPEG / PNG / WebP)</strong>
+                            <div style="font-size:0.73rem;color:var(--sn-text-secondary);">Select an image file here to set or replace the primary product photo when you click Save below (or leave blank to keep current / category default).</div>
+                          </div>
+                          <input type="file" name="productImageFile" id="sn-edit-prod-photo-file" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input sn-file-input-sm" style="max-width:280px;" />
+                        </div>
                       </div>
 
-                      <!-- Modal Pane 2: Per-Weight Variant Pricing & Discount Control Matrix (100g, 250g, 500g, 1kg) -->
+                      <!-- Modal Pane 2: Per-Weight Variant Pricing, Discount & Stock Control Matrix (100g, 250g, 500g, 1kg) -->
                       <div data-prod-modal-pane="pricing" style="display:none;">
                         <div class="sn-card" style="background-color:var(--sn-bg-mortar);padding:10px 14px;margin-bottom:12px;">
                           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
                             <div style="font-size:0.76rem;color:var(--sn-text-secondary);">
-                              <strong style="color:var(--sn-bg-forest);">Quick 100g Base Curve Generator:</strong> Set 100g base prices and click Auto-Scale, or customize each weight's discount % independently below.
+                              <strong style="color:var(--sn-bg-forest);">Quick 100g Base Curve Generator:</strong> Set 100g base prices and click Auto-Scale, or customize each weight's MRP, discount %, selling price, and stock independently below.
                             </div>
                             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                               <div style="display:flex;align-items:center;gap:4px;">
@@ -3244,6 +3206,10 @@ function renderAdminPortalPage({
                                 <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Selling Price (₹) *</label>
                                 <input type="number" name="variant_sell_${pk.weight}" id="sn-edit-var-sell-${pk.weight}" data-var-sell-input="${pk.weight}" min="10" required class="sn-input" style="font-family:var(--sn-font-mono);padding:6px 8px;font-weight:700;" />
                               </div>
+                              <div>
+                                <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Stock (Units) *</label>
+                                <input type="number" name="variant_stock_${pk.weight}" id="sn-edit-var-stock-${pk.weight}" data-var-stock-input="${pk.weight}" min="0" required value="40" class="sn-input" style="font-family:var(--sn-font-mono);padding:6px 8px;" />
+                              </div>
                               <div id="sn-edit-var-rate-${pk.weight}" style="font-family:var(--sn-font-mono);font-size:0.72rem;text-align:right;">
                                 <span class="sn-status sn-status-paid">₹320 / 100g</span>
                               </div>
@@ -3274,9 +3240,16 @@ function renderAdminPortalPage({
                         </div>
 
                         <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:12px;">
-                          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
-                            <strong style="font-family:var(--sn-font-serif);font-size:0.95rem;color:var(--sn-bg-forest);">🥗 FSSAI Per-100g Nutritional Profile (IFCT 2017 / NABL Lab Reference)</strong>
-                            <span style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-text-muted);">Synced to PDP Table, JSON-LD &amp; Markdown Twin</span>
+                          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                            <div>
+                              <strong style="font-family:var(--sn-font-serif);font-size:0.95rem;color:var(--sn-bg-forest);">🥗 FSSAI Per-100g Nutritional Profile (IFCT 2017 / NABL Lab Reference)</strong>
+                              <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">Synced to PDP Table, JSON-LD &amp; Markdown Twin</div>
+                            </div>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                              <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-apply-nut-preset="1" style="padding:3px 8px;font-size:0.7rem;">🥜 Dry Fruits IFCT Preset</button>
+                              <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-apply-nut-preset="2" style="padding:3px 8px;font-size:0.7rem;">🌾 Millets IFCT Preset</button>
+                              <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-apply-nut-preset="3" style="padding:3px 8px;font-size:0.7rem;">🌶️ Spices IFCT Preset</button>
+                            </div>
                           </div>
 
                           <div class="sn-admin-variant-price-grid" style="margin-bottom:10px;">
@@ -3428,9 +3401,14 @@ function renderAdminPortalPage({
                         </div>
                       </div>
 
-                      <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--sn-border-warm);">
-                        <button type="button" class="sn-btn sn-btn-outline" data-close-prod-modal>Cancel</button>
-                        <button type="submit" class="sn-btn sn-btn-forest">Save Product, Pricing, Nutrition &amp; PIN Rules</button>
+                      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--sn-border-warm);">
+                        <div style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);">
+                          Tip: Review all 4 tabs above (Core Info, 4-Pack Pricing/Stock, FSSAI Nutrition, and PIN Rules) before saving.
+                        </div>
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                          <button type="button" class="sn-btn sn-btn-outline" data-close-prod-modal>Cancel</button>
+                          <button type="submit" id="sn-edit-prod-submit-btn" class="sn-btn sn-btn-forest">Save Product, Pricing, Nutrition &amp; PIN Rules</button>
+                        </div>
                       </div>
                     </form>
 

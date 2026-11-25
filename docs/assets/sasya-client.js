@@ -2233,8 +2233,10 @@
       editProdModal.querySelectorAll('[data-prod-modal-pane]').forEach(pane => {
         pane.style.display = pane.getAttribute('data-prod-modal-pane') === tabKey ? 'block' : 'none';
       });
+      const modeEl = document.getElementById('sn-edit-prod-mode');
+      const isCreateMode = modeEl && modeEl.value === 'create';
       if (editImageUploadForm) {
-        editImageUploadForm.style.display = tabKey === 'core' ? 'block' : 'none';
+        editImageUploadForm.style.display = (tabKey === 'core' && !isCreateMode) ? 'block' : 'none';
       }
     }
 
@@ -2415,16 +2417,297 @@
       }
     });
 
-    document.querySelectorAll('[data-load-prod-editor]').forEach(btn => {
+    const CATEGORY_IFCT_PRESETS = {
+      1: {
+        label: 'Dry Fruits',
+        skuPrefix: 'SN-DF-',
+        hsn: '080290',
+        origin: 'Kashmir & Konkan Coast',
+        img: `${BASE_PATH}/images/cat-dry-fruits.jpg`,
+        allergen: 'Contains Tree Nuts. Packed in a facility handling almonds, cashews, walnuts, and pistachios.',
+        fssai: 'FSSAI Veg Mark. Store in an airtight glass jar in a cool, dry cupboard.',
+        energy_kcal: 585,
+        protein_g: 19.6,
+        carbs_g: 18.4,
+        dietary_fiber_g: 9.8,
+        total_fat_g: 49.2,
+        saturated_fat_g: 4.6,
+        total_sugars_g: 4.2,
+        sodium_mg: 4,
+        added_sugars_g: 0,
+        trans_fat_g: 0,
+        bioactive_label: 'Natural Vitamin E & Plant Tocopherols',
+        bioactive_value: '24 mg Alpha-Tocopherol & 49 g Healthy Fats (IFCT 2017)'
+      },
+      2: {
+        label: 'Millets & Grains',
+        skuPrefix: 'SN-ML-',
+        hsn: '100829',
+        origin: 'Chitradurga & Haveri Rain-Fed Belt, Karnataka',
+        img: `${BASE_PATH}/images/cat-millets-grains.jpg`,
+        allergen: 'Naturally Gluten-Free Grain. Packed in a facility that also handles tree nuts.',
+        fssai: 'FSSAI Veg Mark. Rinse twice and soak for 4 to 6 hours before cooking for optimal digestibility.',
+        energy_kcal: 331,
+        protein_g: 11.2,
+        carbs_g: 63.2,
+        dietary_fiber_g: 8.5,
+        total_fat_g: 4.0,
+        saturated_fat_g: 0.7,
+        total_sugars_g: 0.8,
+        sodium_mg: 5,
+        added_sugars_g: 0,
+        trans_fat_g: 0,
+        bioactive_label: 'Low-GI Complex Fiber & B-Vitamins',
+        bioactive_value: '8.5 g Bran Fiber & Iron-Rich Unpolished Grain (IFCT 2017)'
+      },
+      3: {
+        label: 'Spices',
+        skuPrefix: 'SN-SP-',
+        hsn: '091030',
+        origin: 'Wayanad, Idukki & Guntur Spice Belt',
+        img: `${BASE_PATH}/images/cat-spices.jpg`,
+        allergen: '100% Pure Single-Origin Spice. Zero artificial colours, anti-caking agents, or spent-husk fillers.',
+        fssai: 'FSSAI Veg Mark. Keep away from moisture and direct sunlight; always use a dry spoon.',
+        energy_kcal: 312,
+        protein_g: 9.7,
+        carbs_g: 61.5,
+        dietary_fiber_g: 21.1,
+        total_fat_g: 5.4,
+        saturated_fat_g: 1.6,
+        total_sugars_g: 2.8,
+        sodium_mg: 24,
+        added_sugars_g: 0,
+        trans_fat_g: 0,
+        bioactive_label: 'Volatile Essential Oils & Phytonutrients',
+        bioactive_value: '4.5% Natural Volatile Essential Oil Content (IFCT 2017)'
+      }
+    };
+
+    function setModalInputVal(id, val, fallback = '') {
+      const el = document.getElementById(id);
+      if (el) el.value = String(val !== undefined && val !== null ? val : fallback);
+    }
+
+    function applyModalNutritionPreset(catId, { updateCategoryDefaults = false } = {}) {
+      const preset = CATEGORY_IFCT_PRESETS[Number(catId)] || CATEGORY_IFCT_PRESETS[3];
+      setModalInputVal('sn-edit-nut-kcal', preset.energy_kcal, 340);
+      setModalInputVal('sn-edit-nut-protein', preset.protein_g, 9.5);
+      setModalInputVal('sn-edit-nut-carbs', preset.carbs_g, 62.0);
+      setModalInputVal('sn-edit-nut-fiber', preset.dietary_fiber_g, 8.5);
+      setModalInputVal('sn-edit-nut-fat', preset.total_fat_g, 4.2);
+      setModalInputVal('sn-edit-nut-satfat', preset.saturated_fat_g, 0.8);
+      setModalInputVal('sn-edit-nut-sugars', preset.total_sugars_g, 1.2);
+      setModalInputVal('sn-edit-nut-sodium', preset.sodium_mg, 8);
+      setModalInputVal('sn-edit-nut-addedsugars', preset.added_sugars_g, 0);
+      setModalInputVal('sn-edit-nut-transfat', preset.trans_fat_g, 0);
+      setModalInputVal('sn-edit-nut-biolabel', preset.bioactive_label, 'Key Phytonutrient Highlight');
+      setModalInputVal('sn-edit-nut-bioval', preset.bioactive_value, '100% Unpolished Natural Staple');
+
+      if (updateCategoryDefaults) {
+        setModalInputVal('sn-edit-prod-hsn', preset.hsn, '091030');
+        setModalInputVal('sn-edit-prod-origin', preset.origin, 'India');
+        setModalInputVal('sn-edit-prod-allergen', preset.allergen, '');
+        setModalInputVal('sn-edit-prod-fssai', preset.fssai, '');
+        const thumbEl = document.getElementById('sn-edit-modal-thumb');
+        const photoFileEl = document.getElementById('sn-edit-prod-photo-file');
+        if (thumbEl && (!photoFileEl || !photoFileEl.files || photoFileEl.files.length === 0)) {
+          thumbEl.src = preset.img;
+        }
+      }
+      return preset;
+    }
+
+    document.querySelectorAll('[data-apply-nut-preset]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const catId = Number(btn.getAttribute('data-apply-nut-preset') || 3);
+        const preset = applyModalNutritionPreset(catId, { updateCategoryDefaults: false });
+        showToast(`Applied ${preset.label} IFCT Per-100g Nutritional Profile.`);
+      });
+    });
+
+    function refreshCreateModeVariantSkuLabels() {
+      const modeEl = document.getElementById('sn-edit-prod-mode');
+      if (!modeEl || modeEl.value !== 'create') return;
+      const skuInput = document.getElementById('sn-edit-prod-sku-input');
+      const base = (skuInput && skuInput.value ? skuInput.value.trim().toUpperCase() : 'SN-NEW');
+      const suffixMap = { 100: '100G', 250: '250G', 500: '500G', 1000: '1KG' };
+      for (const w of MODAL_PACK_WEIGHTS) {
+        const skuLabelEl = document.getElementById(`sn-edit-var-sku-${w}`);
+        const stockEl = document.getElementById(`sn-edit-var-stock-${w}`);
+        const st = stockEl && stockEl.value !== '' ? Number(stockEl.value) : 40;
+        if (skuLabelEl) {
+          skuLabelEl.textContent = `${base}-${suffixMap[w]} • Stock: ${st}`;
+        }
+      }
+    }
+
+    const modalPhotoInput = document.getElementById('sn-edit-prod-photo-file');
+    if (modalPhotoInput) {
+      modalPhotoInput.addEventListener('change', async () => {
+        const file = modalPhotoInput.files && modalPhotoInput.files[0];
+        if (!file) return;
+        try {
+          const dataUrl = await readFileAsDataUrl(file);
+          const thumbEl = document.getElementById('sn-edit-modal-thumb');
+          if (thumbEl && dataUrl) thumbEl.src = dataUrl;
+        } catch (err) {
+          showToast(err.message || 'Could not preview photo');
+        }
+      });
+    }
+
+    const modalNameInput = document.getElementById('sn-edit-prod-name');
+    const modalSkuInput = document.getElementById('sn-edit-prod-sku-input');
+    const modalCatSelect = document.getElementById('sn-edit-prod-cat');
+
+    if (modalSkuInput) {
+      modalSkuInput.addEventListener('input', () => {
+        modalSkuInput.dataset.userEdited = 'true';
+        refreshCreateModeVariantSkuLabels();
+      });
+    }
+
+    if (modalNameInput) {
+      modalNameInput.addEventListener('input', () => {
+        const modeEl = document.getElementById('sn-edit-prod-mode');
+        if (!modeEl || modeEl.value !== 'create') return;
+        const cleanTitle = modalNameInput.value.trim();
+        const catId = Number(modalCatSelect ? modalCatSelect.value : 3);
+        const preset = CATEGORY_IFCT_PRESETS[catId] || CATEGORY_IFCT_PRESETS[3];
+        if (modalSkuInput && modalSkuInput.dataset.userEdited !== 'true') {
+          const words = cleanTitle.replace(/[^a-zA-Z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+          const token = words.length >= 2
+            ? (words[0].slice(0, 1) + words[1].slice(0, 1) + (words[2] ? words[2].slice(0, 1) : words[1].slice(1, 2))).toUpperCase()
+            : (words[0] ? words[0].slice(0, 3).toUpperCase() : 'NEW');
+          modalSkuInput.value = `${preset.skuPrefix}${token || 'NEW'}`;
+          refreshCreateModeVariantSkuLabels();
+        }
+        const ingInput = document.getElementById('sn-edit-prod-ingredients');
+        if (ingInput && ingInput.dataset.userEdited !== 'true' && cleanTitle) {
+          ingInput.value = `100% Pure ${cleanTitle}`;
+        }
+      });
+    }
+
+    const modalIngInput = document.getElementById('sn-edit-prod-ingredients');
+    if (modalIngInput) {
+      modalIngInput.addEventListener('input', () => {
+        modalIngInput.dataset.userEdited = 'true';
+      });
+    }
+
+    if (modalCatSelect) {
+      modalCatSelect.addEventListener('change', () => {
+        const modeEl = document.getElementById('sn-edit-prod-mode');
+        if (!modeEl || modeEl.value !== 'create') return;
+        const catId = Number(modalCatSelect.value || 3);
+        const preset = applyModalNutritionPreset(catId, { updateCategoryDefaults: true });
+        if (modalSkuInput && modalSkuInput.dataset.userEdited !== 'true') {
+          const curSuffix = (modalSkuInput.value || '').replace(/^SN-[A-Z]{2}-/i, '') || 'NEW';
+          modalSkuInput.value = `${preset.skuPrefix}${curSuffix}`;
+          refreshCreateModeVariantSkuLabels();
+        }
+      });
+    }
+
+    function openCreateProductModal() {
+      const modeEl = document.getElementById('sn-edit-prod-mode');
+      if (modeEl) modeEl.value = 'create';
+      const selectEl = document.getElementById('sn-edit-prod-select');
+      if (selectEl) selectEl.value = '';
+
+      const catFilterEl = document.getElementById('sn-admin-prod-cat-filter');
+      const initialCatId = (catFilterEl && catFilterEl.value !== 'all') ? Number(catFilterEl.value) : 3;
+      const preset = CATEGORY_IFCT_PRESETS[initialCatId] || CATEGORY_IFCT_PRESETS[3];
+
+      const thumbEl = document.getElementById('sn-edit-modal-thumb');
+      const skuEl = document.getElementById('sn-edit-modal-sku');
+      const headingEl = document.getElementById('sn-edit-modal-heading');
+      const submitBtn = document.getElementById('sn-edit-prod-submit-btn');
+
+      if (thumbEl) thumbEl.src = preset.img;
+      if (skuEl) skuEl.textContent = 'NEW PRODUCT • Configure All 4 Tabs (Core Info, 4-Pack Pricing/Stock, FSSAI Nutrition & PIN Rules)';
+      if (headingEl) headingEl.textContent = 'Add New Product (with 100 g, 250 g, 500 g & 1 kg Pack Variants)';
+      if (submitBtn) submitBtn.textContent = 'Create Product & 4 Pack Variants (Save All 4 Tabs)';
+
+      if (modalPhotoInput) modalPhotoInput.value = '';
+      if (modalNameInput) modalNameInput.value = '';
+      if (modalSkuInput) {
+        modalSkuInput.readOnly = false;
+        modalSkuInput.dataset.userEdited = 'false';
+        modalSkuInput.value = `${preset.skuPrefix}NEW`;
+      }
+      if (modalCatSelect) modalCatSelect.value = String(initialCatId);
+      if (modalIngInput) {
+        modalIngInput.dataset.userEdited = 'false';
+        modalIngInput.value = '100% Pure Unadulterated Single-Origin Produce';
+      }
+
+      setModalInputVal('sn-edit-prod-gst', '5', '5');
+      setModalInputVal('sn-edit-prod-batch', 'SN-BATCH-2611', 'SN-BATCH-2611');
+      setModalInputVal('sn-edit-prod-shelf-life', '12', '12');
+      setModalInputVal('sn-edit-prod-desc', 'Single-origin small-batch harvest packed fresh in nitrogen-flushed pouches.', '');
+      setModalInputVal('sn-edit-prod-full-desc', 'Harvested directly from regional farmer cooperatives and cleaned without chemical bleaching, synthetic preservatives, or spent-husk fillers. Packed in 100 g, 250 g, 500 g, and 1 kg resealable barrier pouches.', '');
+      setModalInputVal('sn-edit-prod-active', '1', '1');
+      setModalInputVal('sn-edit-prod-featured', '0', '0');
+      setModalInputVal('sn-edit-prod-bestseller', '0', '0');
+      setModalInputVal('sn-edit-prod-new', '1', '1');
+
+      applyModalNutritionPreset(initialCatId, { updateCategoryDefaults: true });
+
+      if (editMrpInput) editMrpInput.value = '170';
+      if (editSellInput) editSellInput.value = '140';
+      for (const w of MODAL_PACK_WEIGHTS) {
+        const stockEl = document.getElementById(`sn-edit-var-stock-${w}`);
+        if (stockEl) stockEl.value = '40';
+      }
+      autoScaleAllPackRowsFrom100g();
+      refreshCreateModeVariantSkuLabels();
+
+      setModalInputVal('sn-edit-pin-mode', 'NONE', 'NONE');
+      setModalInputVal('sn-edit-pin-scope', 'BLOCK_DELIVERY', 'BLOCK_DELIVERY');
+      setModalInputVal('sn-edit-pin-tokens', '', '');
+      setModalInputVal('sn-edit-pin-reason', '', '');
+      ['ZONE_A', 'ZONE_B', 'ZONE_C', 'ZONE_D'].forEach(z => {
+        const cb = document.getElementById(`sn-edit-pin-zone-${z}`);
+        if (cb) cb.checked = false;
+      });
+      runAdminModalPinTest();
+
+      switchProdModalTab('core');
+      if (editProdModal) {
+        editProdModal.style.display = 'flex';
+      }
+    }
+
+    document.querySelectorAll('[data-open-create-prod-modal]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const forceSubtab = btn.getAttribute('data-force-subtab');
+        if (forceSubtab) {
+          const subBtn = document.querySelector(`[data-admin-subtab-btn="${forceSubtab}"]`);
+          if (subBtn) subBtn.click();
+        }
+        openCreateProductModal();
+      });
+    });
+
+    function bindLoadProdEditorButton(btn) {
+      if (!btn || btn.dataset.boundProdEditor === 'true') return;
+      btn.dataset.boundProdEditor = 'true';
       btn.addEventListener('click', () => {
         const prodId = btn.getAttribute('data-load-prod-editor');
         const requestedTab = btn.getAttribute('data-open-modal-tab') || 'core';
         const tr = document.querySelector(`[data-admin-prod-row="${prodId}"]`);
 
+        const modeEl = document.getElementById('sn-edit-prod-mode');
+        if (modeEl) modeEl.value = 'edit';
         const selectEl = document.getElementById('sn-edit-prod-select');
         if (selectEl && prodId) selectEl.value = prodId;
         const uploadSelectEl = document.getElementById('sn-upload-prod-select');
         if (uploadSelectEl && prodId) uploadSelectEl.value = prodId;
+        const submitBtn = document.getElementById('sn-edit-prod-submit-btn');
+        if (submitBtn) submitBtn.textContent = 'Save Product, Pricing, Nutrition & PIN Rules';
+        if (modalPhotoInput) modalPhotoInput.value = '';
 
         if (tr) {
           const sku = tr.getAttribute('data-prod-sku') || '';
@@ -2472,6 +2755,11 @@
           if (skuEl) skuEl.textContent = `${sku} • Product #${prodId} • HSN ${hsn}`;
           if (headingEl) headingEl.textContent = `Edit ${name}`;
           if (nameInput) nameInput.value = name;
+          if (modalSkuInput) {
+            modalSkuInput.value = sku;
+            modalSkuInput.readOnly = true;
+            modalSkuInput.dataset.userEdited = 'true';
+          }
           if (catSelect) catSelect.value = catId;
           if (originInput) originInput.value = origin;
           if (batchInput) batchInput.value = batch;
@@ -2482,7 +2770,10 @@
           if (hsnInput) hsnInput.value = hsn;
           if (descInput) descInput.value = desc;
           if (fullDescInput) fullDescInput.value = fullDesc;
-          if (ingInput) ingInput.value = ingredients;
+          if (ingInput) {
+            ingInput.value = ingredients;
+            ingInput.dataset.userEdited = 'true';
+          }
           if (algInput) algInput.value = allergen;
           if (fssaiInput) fssaiInput.value = fssai;
           if (activeSelect) activeSelect.value = isActive;
@@ -2490,7 +2781,7 @@
           if (bestSelect) bestSelect.value = isBestseller;
           if (newSelect) newSelect.value = isNew;
 
-          // Hydrate 4-pack variant prices & discounts
+          // Hydrate 4-pack variant prices, discounts & stock
           let variantsArr = [];
           try {
             variantsArr = JSON.parse(tr.getAttribute('data-prod-variants-json') || '[]');
@@ -2502,14 +2793,17 @@
             const mult = MODAL_CURVE_MULT[w] || (w / 100);
             const mrpVal = match ? match.mrpInr : Math.round(Number(mrp100) * mult);
             const sellVal = match ? match.sellInr : Math.round(Number(sell100) * mult);
+            const stockVal = (match && match.stockQty !== undefined) ? match.stockQty : 40;
             const skuLabelEl = document.getElementById(`sn-edit-var-sku-${w}`);
             const mrpEl = document.getElementById(`sn-edit-var-mrp-${w}`);
             const sellEl = document.getElementById(`sn-edit-var-sell-${w}`);
+            const stockEl = document.getElementById(`sn-edit-var-stock-${w}`);
             if (skuLabelEl && match && match.sku) {
-              skuLabelEl.textContent = `${match.sku} • Stock: ${match.stockQty}`;
+              skuLabelEl.textContent = `${match.sku} • Stock: ${stockVal}`;
             }
             if (mrpEl) mrpEl.value = String(mrpVal);
             if (sellEl) sellEl.value = String(sellVal);
+            if (stockEl) stockEl.value = String(stockVal);
             syncVariantRowFromPrices(w);
           }
 
@@ -2520,22 +2814,18 @@
           } catch {
             nutObj = {};
           }
-          const setVal = (id, val, fallback) => {
-            const el = document.getElementById(id);
-            if (el) el.value = String(val !== undefined && val !== null ? val : fallback);
-          };
-          setVal('sn-edit-nut-kcal', nutObj.energy_kcal, 340);
-          setVal('sn-edit-nut-protein', nutObj.protein_g, 9.5);
-          setVal('sn-edit-nut-carbs', nutObj.carbs_g, 62.0);
-          setVal('sn-edit-nut-fiber', nutObj.dietary_fiber_g, 8.5);
-          setVal('sn-edit-nut-fat', nutObj.total_fat_g, 4.2);
-          setVal('sn-edit-nut-satfat', nutObj.saturated_fat_g, 0.8);
-          setVal('sn-edit-nut-sugars', nutObj.total_sugars_g, 1.2);
-          setVal('sn-edit-nut-sodium', nutObj.sodium_mg, 8);
-          setVal('sn-edit-nut-addedsugars', nutObj.added_sugars_g, 0);
-          setVal('sn-edit-nut-transfat', nutObj.trans_fat_g, 0);
-          setVal('sn-edit-nut-biolabel', nutObj.bioactive_label, 'Key Phytonutrient Highlight');
-          setVal('sn-edit-nut-bioval', nutObj.bioactive_value, '100% Unpolished Natural Staple');
+          setModalInputVal('sn-edit-nut-kcal', nutObj.energy_kcal, 340);
+          setModalInputVal('sn-edit-nut-protein', nutObj.protein_g, 9.5);
+          setModalInputVal('sn-edit-nut-carbs', nutObj.carbs_g, 62.0);
+          setModalInputVal('sn-edit-nut-fiber', nutObj.dietary_fiber_g, 8.5);
+          setModalInputVal('sn-edit-nut-fat', nutObj.total_fat_g, 4.2);
+          setModalInputVal('sn-edit-nut-satfat', nutObj.saturated_fat_g, 0.8);
+          setModalInputVal('sn-edit-nut-sugars', nutObj.total_sugars_g, 1.2);
+          setModalInputVal('sn-edit-nut-sodium', nutObj.sodium_mg, 8);
+          setModalInputVal('sn-edit-nut-addedsugars', nutObj.added_sugars_g, 0);
+          setModalInputVal('sn-edit-nut-transfat', nutObj.trans_fat_g, 0);
+          setModalInputVal('sn-edit-nut-biolabel', nutObj.bioactive_label, 'Key Phytonutrient Highlight');
+          setModalInputVal('sn-edit-nut-bioval', nutObj.bioactive_value, '100% Unpolished Natural Staple');
 
           // Hydrate Per-Product Delivery PIN & Zone Restrictions (Tab 4)
           let pinObj = {};
@@ -2544,10 +2834,10 @@
           } catch {
             pinObj = {};
           }
-          setVal('sn-edit-pin-mode', pinObj.mode || 'NONE', 'NONE');
-          setVal('sn-edit-pin-scope', pinObj.scope || 'BLOCK_DELIVERY', 'BLOCK_DELIVERY');
-          setVal('sn-edit-pin-tokens', pinObj.rawTokens || '', '');
-          setVal('sn-edit-pin-reason', pinObj.reason || '', '');
+          setModalInputVal('sn-edit-pin-mode', pinObj.mode || 'NONE', 'NONE');
+          setModalInputVal('sn-edit-pin-scope', pinObj.scope || 'BLOCK_DELIVERY', 'BLOCK_DELIVERY');
+          setModalInputVal('sn-edit-pin-tokens', pinObj.rawTokens || '', '');
+          setModalInputVal('sn-edit-pin-reason', pinObj.reason || '', '');
           const activeZones = Array.isArray(pinObj.zones) ? pinObj.zones : [];
           ['ZONE_A', 'ZONE_B', 'ZONE_C', 'ZONE_D'].forEach(z => {
             const cb = document.getElementById(`sn-edit-pin-zone-${z}`);
@@ -2561,7 +2851,9 @@
           editProdModal.style.display = 'flex';
         }
       });
-    });
+    }
+
+    document.querySelectorAll('[data-load-prod-editor]').forEach(bindLoadProdEditorButton);
 
     function buildModalDraftPinRules() {
       const modeEl = document.getElementById('sn-edit-pin-mode');
@@ -2990,13 +3282,29 @@
       editProdForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const fd = new FormData(editProdForm);
+        const modalMode = String(fd.get('modalMode') || 'edit');
+        const photoFile = fd.get('productImageFile');
         const payload = Object.fromEntries(fd.entries());
+        delete payload.productImageFile;
 
-        // Validate Legal Metrology MRP >= Selling Price across all 4 weights
+        let imageBase64 = '';
+        try {
+          imageBase64 = await readFileAsDataUrl(photoFile);
+          if (imageBase64) payload.imageBase64 = imageBase64;
+        } catch (imgErr) {
+          showToast(imgErr.message || 'Invalid image file');
+          return;
+        }
+
+        // Validate Legal Metrology MRP >= Selling Price & Stock Qty across all 4 weights
         const variantsPricing = [];
         for (const w of MODAL_PACK_WEIGHTS) {
           const mrpInr = Number(payload[`variant_mrp_${w}`]);
           const sellingPriceInr = Number(payload[`variant_sell_${w}`]);
+          const rawStock = payload[`variant_stock_${w}`];
+          const stockQty = (rawStock !== undefined && String(rawStock).trim() !== '' && Number.isFinite(Number(rawStock)))
+            ? Math.max(0, Math.round(Number(rawStock)))
+            : 40;
           const packLbl = w === 1000 ? '1 kg' : `${w} g`;
           if (!Number.isFinite(sellingPriceInr) || sellingPriceInr < 10) {
             switchProdModalTab('pricing');
@@ -3011,7 +3319,8 @@
           variantsPricing.push({
             weightGrams: w,
             mrpInr: Math.round(mrpInr),
-            sellingPriceInr: Math.round(sellingPriceInr)
+            sellingPriceInr: Math.round(sellingPriceInr),
+            stockQty
           });
         }
         payload.variantsPricing = variantsPricing;
@@ -3044,6 +3353,135 @@
           reason: draftPinRules.reason
         };
 
+        if (modalMode === 'create') {
+          if (IS_STATIC_SHOWCASE) {
+            const email = getActiveAdminEmail();
+            if (email !== 'superadmin@sashyanaturals.com' && email !== 'catalog@sashyanaturals.com') {
+              showToast('403 RBAC Permission Denied: Only SUPER_ADMIN and PRODUCT_MANAGER can create products.');
+              return;
+            }
+            const newId = Date.now();
+            const skuBase = String(payload.skuBase || 'SN-NEW').trim().toUpperCase();
+            const preset = CATEGORY_IFCT_PRESETS[Number(payload.categoryId)] || CATEGORY_IFCT_PRESETS[3];
+            const imgSrc = imageBase64 || preset.img;
+            const catSelect = document.getElementById('sn-edit-prod-cat');
+            const catName = (catSelect && catSelect.selectedIndex >= 0) ? catSelect.options[catSelect.selectedIndex].text : preset.label;
+            const suffixMap = { 100: '100G', 250: '250G', 500: '500G', 1000: '1KG' };
+            const newVars = variantsPricing.map((vp, idx) => ({
+              id: newId + idx + 1,
+              sku: `${skuBase}-${suffixMap[vp.weightGrams] || `${vp.weightGrams}G`}`,
+              packLabel: vp.weightGrams === 1000 ? '1 kg' : `${vp.weightGrams} g`,
+              weightGrams: vp.weightGrams,
+              mrpInr: vp.mrpInr,
+              sellInr: vp.sellingPriceInr,
+              stockQty: vp.stockQty
+            }));
+            const tbody = document.querySelector('#sn-admin-products-table tbody');
+            if (tbody) {
+              const tr = document.createElement('tr');
+              tr.setAttribute('data-admin-prod-row', String(newId));
+              tr.setAttribute('data-prod-id', String(newId));
+              tr.setAttribute('data-prod-sku', skuBase);
+              tr.setAttribute('data-prod-name', String(payload.name || ''));
+              tr.setAttribute('data-prod-cat-id', String(payload.categoryId || '3'));
+              tr.setAttribute('data-prod-100g-sell', String(newVars[0].sellInr));
+              tr.setAttribute('data-prod-100g-mrp', String(newVars[0].mrpInr));
+              tr.setAttribute('data-prod-gst', String(payload.gstPercent || '5'));
+              tr.setAttribute('data-prod-hsn', String(payload.hsnCode || preset.hsn));
+              tr.setAttribute('data-prod-origin', String(payload.originRegion || preset.origin));
+              tr.setAttribute('data-prod-batch', String(payload.harvestBatch || 'SN-BATCH-2611'));
+              tr.setAttribute('data-prod-shelf-life', String(payload.shelfLifeMonths || '12'));
+              tr.setAttribute('data-prod-desc', String(payload.shortDescription || ''));
+              tr.setAttribute('data-prod-full-desc', String(payload.description || payload.shortDescription || ''));
+              tr.setAttribute('data-prod-ingredients', String(payload.ingredients || ''));
+              tr.setAttribute('data-prod-allergen', String(payload.allergenInfo || ''));
+              tr.setAttribute('data-prod-fssai', String(payload.fssaiNotes || ''));
+              tr.setAttribute('data-prod-variants-json', JSON.stringify(newVars));
+              tr.setAttribute('data-prod-nutrition-json', JSON.stringify(payload.nutrition));
+              tr.setAttribute('data-prod-pincode-json', JSON.stringify(draftPinRules));
+              tr.setAttribute('data-prod-pin-restricted', draftPinRules.mode !== 'NONE' ? '1' : '0');
+              tr.setAttribute('data-prod-img', imgSrc);
+              tr.setAttribute('data-prod-active', String(payload.isActive ?? '1'));
+              tr.setAttribute('data-prod-bestseller', String(payload.isBestseller ?? '0'));
+              tr.setAttribute('data-prod-featured', String(payload.isFeatured ?? '0'));
+              tr.setAttribute('data-prod-new', String(payload.isNewArrival ?? '1'));
+              const pinSummaryText = draftPinRules.mode === 'NONE'
+                ? '📍 All Serviceable India PINs'
+                : `📍 ${draftPinRules.mode === 'ALLOW_ONLY' ? 'Only' : 'Blocked'}: ${[...draftPinRules.zones, ...(draftPinRules.rawTokens ? [draftPinRules.rawTokens] : [])].join(', ')}`;
+              tr.innerHTML = `
+                <td data-label="Photo">
+                  <img src="${escapeHtmlClient(imgSrc)}" alt="${escapeHtmlClient(payload.name)}" data-product-img-id="${newId}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
+                </td>
+                <td data-label="SKU, HSN &amp; Flags" style="font-family:var(--sn-font-mono);font-size:0.75rem;">
+                  <div>
+                    <strong>${escapeHtmlClient(skuBase)}</strong> • HSN: ${escapeHtmlClient(payload.hsnCode || preset.hsn)} (${escapeHtmlClient(payload.gstPercent || '5')}% GST)<br/>
+                    ${Number(payload.isFeatured) ? '<span class="sn-status sn-status-paid" style="font-size:0.65rem;padding:1px 5px;">Featured</span> ' : ''}
+                    ${Number(payload.isBestseller) ? '<span class="sn-status sn-status-warn" style="font-size:0.65rem;padding:1px 5px;">Bestseller</span> ' : ''}
+                    ${Number(payload.isNewArrival ?? 1) ? '<span class="sn-status sn-status-paid" style="font-size:0.65rem;padding:1px 5px;">New</span>' : ''}
+                  </div>
+                </td>
+                <td data-label="Product &amp; Origin">
+                  <div>
+                    <strong><a href="#new-product" data-prod-name-display="${newId}">${escapeHtmlClient(payload.name)}</a></strong><br/>
+                    <span class="sn-status sn-status-paid" data-prod-cat-badge="${newId}" style="font-size:0.65rem;padding:1px 6px;margin-top:2px;">${escapeHtmlClient(catName)}</span>
+                    <span data-prod-origin-display="${newId}" style="font-size:0.75rem;color:var(--sn-text-muted);">${escapeHtmlClient(payload.originRegion)} • ${escapeHtmlClient(payload.harvestBatch)}</span>
+                    <div data-prod-nut-summary="${newId}" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
+                      🥗 ${payload.nutrition.energy_kcal} kcal • ${payload.nutrition.protein_g}g Prot • ${escapeHtmlClient(payload.nutrition.bioactive_value)}
+                    </div>
+                    <div data-prod-pin-summary="${newId}" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:${draftPinRules.mode !== 'NONE' ? 'var(--sn-accent-terracotta)' : 'var(--sn-text-muted)'};font-weight:${draftPinRules.mode !== 'NONE' ? '700' : '400'};margin-top:2px;">
+                      ${escapeHtmlClient(pinSummaryText)}
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Pack Variants" style="font-family:var(--sn-font-mono);font-size:0.72rem;">
+                  <span data-prod-variants-cell="${newId}">${newVars.map(v => {
+                    const pct = v.mrpInr > v.sellInr ? Math.round(((v.mrpInr - v.sellInr) / v.mrpInr) * 100) : 0;
+                    return `${escapeHtmlClient(v.packLabel)}: <strong>₹${v.sellInr}</strong>${pct > 0 ? ` <span style="color:var(--sn-status-paid);">(-${pct}%)</span>` : ''} (${v.stockQty})`;
+                  }).join(' | ')}</span>
+                </td>
+                <td data-label="Status &amp; Edit">
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                    <button type="button" class="sn-btn ${Number(payload.isActive ?? 1) ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">${Number(payload.isActive ?? 1) ? 'Active' : 'Inactive'}</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-load-prod-editor="${newId}" data-open-modal-tab="core">✏️ Edit</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-load-prod-editor="${newId}" data-open-modal-tab="pricing">⚖️ Discounts</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-load-prod-editor="${newId}" data-open-modal-tab="nutrition">🥗 Nutrition</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-load-prod-editor="${newId}" data-open-modal-tab="pincode">📍 PIN Rules</button>
+                  </div>
+                </td>
+                <td data-label="Quick Change Photo">
+                  <span class="sn-status sn-status-paid" style="font-size:0.68rem;">Photo Saved</span>
+                </td>
+              `;
+              tbody.prepend(tr);
+              tr.querySelectorAll('[data-load-prod-editor]').forEach(bindLoadProdEditorButton);
+              if (prodController && typeof prodController.render === 'function') {
+                prodController.render(true);
+              }
+            }
+            closeEditProductModal();
+            showToast(`[Showcase Verified] Created "${payload.name}" (${skuBase}) with 4 pack variants, FSSAI nutrition & PIN rules!`);
+            return;
+          }
+
+          const createRes = await fetch('/api/admin/products/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-admin-email': getActiveAdminEmail()
+            },
+            body: JSON.stringify(payload)
+          });
+          const createData = await createRes.json();
+          if (!createRes.ok) {
+            showToast(createData.error || 'Failed to create product');
+            return;
+          }
+          closeEditProductModal();
+          showToast(`Created "${createData.product.name}" with 4 pack variants, FSSAI nutrition & PIN rules!`);
+          setTimeout(() => window.location.reload(), 650);
+          return;
+        }
+
         if (IS_STATIC_SHOWCASE) {
           const email = getActiveAdminEmail();
           if (email !== 'superadmin@sashyanaturals.com' && email !== 'catalog@sashyanaturals.com') {
@@ -3062,6 +3500,11 @@
             if (payload.ingredients) tr.setAttribute('data-prod-ingredients', payload.ingredients);
             if (payload.allergenInfo) tr.setAttribute('data-prod-allergen', payload.allergenInfo);
             if (payload.fssaiNotes) tr.setAttribute('data-prod-fssai', payload.fssaiNotes);
+            if (imageBase64) {
+              tr.setAttribute('data-prod-img', imageBase64);
+              const rowImg = tr.querySelector(`[data-product-img-id="${payload.productId}"]`);
+              if (rowImg) rowImg.src = imageBase64;
+            }
             tr.setAttribute('data-prod-nutrition-json', JSON.stringify(payload.nutrition));
             tr.setAttribute('data-prod-pincode-json', JSON.stringify(draftPinRules));
             tr.setAttribute('data-prod-pin-restricted', draftPinRules.mode !== 'NONE' ? '1' : '0');
@@ -3081,7 +3524,7 @@
                 weightGrams: vp.weightGrams,
                 mrpInr: vp.mrpInr,
                 sellInr: vp.sellingPriceInr,
-                stockQty: prev.stockQty !== undefined ? prev.stockQty : 40
+                stockQty: vp.stockQty !== undefined ? vp.stockQty : (prev.stockQty !== undefined ? prev.stockQty : 40)
               };
             });
             tr.setAttribute('data-prod-variants-json', JSON.stringify(updatedVars));
@@ -3121,7 +3564,7 @@
             }
           }
           closeEditProductModal();
-          showToast(`[Showcase Verified] Updated product #${payload.productId}, 4-pack discounts, FSSAI nutrition & PIN rules!`);
+          showToast(`[Showcase Verified] Updated product #${payload.productId}, 4-pack discounts/stock, FSSAI nutrition & PIN rules!`);
           return;
         }
 
@@ -3139,7 +3582,7 @@
           return;
         }
         closeEditProductModal();
-        showToast(`Updated "${data.name}" (4-pack discounts, FSSAI nutrition & PIN rules saved)!`);
+        showToast(`Updated "${data.name}" (4-pack discounts, stock, FSSAI nutrition & PIN rules saved)!`);
         setTimeout(() => window.location.reload(), 600);
       });
     }

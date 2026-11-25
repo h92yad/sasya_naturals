@@ -1177,6 +1177,7 @@ function createServerHandler() {
         }
 
         const cleanDash = (s) => String(s || '').replace(/[—–]/g, '-').trim();
+        const rawFullDesc = cleanDash(body.description) || rawShortDesc;
         const ingredients = cleanDash(body.ingredients) || `100% Pure ${rawName}`;
         const allergenInfo = cleanDash(body.allergenInfo) || 'Packed in a facility handling tree nuts.';
         const fssaiNotes = cleanDash(body.fssaiNotes) || 'Store in a cool, dry container.';
@@ -1201,26 +1202,84 @@ function createServerHandler() {
         }
 
         const lintCheck = lintContentText(
-          `${rawName} ${rawShortDesc} ${ingredients} ${allergenInfo} ${fssaiNotes} ${nutritionObj.bioactive_label} ${nutritionObj.bioactive_value} ${pincodeRules.reason || ''}`,
+          `${rawName} ${rawShortDesc} ${rawFullDesc} ${ingredients} ${allergenInfo} ${fssaiNotes} ${nutritionObj.bioactive_label} ${nutritionObj.bioactive_value} ${pincodeRules.reason || ''}`,
           'new_product'
         );
         if (!lintCheck.valid) {
           return sendJson(res, 400, { error: lintCheck.issues.join(' ') });
         }
 
-        const base100gInr = Number(body.base100gInr ?? 150);
+        const base100gInr = Number(body.base100gSellInr ?? body.base100gInr ?? body.variant_sell_100 ?? 140);
         if (!Number.isFinite(base100gInr) || base100gInr < 10) {
           return sendJson(res, 400, { error: 'Base 100g price must be at least ₹10.' });
         }
+        const base100gMrpInr = Number(body.base100gMrpInr ?? body.variant_mrp_100 ?? Math.round(base100gInr * 1.15));
+        if (!Number.isFinite(base100gMrpInr) || base100gMrpInr < base100gInr) {
+          return sendJson(res, 400, { error: 'Base 100g MRP cannot be lower than the selling price.' });
+        }
         const base100gPaise = Math.round(base100gInr * 100);
+        const base100gMrpPaise = Math.round(base100gMrpInr * 100);
+
         const gstPercent = Number(body.gstPercent ?? 5);
         if (![0, 5, 12, 18, 28].includes(gstPercent)) {
           return sendJson(res, 400, { error: 'GST slab must be one of 0%, 5%, 12%, 18%, or 28%.' });
         }
 
+        const packs = [
+          { label: '100 g', grams: 100, suffix: '100G', mult: 1.0 },
+          { label: '250 g', grams: 250, suffix: '250G', mult: 2.35 },
+          { label: '500 g', grams: 500, suffix: '500G', mult: 4.45 },
+          { label: '1 kg',  grams: 1000, suffix: '1KG', mult: 8.5 }
+        ];
+        const preparedVariants = [];
+        for (const pm of packs) {
+          let sellInr = Math.round((base100gPaise / 100) * pm.mult);
+          let mrpInr = Math.max(sellInr, Math.round((base100gMrpPaise / 100) * pm.mult));
+          let stockQty = 40;
+
+          const arrMatch = Array.isArray(body.variantsPricing)
+            ? body.variantsPricing.find(vp => Number(vp.weightGrams) === pm.grams)
+            : null;
+          if (arrMatch) {
+            if (arrMatch.sellingPriceInr !== undefined) sellInr = Number(arrMatch.sellingPriceInr);
+            if (arrMatch.mrpInr !== undefined) mrpInr = Number(arrMatch.mrpInr);
+            if (arrMatch.stockQty !== undefined && Number.isFinite(Number(arrMatch.stockQty))) {
+              stockQty = Math.max(0, Math.round(Number(arrMatch.stockQty)));
+            }
+          } else {
+            const rawSell = body[`variant_sell_${pm.grams}`];
+            const rawMrp = body[`variant_mrp_${pm.grams}`];
+            if (rawSell !== undefined && String(rawSell).trim() !== '') sellInr = Number(rawSell);
+            if (rawMrp !== undefined && String(rawMrp).trim() !== '') mrpInr = Number(rawMrp);
+          }
+          const rawStock = body[`variant_stock_${pm.grams}`];
+          if (rawStock !== undefined && String(rawStock).trim() !== '' && Number.isFinite(Number(rawStock))) {
+            stockQty = Math.max(0, Math.round(Number(rawStock)));
+          }
+
+          if (!Number.isFinite(sellInr) || sellInr < 10) {
+            return sendJson(res, 400, { error: `Selling price for ${pm.label} (${skuBase}-${pm.suffix}) must be at least ₹10.` });
+          }
+          if (!Number.isFinite(mrpInr) || mrpInr < sellInr) {
+            return sendJson(res, 400, { error: `Legal Metrology Guardrail: MRP (₹${mrpInr}) for ${pm.label} (${skuBase}-${pm.suffix}) cannot be lower than Selling Price (₹${sellInr}).` });
+          }
+          preparedVariants.push({
+            sku: `${skuBase}-${pm.suffix}`,
+            label: pm.label,
+            grams: pm.grams,
+            sellPaise: Math.round(sellInr * 100),
+            mrpPaise: Math.round(mrpInr * 100),
+            stockQty
+          });
+        }
+
         const defaultHsnByCat = { 1: '080290', 2: '100829', 3: '091030' };
         const defaultImgByCat = { 1: '/images/cat-dry-fruits.jpg', 2: '/images/cat-millets-grains.jpg', 3: '/images/cat-spices.jpg' };
         const hsnCode = String(body.hsnCode || defaultHsnByCat[catId] || '091030').trim();
+        const isFeatured = body.isFeatured !== undefined && body.isFeatured !== '' ? (Number(body.isFeatured) ? 1 : 0) : 0;
+        const isBestseller = body.isBestseller !== undefined && body.isBestseller !== '' ? (Number(body.isBestseller) ? 1 : 0) : 0;
+        const isNewArrival = body.isNewArrival !== undefined && body.isNewArrival !== '' ? (Number(body.isNewArrival) ? 1 : 0) : 1;
+        const isActive = body.isActive !== undefined && body.isActive !== '' ? (Number(body.isActive) ? 1 : 0) : 1;
 
         let imageUrl = catRow.hero_image_url || defaultImgByCat[catId] || '/images/cat-spices.jpg';
         if (body.imageBase64) {
@@ -1235,14 +1294,14 @@ function createServerHandler() {
             ingredients, allergen_info, gst_percent, hsn_code, image_url, image_caption,
             nutrition_json, pincode_restriction_mode, pincode_rules_json,
             is_featured, is_new_arrival, is_bestseller, is_active
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, 0, 1)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           skuBase,
           slug,
           rawName,
           catId,
           rawShortDesc,
-          rawShortDesc,
+          rawFullDesc,
           String(body.originRegion || 'India').trim() || 'India',
           harvestBatch,
           shelfLifeMonths,
@@ -1255,24 +1314,21 @@ function createServerHandler() {
           rawName,
           JSON.stringify(nutritionObj),
           pincodeRules.mode,
-          JSON.stringify(pincodeRules)
+          JSON.stringify(pincodeRules),
+          isFeatured,
+          isNewArrival,
+          isBestseller,
+          isActive
         );
 
         const newProdId = Number(prodRes.lastInsertRowid);
-        const packs = [
-          { label: '100 g', grams: 100, suffix: '100G', mult: 1.0 },
-          { label: '250 g', grams: 250, suffix: '250G', mult: 2.35 },
-          { label: '500 g', grams: 500, suffix: '500G', mult: 4.45 },
-          { label: '1 kg',  grams: 1000, suffix: '1KG', mult: 8.5 }
-        ];
-        for (const pm of packs) {
-          const sell = Math.round((base100gPaise / 100) * pm.mult) * 100;
-          const mrp = Math.round(((sell / 100) * 1.15)) * 100;
+        for (const pv of preparedVariants) {
           db.prepare(`
             INSERT INTO product_variants (product_id, sku, pack_label, weight_grams, mrp_paise, selling_price_paise, promo_price_paise, stock_qty)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 40)
-          `).run(newProdId, `${skuBase}-${pm.suffix}`, pm.label, pm.grams, mrp, sell, sell);
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(newProdId, pv.sku, pv.label, pv.grams, pv.mrpPaise, pv.sellPaise, pv.sellPaise, pv.stockQty);
         }
+        const createdVariants = db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY weight_grams ASC').all(newProdId);
 
         recordAuditLog({
           actorId: adminUser.id,
@@ -1281,11 +1337,12 @@ function createServerHandler() {
           action: 'PRODUCT_CREATED',
           entityType: 'PRODUCT',
           entityId: skuBase,
-          details: { name: rawName, slug, imageUrl, hsnCode, nutrition: nutritionObj, pincodeRules }
+          details: { name: rawName, slug, imageUrl, hsnCode, isFeatured, isBestseller, isNewArrival, isActive, nutrition: nutritionObj, pincodeRules }
         });
 
         return sendJson(res, 201, {
-          product: { id: newProdId, name: rawName, slug, imageUrl, nutrition: nutritionObj, pincodeRules }
+          product: { id: newProdId, skuBase, name: rawName, slug, imageUrl, hsnCode, nutrition: nutritionObj, pincodeRules },
+          variants: createdVariants
         });
       }
 
@@ -1458,6 +1515,12 @@ function createServerHandler() {
           }
         }
 
+        let nextImageUrl = prod.image_url;
+        if (body.imageBase64) {
+          const savedImg = saveVerifiedImageToUploads(body.imageBase64, prod.slug);
+          nextImageUrl = savedImg.publicUrl;
+        }
+
         db.prepare(`
           UPDATE products
           SET name = ?,
@@ -1475,6 +1538,7 @@ function createServerHandler() {
               pincode_rules_json = ?,
               gst_percent = ?,
               hsn_code = ?,
+              image_url = ?,
               is_featured = ?,
               is_bestseller = ?,
               is_new_arrival = ?,
@@ -1496,6 +1560,7 @@ function createServerHandler() {
           JSON.stringify(nextPincodeRules),
           nextGst,
           nextHsn,
+          nextImageUrl,
           nextFeatured,
           nextBestseller,
           nextNewArrival,
@@ -1506,6 +1571,27 @@ function createServerHandler() {
         const updateVarStmt = db.prepare('UPDATE product_variants SET selling_price_paise = ?, promo_price_paise = ?, mrp_paise = ? WHERE id = ?');
         for (const vu of explicitVariantUpdates) {
           updateVarStmt.run(vu.sellPaise, vu.sellPaise, vu.mrpPaise, vu.variantId);
+        }
+
+        const updateVarStockStmt = db.prepare('UPDATE product_variants SET stock_qty = ? WHERE id = ?');
+        for (const v of pVars) {
+          let nextStock = null;
+          if (Array.isArray(body.variantsPricing)) {
+            const match = body.variantsPricing.find(vp =>
+              (vp.variantId !== undefined && Number(vp.variantId) === Number(v.id)) ||
+              (vp.weightGrams !== undefined && Number(vp.weightGrams) === Number(v.weight_grams))
+            );
+            if (match && match.stockQty !== undefined && Number.isFinite(Number(match.stockQty))) {
+              nextStock = Math.max(0, Math.round(Number(match.stockQty)));
+            }
+          }
+          const rawStock = body[`variant_stock_${v.weight_grams}`];
+          if (rawStock !== undefined && String(rawStock).trim() !== '' && Number.isFinite(Number(rawStock))) {
+            nextStock = Math.max(0, Math.round(Number(rawStock)));
+          }
+          if (nextStock !== null) {
+            updateVarStockStmt.run(nextStock, v.id);
+          }
         }
 
         const updatedVariants = db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY weight_grams ASC').all(productId);
