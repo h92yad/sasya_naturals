@@ -50,11 +50,14 @@ function runVerifySchemaPurity() {
     assert(Array.isArray(itemPageNode.hasPart) && itemPageNode.hasPart.length === 2, `Missing WebPageElement hasPart bookmark nodes on /product/${prod.slug}`);
     const prodNode = pdpSchema['@graph'].find(n => n['@type'] === 'Product');
     assert(prodNode, `Missing Product schema on /product/${prod.slug}`);
+    assert.strictEqual(prodNode.nutrition, undefined, `Product must NOT include unrecognized 'nutrition' property on /product/${prod.slug}`);
     assert(prodNode.offers, `Missing Offer node on /product/${prod.slug}`);
     assert(prodNode.aggregateRating, `Missing AggregateRating node on /product/${prod.slug}`);
-    assert(prodNode.nutrition && prodNode.nutrition['@type'] === 'NutritionInformation', `Missing NutritionInformation node on /product/${prod.slug}`);
-    assert.strictEqual(prodNode.nutrition.servingSize, '100 g', `NutritionInformation servingSize must be '100 g' on /product/${prod.slug}`);
-    assert(Array.isArray(prodNode.additionalProperty) && prodNode.additionalProperty.length >= 1, `Missing bioactive additionalProperty on /product/${prod.slug}`);
+    assert(Array.isArray(prodNode.additionalProperty) && prodNode.additionalProperty.length >= 13, `Missing FSSAI nutritional PropertyValue entries in additionalProperty on /product/${prod.slug}`);
+    const servingProp = prodNode.additionalProperty.find(p => p['@type'] === 'PropertyValue' && p.name === 'Serving Basis');
+    const energyProp = prodNode.additionalProperty.find(p => p['@type'] === 'PropertyValue' && p.name === 'Energy' && p.unitText === 'kcal');
+    const proteinProp = prodNode.additionalProperty.find(p => p['@type'] === 'PropertyValue' && p.name === 'Protein' && p.unitText === 'g');
+    assert(servingProp && energyProp && proteinProp, `Missing Serving Basis / Energy / Protein PropertyValue on /product/${prod.slug}`);
   }
 
   // 4. Verify FAQPage schema on /faq with deep-linked Question @id and url bookmarks
@@ -75,7 +78,7 @@ function runVerifySchemaPurity() {
   assert(Array.isArray(faqNode.mainEntity) && faqNode.mainEntity.length === 1, 'FAQPage must contain Question mainEntity array');
   assert(faqNode.mainEntity[0]['@id'].endsWith('#faq-what-pack-sizes-do-you-offer'), 'FAQ Question @id must include #faq-<slug> bookmark fragment');
 
-  console.log(`✓ [Suite 6/7: verify_schema_purity] Verified 0 Wikidata groundings, CollectionPage isolation, FAQPage Question bookmarks, and ItemPage + Product + NutritionInformation JSON-LD on ${products.length} PDPs`);
+  console.log(`✓ [Suite 6/7: verify_schema_purity] Verified 0 Wikidata groundings, CollectionPage isolation, FAQPage Question bookmarks, and Schema.org-pure Product + PropertyValue Nutrition JSON-LD on ${products.length} PDPs`);
 }
 
 if (require.main === module) {

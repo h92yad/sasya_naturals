@@ -176,20 +176,72 @@ function buildMasterSchemaGraph({
         '@type': 'Country',
         name: 'India'
       },
-      nutrition: {
-        '@type': 'NutritionInformation',
-        servingSize: '100 g',
-        calories: `${nut.energy_kcal} kcal`,
-        proteinContent: `${nut.protein_g} g`,
-        carbohydrateContent: `${nut.carbs_g} g`,
-        fiberContent: `${nut.dietary_fiber_g} g`,
-        sugarContent: `${nut.total_sugars_g} g`,
-        fatContent: `${nut.total_fat_g} g`,
-        saturatedFatContent: `${nut.saturated_fat_g} g`,
-        transFatContent: `${nut.trans_fat_g} g`,
-        sodiumContent: `${nut.sodium_mg} mg`
-      },
       additionalProperty: [
+        {
+          '@type': 'PropertyValue',
+          name: 'Serving Basis',
+          value: 'Per 100 g Edible Portion (FSSAI Standard)'
+        },
+        {
+          '@type': 'PropertyValue',
+          name: 'Energy',
+          value: Number(nut.energy_kcal),
+          unitText: 'kcal'
+        },
+        {
+          '@type': 'PropertyValue',
+          name: 'Protein',
+          value: Number(nut.protein_g),
+          unitText: 'g'
+        },
+        {
+          '@type': 'PropertyValue',
+          name: 'Total Carbohydrates',
+          value: Number(nut.carbs_g),
+          unitText: 'g'
+        },
+        {
+          '@type': 'PropertyValue',
+          name: 'Dietary Fiber',
+          value: Number(nut.dietary_fiber_g),
+          unitText: 'g'
+        },
+        {
+          '@type': 'PropertyValue',
+          name: 'Total Sugars',
+          value: Number(nut.total_sugars_g),
+          unitText: 'g'
+        },
+        {
+          '@type': 'PropertyValue',
+          name: 'Added Sugars',
+          value: Number(nut.added_sugars_g),
+          unitText: 'g'
+        },
+        {
+          '@type': 'PropertyValue',
+          name: 'Total Fat',
+          value: Number(nut.total_fat_g),
+          unitText: 'g'
+        },
+        {
+          '@type': 'PropertyValue',
+          name: 'Saturated Fat',
+          value: Number(nut.saturated_fat_g),
+          unitText: 'g'
+        },
+        {
+          '@type': 'PropertyValue',
+          name: 'Trans Fat',
+          value: Number(nut.trans_fat_g),
+          unitText: 'g'
+        },
+        {
+          '@type': 'PropertyValue',
+          name: 'Sodium',
+          value: Number(nut.sodium_mg),
+          unitText: 'mg'
+        },
         {
           '@type': 'PropertyValue',
           name: nut.bioactive_label || 'Key Phytonutrient Highlight',
