@@ -96,22 +96,12 @@ function renderBreadcrumbNav(breadcrumbs = [], basePath = '') {
   `;
 }
 
-function renderSectionJumpBar(bookmarks = [], label = 'On This Page:') {
-  if (!Array.isArray(bookmarks) || bookmarks.length === 0) return '';
-  return `
-    <nav class="sn-toc-bar" aria-label="${escapeHtml(label.replace(/:$/, ''))}">
-      <span class="sn-toc-label">🔖 ${escapeHtml(label)}</span>
-      <ol class="sn-toc-list">
-        ${bookmarks.map(bm => `
-          <li><a href="#${escapeHtml(bm.id)}" class="sn-toc-pill" data-bookmark-jump="${escapeHtml(bm.id)}"># ${escapeHtml(bm.shortLabel || bm.name)}</a></li>
-        `).join('')}
-      </ol>
-    </nav>
-  `;
+function renderSectionJumpBar() {
+  return '';
 }
 
-function renderHeadingAnchor(id, label = 'Section') {
-  return `<a href="#${escapeHtml(id)}" class="sn-heading-anchor" data-bookmark-anchor="${escapeHtml(id)}" aria-label="Bookmark ${escapeHtml(label)}" title="Copy bookmark link to ${escapeHtml(label)}">#</a>`;
+function renderHeadingAnchor() {
+  return '';
 }
 
 function getDynamicShippingCopy() {

@@ -80,6 +80,7 @@ function runVerifyHydration() {
     assert(page.html.includes('id="site-header"') && page.html.includes('id="site-footer"'), `[${page.name}] Missing #site-header or #site-footer landmark IDs`);
     assert(page.html.includes('id="webpage"') && page.html.includes('id="breadcrumb"'), `[${page.name}] Missing #webpage or #breadcrumb JSON-LD fragment target IDs`);
     assert(page.html.includes(`/site.webmanifest?v=${APP_VERSION}`), `[${page.name}] Missing /site.webmanifest link`);
+    assert(!page.html.includes('sn-toc-bar') && !page.html.includes('sn-heading-anchor'), `[${page.name}] Must not render visible .sn-toc-bar or .sn-heading-anchor UI clutter`);
     const h1Matches = page.html.match(/<h1[\s>]/g) || [];
     assert.strictEqual(h1Matches.length, 1, `[${page.name}] Expected exactly 1 <h1> tag, found ${h1Matches.length}`);
     assertZeroDuplicateIdsAndValidFragments(page.html, page.name);

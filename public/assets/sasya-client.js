@@ -758,32 +758,6 @@
         return;
       }
 
-      const bookmarkJumpLink = e.target.closest('[data-bookmark-jump], [data-bookmark-anchor]');
-      if (bookmarkJumpLink) {
-        const bmId = bookmarkJumpLink.getAttribute('data-bookmark-jump') || bookmarkJumpLink.getAttribute('data-bookmark-anchor') || '';
-        if (bmId === 'nutrition-facts' || bmId === 'origin-compliance') {
-          const targetTab = bmId === 'nutrition-facts' ? 'nutrition' : 'compliance';
-          const specBtn = document.querySelector(`[data-pdp-spec-tab="${targetTab}"]`);
-          if (specBtn) specBtn.click();
-        }
-        const targetEl = bmId ? document.getElementById(bmId) : null;
-        if (targetEl && targetEl.tagName === 'DETAILS') {
-          targetEl.open = true;
-        }
-        if (bookmarkJumpLink.hasAttribute('data-bookmark-anchor') && bmId) {
-          try {
-            const fullUrl = `${window.location.origin}${window.location.pathname}${window.location.search}#${bmId}`;
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-              navigator.clipboard.writeText(fullUrl).then(() => {
-                showToast(`Bookmark link copied (#${bmId})`);
-              }).catch(() => {});
-            }
-          } catch {
-            // ignore clipboard errors
-          }
-        }
-      }
-
       const addBtn = e.target.closest('[data-add-to-cart]');
       if (addBtn) {
         const variantId = Number(addBtn.getAttribute('data-variant-id'));
