@@ -92,6 +92,109 @@
     });
   }
 
+  const DELIVERY_PIN_STORAGE_KEY = 'sasya_delivery_pincode';
+
+  function getActiveDeliveryPin(defaultPin = '560038') {
+    try {
+      const saved = localStorage.getItem(DELIVERY_PIN_STORAGE_KEY);
+      if (saved && /^[1-8]\d{5}$/.test(saved)) return saved;
+    } catch {
+      // ignore storage errors
+    }
+    return defaultPin;
+  }
+
+  function setActiveDeliveryPin(pin) {
+    const clean = String(pin || '').trim();
+    if (!/^[1-8]\d{5}$/.test(clean)) return;
+    try {
+      localStorage.setItem(DELIVERY_PIN_STORAGE_KEY, clean);
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  function resolveZoneCodeClient(pincode = '560038') {
+    const cleanPin = String(pincode || '560038').trim();
+    const p3 = cleanPin.slice(0, 3);
+    const p2 = cleanPin.slice(0, 2);
+    if (p3 === '560') return 'ZONE_A';
+    if (['18', '19', '78', '79'].includes(p2) || ['744', '682'].includes(p3)) return 'ZONE_D';
+    if (['50', '51', '52', '53', '56', '57', '58', '59', '60', '61', '62', '63', '64', '67', '68', '69'].includes(p2)) return 'ZONE_B';
+    return 'ZONE_C';
+  }
+
+  function evaluateProductPinRuleClient(pincode, rawRules, paymentMethod = 'ONLINE_UPI') {
+    const cleanPin = String(pincode || '').trim();
+    let rules = rawRules;
+    if (typeof rawRules === 'string') {
+      try {
+        rules = JSON.parse(rawRules || '{}');
+      } catch {
+        rules = {};
+      }
+    }
+    if (!rules || typeof rules !== 'object' || !rules.mode || rules.mode === 'NONE') {
+      return {
+        serviceable: true,
+        deliverablePrepaid: true,
+        codAllowedForProduct: true,
+        restricted: false,
+        mode: 'NONE',
+        scope: 'BLOCK_DELIVERY',
+        reason: ''
+      };
+    }
+
+    const zoneCode = resolveZoneCodeClient(cleanPin);
+    const zones = Array.isArray(rules.zones) ? rules.zones : [];
+    const pincodes = Array.isArray(rules.pincodes) ? rules.pincodes : [];
+    const prefixes = Array.isArray(rules.prefixes) ? rules.prefixes : [];
+    const ranges = Array.isArray(rules.ranges) ? rules.ranges : [];
+    const pinNum = Number(cleanPin);
+
+    const matched =
+      zones.includes(zoneCode) ||
+      pincodes.includes(cleanPin) ||
+      prefixes.some(pr => cleanPin.startsWith(String(pr))) ||
+      ranges.some(r => r && Number(r.from) <= pinNum && pinNum <= Number(r.to));
+
+    const isViolation = rules.mode === 'ALLOW_ONLY' ? !matched : matched;
+    if (!isViolation) {
+      return {
+        serviceable: true,
+        deliverablePrepaid: true,
+        codAllowedForProduct: true,
+        restricted: false,
+        mode: rules.mode,
+        scope: rules.scope || 'BLOCK_DELIVERY',
+        reason: ''
+      };
+    }
+
+    if (rules.scope === 'BLOCK_COD_ONLY') {
+      return {
+        serviceable: paymentMethod !== 'COD',
+        deliverablePrepaid: true,
+        codAllowedForProduct: false,
+        restricted: true,
+        mode: rules.mode,
+        scope: 'BLOCK_COD_ONLY',
+        reason: rules.reason || 'Cash on Delivery is disabled for this product at the entered PIN code.'
+      };
+    }
+
+    return {
+      serviceable: false,
+      deliverablePrepaid: false,
+      codAllowedForProduct: false,
+      restricted: true,
+      mode: rules.mode,
+      scope: 'BLOCK_DELIVERY',
+      reason: rules.reason || 'This product cannot be delivered to the entered PIN code.'
+    };
+  }
+
   // Fallback in-browser Rust WASM calculator when running on static GitHub Pages showcase
   async function calculateCartClientSide(items, couponCode, paymentMethod = 'ONLINE_UPI', shippingState = 'Karnataka', shippingPincode = '560003') {
     await initBrowserWasm();
@@ -101,6 +204,8 @@
     let rawGstPaise = 0;
     let totalWeightGrams = 0;
     const lineItems = [];
+    const unserviceableItems = [];
+    const codRestrictedItems = [];
 
     for (const rawItem of items) {
       const v = dbSnap.variants.find(x => Number(x.variant_id) === Number(rawItem.variantId));
@@ -113,6 +218,8 @@
       const lineGstPaise = wasmExports
         ? Number(wasmExports.compute_inclusive_gst_paise(BigInt(lineTotalPaise), BigInt(v.gst_percent)))
         : Math.round((lineTotalPaise * v.gst_percent) / (100 + v.gst_percent));
+
+      const pinEval = evaluateProductPinRuleClient(shippingPincode, v.pincode_rules_json, paymentMethod);
 
       subtotalPaise += lineTotalPaise;
       mrpTotalPaise += v.mrp_paise * qty;
@@ -132,8 +239,33 @@
         quantity: qty,
         lineTotalPaise,
         lineGstPaise,
-        imageUrl: v.image_url || '/images/hero-pantry.jpg'
+        imageUrl: v.image_url || '/images/hero-pantry.jpg',
+        pincodeServiceable: pinEval.serviceable,
+        deliverablePrepaid: pinEval.deliverablePrepaid,
+        codAllowedForProduct: pinEval.codAllowedForProduct,
+        pincodeRestricted: pinEval.restricted,
+        pincodeRestrictionMode: pinEval.mode,
+        pincodeRestrictionScope: pinEval.scope,
+        pincodeRestrictionReason: pinEval.reason
       });
+
+      if (!pinEval.deliverablePrepaid) {
+        unserviceableItems.push({
+          productId: v.product_id,
+          variantId: v.variant_id,
+          productName: v.product_name,
+          packLabel: v.pack_label,
+          reason: pinEval.reason
+        });
+      } else if (!pinEval.codAllowedForProduct) {
+        codRestrictedItems.push({
+          productId: v.product_id,
+          variantId: v.variant_id,
+          productName: v.product_name,
+          packLabel: v.pack_label,
+          reason: pinEval.reason
+        });
+      }
     }
 
     let discountPaise = 0;
@@ -216,6 +348,9 @@
       pricing: {
         engine: 'rust-wasm-v1.2-zone-slab',
         lineItems,
+        unserviceableItems,
+        codRestrictedItems,
+        allItemsServiceable: unserviceableItems.length === 0 && (paymentMethod !== 'COD' || codRestrictedItems.length === 0),
         mrpTotalPaise,
         subtotalPaise,
         discountPaise,
@@ -272,7 +407,8 @@
     }
 
     try {
-      const data = await requestCartPricing(cart, '', 'ONLINE_UPI');
+      const activePin = getActiveDeliveryPin('560038');
+      const data = await requestCartPricing(cart, '', 'ONLINE_UPI', 'Karnataka', activePin);
       const p = data.pricing;
       const threshPaise = p.freeShippingThresholdPaise || 79900;
       const maxWeightGrams = p.freeShippingMaxWeightGrams || 2000;
@@ -319,6 +455,15 @@
             <div style="font-weight:600;color:var(--sn-bg-forest);font-size:0.9rem;line-height:1.25;">${item.productName}</div>
             <div style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);">Pack: ${item.packLabel} | SKU: ${item.sku}</div>
             <div style="font-family:var(--sn-font-mono);font-size:0.83rem;font-weight:600;margin-top:3px;">${formatInr(item.unitPricePaise)} &times; ${item.quantity} = ${formatInr(item.lineTotalPaise)}</div>
+            ${item.deliverablePrepaid === false ? `
+              <div style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-status-danger);margin-top:3px;">
+                ✕ Restricted for PIN ${escapeHtmlClient(activePin)}: ${escapeHtmlClient(item.pincodeRestrictionReason)}
+              </div>
+            ` : (item.codAllowedForProduct === false ? `
+              <div style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-status-warn);margin-top:3px;">
+                ⚠️ Prepaid Only at PIN ${escapeHtmlClient(activePin)}
+              </div>
+            ` : '')}
           </div>
           <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
             <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-cart-qty="${item.variantId}" data-delta="-1" aria-label="Decrease quantity">-</button>
@@ -336,7 +481,7 @@
         </div>
         <div style="font-size:0.85rem;display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
           <div style="display:flex;justify-content:space-between;"><span>Subtotal (incl. GST ${formatInr(p.gstPaise)})</span><strong style="font-family:var(--sn-font-mono);">${formatInr(p.subtotalPaise)}</strong></div>
-          <div style="display:flex;justify-content:space-between;"><span>Est. Zone A Delivery (${grossGrams}g gross)</span><strong style="font-family:var(--sn-font-mono);">${p.shippingPaise === 0 ? 'FREE' : formatInr(p.shippingPaise)}</strong></div>
+          <div style="display:flex;justify-content:space-between;"><span>Est. Delivery (PIN ${escapeHtmlClient(activePin)} • ${grossGrams}g)</span><strong style="font-family:var(--sn-font-mono);">${p.shippingPaise === 0 ? 'FREE' : formatInr(p.shippingPaise)}</strong></div>
           <div style="display:flex;justify-content:space-between;font-size:1.05rem;padding-top:8px;border-top:1px solid var(--sn-border-warm);color:var(--sn-bg-forest);">
             <strong>Order Total</strong>
             <strong style="font-family:var(--sn-font-mono);">${formatInr(p.totalPaise)}</strong>
@@ -352,17 +497,37 @@
     }
   }
 
+  function setPdpButtonsServiceable(isDeliverable, reason = '') {
+    const addBtn = document.getElementById('pdp-add-to-cart-btn');
+    const buyBtn = document.getElementById('pdp-buy-now-btn');
+    [addBtn, buyBtn].forEach(btn => {
+      if (!btn) return;
+      btn.disabled = !isDeliverable;
+      btn.style.opacity = isDeliverable ? '1' : '0.55';
+      btn.style.cursor = isDeliverable ? '' : 'not-allowed';
+      if (!isDeliverable && reason) {
+        btn.setAttribute('title', reason);
+      } else {
+        btn.removeAttribute('title');
+      }
+    });
+  }
+
   function runPdpPinCheck() {
     const pinInput = document.getElementById('sn-pdp-pin-input');
     const resEl = document.getElementById('sn-pdp-pin-result');
     const pin = String(pinInput ? pinInput.value : '').trim();
     if (!resEl) return;
-    if (!/^\d{6}$/.test(pin) || pin === '999999') {
+    if (!/^[1-8]\d{5}$/.test(pin) || pin === '999999') {
       resEl.style.color = 'var(--sn-status-danger)';
       resEl.style.backgroundColor = 'var(--sn-status-danger-bg)';
       resEl.textContent = '✕ Unserviceable PIN Code • Please enter a valid 6-digit Indian PIN';
+      setPdpButtonsServiceable(false, 'Unserviceable PIN Code');
       return;
     }
+
+    setActiveDeliveryPin(pin);
+
     const p3 = pin.slice(0, 3);
     const p2 = pin.slice(0, 2);
     let zoneDesc = 'Zone C (Rest of India • ₹75/500g • 3-5 Days)';
@@ -373,15 +538,42 @@
     } else if (['50', '51', '52', '53', '56', '57', '58', '59', '60', '61', '62', '63', '64', '67', '68', '69'].includes(p2)) {
       zoneDesc = 'Zone B (South India • ₹55/500g • 2-4 Days)';
     }
-    const codNote = pin === '800099' ? 'Prepaid Only (COD Disabled)' : 'Prepaid & COD Available';
+
+    const rawRules = pinInput ? pinInput.getAttribute('data-product-pincode-rules') : null;
+    const prodEval = evaluateProductPinRuleClient(pin, rawRules, 'ONLINE_UPI');
+
+    if (!prodEval.deliverablePrepaid) {
+      resEl.style.color = 'var(--sn-status-danger)';
+      resEl.style.backgroundColor = 'var(--sn-status-danger-bg)';
+      resEl.textContent = `✕ Not Deliverable to PIN ${pin} • ${prodEval.reason}`;
+      setPdpButtonsServiceable(false, prodEval.reason);
+      return;
+    }
+
+    setPdpButtonsServiceable(true);
+    if (!prodEval.codAllowedForProduct || pin === '800099') {
+      const codMsg = !prodEval.codAllowedForProduct
+        ? `Prepaid Only (${prodEval.reason})`
+        : 'Prepaid Only (COD Disabled)';
+      resEl.style.color = 'var(--sn-status-warn)';
+      resEl.style.backgroundColor = 'var(--sn-bg-parchment)';
+      resEl.textContent = `✓ ${zoneDesc} • ${codMsg}`;
+      return;
+    }
+
     resEl.style.color = 'var(--sn-status-paid)';
     resEl.style.backgroundColor = 'var(--sn-status-paid-bg)';
-    resEl.textContent = `✓ ${zoneDesc} • ${codNote}`;
+    resEl.textContent = `✓ ${zoneDesc} • Prepaid & COD Available`;
   }
 
   function bindGlobalListeners() {
     const pdpPinInput = document.getElementById('sn-pdp-pin-input');
     if (pdpPinInput) {
+      const savedPin = getActiveDeliveryPin('');
+      if (savedPin && /^[1-8]\d{5}$/.test(savedPin)) {
+        pdpPinInput.value = savedPin;
+      }
+      runPdpPinCheck();
       pdpPinInput.addEventListener('input', () => {
         if (/^\d{6}$/.test(pdpPinInput.value.trim())) {
           runPdpPinCheck();
@@ -639,6 +831,36 @@
         }
         return;
       }
+
+      const removeUnserviceableBtn = e.target.closest('[data-remove-unserviceable-items]');
+      if (removeUnserviceableBtn) {
+        try {
+          const removeIds = JSON.parse(removeUnserviceableBtn.getAttribute('data-remove-unserviceable-items') || '[]').map(Number);
+          const nextCart = getCart().filter(i => !removeIds.includes(Number(i.variantId)));
+          saveCart(nextCart);
+          await refreshCartDrawer();
+          if (typeof window.__snRenderCheckoutSummary === 'function') {
+            window.__snRenderCheckoutSummary();
+          }
+          showToast('Removed restricted product(s) from your basket.');
+        } catch {
+          // ignore
+        }
+        return;
+      }
+
+      const switchPrepaidBtn = e.target.closest('[data-switch-to-prepaid-upi]');
+      if (switchPrepaidBtn) {
+        const upiRadio = document.querySelector('#sn-checkout-form input[name="paymentMethod"][value="ONLINE_UPI"]');
+        if (upiRadio) {
+          upiRadio.checked = true;
+          if (typeof window.__snRenderCheckoutSummary === 'function') {
+            window.__snRenderCheckoutSummary();
+          }
+          showToast('Switched payment method to UPI Instant Pay.');
+        }
+        return;
+      }
     });
   }
 
@@ -649,11 +871,13 @@
     const summaryBox = document.getElementById('sn-checkout-summary-box');
     const couponInput = document.getElementById('sn-checkout-coupon');
     const applyCouponBtn = document.getElementById('sn-apply-coupon-btn');
+    const submitOrderBtn = document.getElementById('place-order-submit-btn');
 
     async function renderSummary() {
       const cart = getCart();
       if (cart.length === 0) {
         summaryBox.innerHTML = `<p style="color:var(--sn-text-muted);">Your basket is empty. <a href="${BASE_PATH}/shop" style="color:var(--sn-accent-terracotta);font-weight:600;">Add products from the shop &rarr;</a></p>`;
+        if (submitOrderBtn) submitOrderBtn.disabled = false;
         return;
       }
       const couponCode = couponInput ? couponInput.value.trim() : '';
@@ -664,17 +888,73 @@
       const shippingPincode = pinEl ? pinEl.value.trim() : '560003';
       const shippingState = stateEl ? stateEl.value.trim() : 'Karnataka';
 
+      if (/^[1-8]\d{5}$/.test(shippingPincode)) {
+        setActiveDeliveryPin(shippingPincode);
+      }
+
       try {
         const data = await requestCartPricing(cart, couponCode, paymentMethod, shippingState, shippingPincode);
         const p = data.pricing;
         const taxLabel = p.taxSupplyType === 'IGST' ? 'Inter-State IGST' : 'Intra-State (CGST + SGST)';
+        const unserviceableItems = Array.isArray(p.unserviceableItems) ? p.unserviceableItems : [];
+        const codRestrictedItems = Array.isArray(p.codRestrictedItems) ? p.codRestrictedItems : [];
+        const isCodConflict = paymentMethod === 'COD' && codRestrictedItems.length > 0;
+        const hasBlockingPinIssue = unserviceableItems.length > 0 || isCodConflict;
+
+        if (submitOrderBtn) {
+          submitOrderBtn.disabled = hasBlockingPinIssue;
+          submitOrderBtn.style.opacity = hasBlockingPinIssue ? '0.55' : '1';
+          submitOrderBtn.style.cursor = hasBlockingPinIssue ? 'not-allowed' : '';
+        }
+
+        let pinRestrictionAlertHtml = '';
+        if (unserviceableItems.length > 0) {
+          const removeVariantIdsJson = escapeHtmlClient(JSON.stringify(unserviceableItems.map(u => u.variantId)));
+          pinRestrictionAlertHtml = `
+            <div style="padding:10px 12px;border-radius:6px;background-color:var(--sn-status-danger-bg);border:1px solid var(--sn-status-danger);font-size:0.8rem;color:var(--sn-status-danger);">
+              <strong>✕ Delivery Restricted for PIN ${escapeHtmlClient(shippingPincode)} (${unserviceableItems.length} item${unserviceableItems.length > 1 ? 's' : ''}):</strong>
+              <ul style="margin:4px 0 8px 16px;padding:0;font-size:0.76rem;">
+                ${unserviceableItems.map(u => `<li><strong>${escapeHtmlClient(u.productName)} (${escapeHtmlClient(u.packLabel)})</strong>: ${escapeHtmlClient(u.reason)}</li>`).join('')}
+              </ul>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-remove-unserviceable-items="${removeVariantIdsJson}" style="border-color:var(--sn-status-danger);color:var(--sn-status-danger);">
+                  🗑️ Remove Restricted Item(s) &amp; Continue
+                </button>
+                <span style="font-family:var(--sn-font-mono);font-size:0.71rem;">or enter a different 6-digit delivery PIN</span>
+              </div>
+            </div>
+          `;
+        } else if (isCodConflict) {
+          pinRestrictionAlertHtml = `
+            <div style="padding:10px 12px;border-radius:6px;background-color:var(--sn-bg-parchment);border:1px solid var(--sn-status-warn);font-size:0.8rem;color:var(--sn-status-warn);">
+              <strong>⚠️ Cash on Delivery Unavailable at PIN ${escapeHtmlClient(shippingPincode)}:</strong>
+              <ul style="margin:4px 0 8px 16px;padding:0;font-size:0.76rem;">
+                ${codRestrictedItems.map(u => `<li><strong>${escapeHtmlClient(u.productName)} (${escapeHtmlClient(u.packLabel)})</strong>: ${escapeHtmlClient(u.reason)}</li>`).join('')}
+              </ul>
+              <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-switch-to-prepaid-upi="true">
+                ⚡ Switch to UPI Instant Pay &amp; Continue
+              </button>
+            </div>
+          `;
+        }
+
         summaryBox.innerHTML = `
           <div style="display:flex;flex-direction:column;gap:10px;">
+            ${pinRestrictionAlertHtml}
             ${p.lineItems.map(item => `
-              <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.86rem;border-bottom:1px dashed var(--sn-border-warm);padding-bottom:8px;gap:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.86rem;border-bottom:1px dashed var(--sn-border-warm);padding-bottom:8px;gap:8px;${item.deliverablePrepaid === false ? 'background-color:var(--sn-status-danger-bg);padding:6px 8px;border-radius:6px;' : ''}">
                 <div style="flex:1;">
                   <strong>${item.productName}</strong> (${item.packLabel}) &times; ${item.quantity}
                   <div style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);">SKU: ${item.sku} | GST ${item.gstPercent}%</div>
+                  ${item.deliverablePrepaid === false ? `
+                    <div style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-status-danger);margin-top:2px;">
+                      ✕ Not deliverable to PIN ${escapeHtmlClient(shippingPincode)}: ${escapeHtmlClient(item.pincodeRestrictionReason)}
+                    </div>
+                  ` : (item.codAllowedForProduct === false ? `
+                    <div style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-status-warn);margin-top:2px;">
+                      ⚠️ Prepaid Only at PIN ${escapeHtmlClient(shippingPincode)}
+                    </div>
+                  ` : '')}
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;">
                   <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" style="min-height:26px;padding:2px 7px;" data-cart-qty="${item.variantId}" data-delta="-1">-</button>
@@ -2254,6 +2534,24 @@
           setVal('sn-edit-nut-transfat', nutObj.trans_fat_g, 0);
           setVal('sn-edit-nut-biolabel', nutObj.bioactive_label, 'Key Phytonutrient Highlight');
           setVal('sn-edit-nut-bioval', nutObj.bioactive_value, '100% Unpolished Natural Staple');
+
+          // Hydrate Per-Product Delivery PIN & Zone Restrictions (Tab 4)
+          let pinObj = {};
+          try {
+            pinObj = JSON.parse(tr.getAttribute('data-prod-pincode-json') || '{}');
+          } catch {
+            pinObj = {};
+          }
+          setVal('sn-edit-pin-mode', pinObj.mode || 'NONE', 'NONE');
+          setVal('sn-edit-pin-scope', pinObj.scope || 'BLOCK_DELIVERY', 'BLOCK_DELIVERY');
+          setVal('sn-edit-pin-tokens', pinObj.rawTokens || '', '');
+          setVal('sn-edit-pin-reason', pinObj.reason || '', '');
+          const activeZones = Array.isArray(pinObj.zones) ? pinObj.zones : [];
+          ['ZONE_A', 'ZONE_B', 'ZONE_C', 'ZONE_D'].forEach(z => {
+            const cb = document.getElementById(`sn-edit-pin-zone-${z}`);
+            if (cb) cb.checked = activeZones.includes(z);
+          });
+          runAdminModalPinTest();
         }
 
         switchProdModalTab(requestedTab);
@@ -2261,6 +2559,77 @@
           editProdModal.style.display = 'flex';
         }
       });
+    });
+
+    function buildModalDraftPinRules() {
+      const modeEl = document.getElementById('sn-edit-pin-mode');
+      const scopeEl = document.getElementById('sn-edit-pin-scope');
+      const tokensEl = document.getElementById('sn-edit-pin-tokens');
+      const reasonEl = document.getElementById('sn-edit-pin-reason');
+      const mode = String(modeEl ? modeEl.value : 'NONE').toUpperCase();
+      const scope = String(scopeEl ? scopeEl.value : 'BLOCK_DELIVERY').toUpperCase();
+      const zones = ['ZONE_A', 'ZONE_B', 'ZONE_C', 'ZONE_D'].filter(z => {
+        const cb = document.getElementById(`sn-edit-pin-zone-${z}`);
+        return Boolean(cb && cb.checked);
+      });
+      const rawTokens = String(tokensEl ? tokensEl.value : '').trim();
+      const reason = String(reasonEl ? reasonEl.value : '').trim();
+
+      const pincodes = [];
+      const prefixes = [];
+      const ranges = [];
+      if (rawTokens) {
+        for (const part of rawTokens.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean)) {
+          const tok = part.replace(/\s+/g, '');
+          if (/^[1-8]\d{5}$/.test(tok)) {
+            pincodes.push(tok);
+          } else {
+            const rm = tok.match(/^([1-8]\d{5})-([1-8]\d{5})$/);
+            if (rm && Number(rm[1]) <= Number(rm[2])) {
+              ranges.push({ from: rm[1], to: rm[2] });
+            } else {
+              const pm = tok.match(/^([1-8]\d{1,4})(?:\*+|x+|X+)?$/);
+              if (pm) prefixes.push(pm[1]);
+            }
+          }
+        }
+      }
+      return { mode, scope, zones, pincodes, prefixes, ranges, rawTokens, reason };
+    }
+
+    function runAdminModalPinTest() {
+      const testInput = document.getElementById('sn-edit-pin-test-input');
+      const testRes = document.getElementById('sn-edit-pin-test-result');
+      if (!testInput || !testRes) return;
+      const pin = String(testInput.value || '').trim();
+      if (!/^[1-8]\d{5}$/.test(pin) || pin === '999999') {
+        testRes.className = 'sn-status sn-status-danger';
+        testRes.textContent = '✕ Invalid / Globally Blocked 6-Digit PIN';
+        return;
+      }
+      const draftRules = buildModalDraftPinRules();
+      const evalRes = evaluateProductPinRuleClient(pin, draftRules, 'ONLINE_UPI');
+      const zoneCode = resolveZoneCodeClient(pin);
+      if (!evalRes.deliverablePrepaid) {
+        testRes.className = 'sn-status sn-status-danger';
+        testRes.textContent = `✕ Blocked at PIN ${pin} (${zoneCode}) • ${evalRes.reason}`;
+      } else if (!evalRes.codAllowedForProduct) {
+        testRes.className = 'sn-status sn-status-warn';
+        testRes.textContent = `⚠️ Prepaid Only at PIN ${pin} (${zoneCode}) • COD Blocked`;
+      } else {
+        testRes.className = 'sn-status sn-status-paid';
+        testRes.textContent = `✓ Deliverable to PIN ${pin} (${zoneCode}) • Prepaid & COD Allowed`;
+      }
+    }
+
+    const pinTestBtn = document.getElementById('sn-edit-pin-test-btn');
+    if (pinTestBtn) pinTestBtn.addEventListener('click', runAdminModalPinTest);
+    ['sn-edit-pin-test-input', 'sn-edit-pin-mode', 'sn-edit-pin-scope', 'sn-edit-pin-tokens', 'sn-edit-pin-zone-ZONE_A', 'sn-edit-pin-zone-ZONE_B', 'sn-edit-pin-zone-ZONE_C', 'sn-edit-pin-zone-ZONE_D'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', runAdminModalPinTest);
+        el.addEventListener('change', runAdminModalPinTest);
+      }
     });
 
     // 4D-2. Contextual Category Edit Modal Controller (Opens on "✏️ Edit" in Tab 3.2 Categories Table)
@@ -2462,6 +2831,7 @@
         else if (flagFilter === 'BESTSELLER') matchFlag = tr.getAttribute('data-prod-bestseller') === '1';
         else if (flagFilter === 'FEATURED') matchFlag = tr.getAttribute('data-prod-featured') === '1';
         else if (flagFilter === 'NEW') matchFlag = tr.getAttribute('data-prod-new') === '1';
+        else if (flagFilter === 'PIN_RESTRICTED') matchFlag = tr.getAttribute('data-prod-pin-restricted') === '1';
 
         const matchQ = !q || tr.textContent.toLowerCase().includes(q);
         return matchCat && matchFlag && matchQ;
@@ -2595,7 +2965,7 @@
       });
     }
 
-    // 6. Edit Existing Product, Category Assignment, Per-Weight Pack Prices/Discounts, FSSAI Nutrition & Flags
+    // 6. Edit Existing Product, Category Assignment, Per-Weight Pack Prices/Discounts, FSSAI Nutrition & PIN Rules
     const editProdForm = document.getElementById('sn-admin-edit-product-form');
     if (editProdForm) {
       const submitBtn = editProdForm.querySelector('button[type="submit"]');
@@ -2658,6 +3028,20 @@
           bioactive_value: String(payload.bioactive_value || '').trim()
         };
 
+        const draftPinRules = buildModalDraftPinRules();
+        if (draftPinRules.mode !== 'NONE' && draftPinRules.zones.length === 0 && !draftPinRules.rawTokens) {
+          switchProdModalTab('pincode');
+          showToast('Please select at least one Shipping Zone or enter at least one PIN code, prefix, or range.');
+          return;
+        }
+        payload.pincodeRules = {
+          mode: draftPinRules.mode,
+          scope: draftPinRules.scope,
+          zones: draftPinRules.zones,
+          rawTokens: draftPinRules.rawTokens,
+          reason: draftPinRules.reason
+        };
+
         if (IS_STATIC_SHOWCASE) {
           const email = getActiveAdminEmail();
           if (email !== 'superadmin@sasynaturals.com' && email !== 'catalog@sasynaturals.com') {
@@ -2677,6 +3061,8 @@
             if (payload.allergenInfo) tr.setAttribute('data-prod-allergen', payload.allergenInfo);
             if (payload.fssaiNotes) tr.setAttribute('data-prod-fssai', payload.fssaiNotes);
             tr.setAttribute('data-prod-nutrition-json', JSON.stringify(payload.nutrition));
+            tr.setAttribute('data-prod-pincode-json', JSON.stringify(draftPinRules));
+            tr.setAttribute('data-prod-pin-restricted', draftPinRules.mode !== 'NONE' ? '1' : '0');
 
             let existingVars = [];
             try {
@@ -2711,6 +3097,19 @@
             if (nutSumEl) {
               nutSumEl.textContent = `🥗 ${payload.nutrition.energy_kcal} kcal • ${payload.nutrition.protein_g}g Prot • ${payload.nutrition.bioactive_value}`;
             }
+            const pinSumEl = tr.querySelector(`[data-prod-pin-summary="${payload.productId}"]`);
+            if (pinSumEl) {
+              if (draftPinRules.mode === 'NONE') {
+                pinSumEl.textContent = '📍 All Serviceable India PINs';
+                pinSumEl.style.color = 'var(--sn-text-muted)';
+                pinSumEl.style.fontWeight = '400';
+              } else {
+                const targetPreview = [...draftPinRules.zones, ...(draftPinRules.rawTokens ? [draftPinRules.rawTokens] : [])].join(', ');
+                pinSumEl.textContent = `📍 ${draftPinRules.mode === 'ALLOW_ONLY' ? 'Only' : 'Blocked'}: ${targetPreview}`;
+                pinSumEl.style.color = 'var(--sn-accent-terracotta)';
+                pinSumEl.style.fontWeight = '700';
+              }
+            }
             const varCellEl = tr.querySelector(`[data-prod-variants-cell="${payload.productId}"]`);
             if (varCellEl) {
               varCellEl.innerHTML = updatedVars.map(v => {
@@ -2720,7 +3119,7 @@
             }
           }
           closeEditProductModal();
-          showToast(`[Showcase Verified] Updated product #${payload.productId}, 4-pack discounts & FSSAI nutrition!`);
+          showToast(`[Showcase Verified] Updated product #${payload.productId}, 4-pack discounts, FSSAI nutrition & PIN rules!`);
           return;
         }
 
@@ -2738,7 +3137,7 @@
           return;
         }
         closeEditProductModal();
-        showToast(`Updated "${data.name}" (4-pack discounts & FSSAI nutrition saved)!`);
+        showToast(`Updated "${data.name}" (4-pack discounts, FSSAI nutrition & PIN rules saved)!`);
         setTimeout(() => window.location.reload(), 600);
       });
     }

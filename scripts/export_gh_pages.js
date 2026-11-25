@@ -75,7 +75,9 @@ function runExport() {
       v.mrp_paise,
       v.selling_price_paise,
       p.name AS product_name,
-      p.gst_percent
+      p.gst_percent,
+      p.pincode_restriction_mode,
+      p.pincode_rules_json
     FROM product_variants v
     JOIN products p ON p.id = v.product_id
     WHERE v.is_active = 1 AND p.is_active = 1

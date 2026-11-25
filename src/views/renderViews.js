@@ -8,7 +8,12 @@ const {
   BRAND_TAGLINE,
   ORDER_FULFILMENT_STATUSES
 } = require('../config/appConfig');
-const { getDb, parseProductNutrition } = require('../db/database');
+const {
+  getDb,
+  parseProductNutrition,
+  parseProductPincodeRules,
+  summarizePincodeRules
+} = require('../db/database');
 const { buildMasterSchemaGraph } = require('../core/content/schemaBuilder');
 const { getShippingPolicyFromDb } = require('../core/checkout/checkoutEngine');
 const { buildComprehensiveReports } = require('../core/reports/reportingEngine');
@@ -92,6 +97,8 @@ function renderProductCard(p, variants = [], basePath = '') {
   const minSellPaise = prodVariants.length > 0
     ? Math.min(...prodVariants.map(v => Number(v.selling_price_paise || 0)))
     : defVar.selling_price_paise;
+  const pinRules = parseProductPincodeRules(p);
+  const pinSummary = summarizePincodeRules(pinRules);
 
   return `
     <article
@@ -102,6 +109,7 @@ function renderProductCard(p, variants = [], basePath = '') {
       data-product-new="${p.is_new_arrival ? '1' : '0'}"
       data-product-instock="${totalStock > 0 ? '1' : '0'}"
       data-product-min-inr="${Math.round(minSellPaise / 100)}"
+      data-product-pincode-rules="${escapeHtml(JSON.stringify(pinRules))}"
       id="prod-card-${escapeHtml(p.slug)}"
     >
       <a href="${basePath}/product/${escapeHtml(p.slug)}" class="sn-product-media">
@@ -109,6 +117,7 @@ function renderProductCard(p, variants = [], basePath = '') {
         <div class="sn-product-badges">
           ${p.is_bestseller ? `<span class="sn-badge sn-badge-bestseller">Bestseller</span>` : ''}
           ${p.is_new_arrival ? `<span class="sn-badge sn-badge-new">New Harvest</span>` : ''}
+          ${pinSummary.hasRestriction ? `<span class="sn-badge" style="background-color:var(--sn-bg-forest);color:#FAF5E4;">${escapeHtml(pinSummary.shortBadge)}</span>` : ''}
         </div>
       </a>
       <div class="sn-product-content">
@@ -733,6 +742,9 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
     variants: activeVariants
   });
 
+  const pinRules = parseProductPincodeRules(product);
+  const pinSummary = summarizePincodeRules(pinRules);
+
   const bodyHtml = `
     <section class="sn-section">
       <div class="sn-container">
@@ -740,7 +752,7 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
           <a href="${basePath}/">Home</a> / <a href="${basePath}/category/${escapeHtml(category.slug)}">${escapeHtml(category.name)}</a> / <strong>${escapeHtml(product.name)}</strong>
         </div>
 
-        <div class="sn-pdp-grid sn-pdp-main-layout" data-product-container="${product.id}">
+        <div class="sn-pdp-grid sn-pdp-main-layout" data-product-container="${product.id}" data-product-pincode-rules="${escapeHtml(JSON.stringify(pinRules))}">
           <div class="sn-pdp-gallery">
             <img src="${basePath}${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}" id="sn-pdp-main-img" data-product-img-id="${product.id}" />
             <div id="sn-pdp-main-caption" style="padding:12px 18px;background-color:var(--sn-bg-mortar);font-family:var(--sn-font-mono);font-size:0.76rem;color:var(--sn-text-secondary);">
@@ -845,16 +857,33 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
                 </div>
               </div>
 
-              <!-- Instant 6-Digit PIN Delivery & Zone Freight Estimator -->
-              <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--sn-border-warm);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <label for="sn-pdp-pin-input" style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-secondary);">📍 Delivery PIN:</label>
-                  <input type="text" id="sn-pdp-pin-input" maxlength="6" placeholder="560038" value="560038" class="sn-input" style="width:96px;padding:5px 8px;min-height:32px;font-family:var(--sn-font-mono);font-size:0.78rem;" />
-                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-pdp-pin-check-btn" style="min-height:32px;padding:4px 10px;">Check PIN</button>
+              <!-- Instant 6-Digit PIN Delivery & Zone Freight Estimator (with Per-Product PIN Restriction Gate) -->
+              <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--sn-border-warm);display:flex;flex-direction:column;gap:8px;">
+                ${pinSummary.hasRestriction ? `
+                  <div id="sn-pdp-pin-restriction-banner" style="padding:6px 10px;border-radius:6px;background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-strong);font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-bg-forest);">
+                    <strong>${escapeHtml(pinSummary.shortBadge)}</strong> — ${escapeHtml(pinSummary.detailText)}
+                  </div>
+                ` : ''}
+                <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <label for="sn-pdp-pin-input" style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-secondary);">📍 Delivery PIN:</label>
+                    <input
+                      type="text"
+                      id="sn-pdp-pin-input"
+                      maxlength="6"
+                      placeholder="560038"
+                      value="560038"
+                      data-product-id="${product.id}"
+                      data-product-pincode-rules="${escapeHtml(JSON.stringify(pinRules))}"
+                      class="sn-input"
+                      style="width:96px;padding:5px 8px;min-height:32px;font-family:var(--sn-font-mono);font-size:0.78rem;"
+                    />
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-pdp-pin-check-btn" style="min-height:32px;padding:4px 10px;">Check PIN</button>
+                  </div>
+                  <span id="sn-pdp-pin-result" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">
+                    ✓ Zone A (Local Bengaluru • 1-2 Days) • Prepaid &amp; COD Available
+                  </span>
                 </div>
-                <span id="sn-pdp-pin-result" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">
-                  ✓ Zone A (Local Bengaluru • 1-2 Days) • Prepaid &amp; COD Available
-                </span>
               </div>
             </div>
 
@@ -2821,6 +2850,7 @@ function renderAdminPortalPage({
                       <option value="bestseller">★ Bestsellers</option>
                       <option value="featured">Featured</option>
                       <option value="new">New Harvests</option>
+                      <option value="pin_restricted">📍 PIN Restricted</option>
                     </select>
                   </div>
                 </div>
@@ -2837,6 +2867,8 @@ function renderAdminPortalPage({
                         const base100SellInr = Math.round(Number(v100.selling_price_paise || 14000) / 100);
                         const base100MrpInr = Math.round(Number(v100.mrp_paise || 17000) / 100);
                         const nut = parseProductNutrition(p);
+                        const pinRules = parseProductPincodeRules(p);
+                        const pinSummary = summarizePincodeRules(pinRules);
                         const variantsDataJson = JSON.stringify(pVars.map(v => ({
                           id: v.id,
                           sku: v.sku,
@@ -2867,6 +2899,8 @@ function renderAdminPortalPage({
                             data-prod-fssai="${escapeHtml(p.fssai_notes || '')}"
                             data-prod-variants-json="${escapeHtml(variantsDataJson)}"
                             data-prod-nutrition-json="${escapeHtml(JSON.stringify(nut))}"
+                            data-prod-pincode-json="${escapeHtml(JSON.stringify(pinRules))}"
+                            data-prod-pin-restricted="${pinSummary.hasRestriction ? '1' : '0'}"
                             data-prod-img="${basePath}${escapeHtml(p.image_url)}"
                             data-prod-active="${p.is_active ? '1' : '0'}"
                             data-prod-bestseller="${p.is_bestseller ? '1' : '0'}"
@@ -2891,6 +2925,9 @@ function renderAdminPortalPage({
                                 <span data-prod-origin-display="${p.id}" style="font-size:0.75rem;color:var(--sn-text-muted);">${escapeHtml(p.origin_region)} • ${escapeHtml(p.harvest_batch)}</span>
                                 <div data-prod-nut-summary="${p.id}" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 ${nut.energy_kcal} kcal • ${nut.protein_g}g Prot • ${escapeHtml(nut.bioactive_value)}
+                                </div>
+                                <div data-prod-pin-summary="${p.id}" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:${pinSummary.hasRestriction ? 'var(--sn-accent-terracotta)' : 'var(--sn-text-muted)'};font-weight:${pinSummary.hasRestriction ? '700' : '400'};margin-top:2px;">
+                                  ${pinSummary.hasRestriction ? escapeHtml(pinSummary.shortBadge) : '📍 All Serviceable India PINs'}
                                 </div>
                               </div>
                             </td>
@@ -2930,6 +2967,13 @@ function renderAdminPortalPage({
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="${p.id}"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -3046,7 +3090,7 @@ function renderAdminPortalPage({
                 </div>
               </div>
 
-              <!-- Contextual Product Edit, Per-Weight Discount Matrix & FSSAI Nutrition Modal (Opens on Product ✏️ Edit / ⚖️ Discounts / 🥗 Nutrition Click) -->
+              <!-- Contextual Product Edit, Per-Weight Discount Matrix, FSSAI Nutrition & Delivery PIN Rules Modal -->
               <div id="sn-admin-edit-product-modal" class="sn-admin-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sn-edit-modal-heading" style="display:none;">
                 <div class="sn-admin-modal-card">
                   <div class="sn-admin-modal-header">
@@ -3066,6 +3110,7 @@ function renderAdminPortalPage({
                       <button type="button" class="sn-admin-subtab-pill sn-active" data-prod-modal-tab="core">🏷️ 1. Core Info, Flags &amp; Photos</button>
                       <button type="button" class="sn-admin-subtab-pill" data-prod-modal-tab="pricing">⚖️ 2. Pack-Weight Pricing &amp; Discounts</button>
                       <button type="button" class="sn-admin-subtab-pill" data-prod-modal-tab="nutrition">🥗 3. FSSAI Nutrition (Per 100g) &amp; Labelling</button>
+                      <button type="button" class="sn-admin-subtab-pill" data-prod-modal-tab="pincode">📍 4. Delivery PIN &amp; Zone Rules</button>
                     </div>
 
                     <form id="sn-admin-edit-product-form" style="margin-bottom:14px;">
@@ -3293,9 +3338,99 @@ function renderAdminPortalPage({
                         </div>
                       </div>
 
+                      <!-- Modal Pane 4: Per-Product Delivery PIN & Zone Restrictions -->
+                      <div data-prod-modal-pane="pincode" style="display:none;">
+                        <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:12px;">
+                          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                            <div>
+                              <strong style="font-family:var(--sn-font-serif);font-size:0.95rem;color:var(--sn-bg-forest);">📍 Per-Product Delivery PIN Code &amp; 4-Zone Serviceability Rules</strong>
+                              <div style="font-size:0.75rem;color:var(--sn-text-secondary);">Restrict individual products to specific Shipping Zones, exact 6-digit PINs, 2-5 digit PIN prefixes (e.g. <code>560*</code>), or PIN ranges (e.g. <code>560001-560099</code>).</div>
+                            </div>
+                          </div>
+
+                          <div class="sn-grid-2" style="gap:12px;margin-bottom:12px;">
+                            <div>
+                              <label for="sn-edit-pin-mode" style="font-size:0.74rem;font-weight:700;display:block;margin-bottom:4px;">Delivery Restriction Mode *</label>
+                              <select name="pincode_restriction_mode" id="sn-edit-pin-mode" class="sn-select" style="font-weight:600;">
+                                <option value="NONE">NONE — Deliverable to All Serviceable Indian PINs (Default)</option>
+                                <option value="ALLOW_ONLY">ALLOW_ONLY (Allowlist) — Deliver ONLY to Selected Zones / PINs</option>
+                                <option value="BLOCK_LIST">BLOCK_LIST (Blocklist) — Block Delivery to Selected Zones / PINs</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label for="sn-edit-pin-scope" style="font-size:0.74rem;font-weight:700;display:block;margin-bottom:4px;">Enforcement Scope on Restricted PINs *</label>
+                              <select name="pincode_restriction_scope" id="sn-edit-pin-scope" class="sn-select">
+                                <option value="BLOCK_DELIVERY">BLOCK_DELIVERY — Block All Delivery (Prepaid &amp; COD)</option>
+                                <option value="BLOCK_COD_ONLY">BLOCK_COD_ONLY — Allow Prepaid Only (Disable Cash on Delivery)</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div style="margin-bottom:12px;">
+                            <label style="font-size:0.74rem;font-weight:700;display:block;margin-bottom:6px;">1-Click Shipping Zone Shortcuts (Optional)</label>
+                            <div class="sn-grid-2" style="gap:8px;">
+                              <label class="sn-card" style="padding:8px 10px;display:flex;align-items:center;gap:8px;cursor:pointer;background-color:var(--sn-bg-surface);">
+                                <input type="checkbox" name="pin_zone_ZONE_A" id="sn-edit-pin-zone-ZONE_A" value="ZONE_A" />
+                                <span style="font-size:0.78rem;"><strong>Zone A</strong> — Local Bengaluru (<code>560xxx</code>)</span>
+                              </label>
+                              <label class="sn-card" style="padding:8px 10px;display:flex;align-items:center;gap:8px;cursor:pointer;background-color:var(--sn-bg-surface);">
+                                <input type="checkbox" name="pin_zone_ZONE_B" id="sn-edit-pin-zone-ZONE_B" value="ZONE_B" />
+                                <span style="font-size:0.78rem;"><strong>Zone B</strong> — South India Regional (KA, TN, KL, AP, TG)</span>
+                              </label>
+                              <label class="sn-card" style="padding:8px 10px;display:flex;align-items:center;gap:8px;cursor:pointer;background-color:var(--sn-bg-surface);">
+                                <input type="checkbox" name="pin_zone_ZONE_C" id="sn-edit-pin-zone-ZONE_C" value="ZONE_C" />
+                                <span style="font-size:0.78rem;"><strong>Zone C</strong> — Rest of India National</span>
+                              </label>
+                              <label class="sn-card" style="padding:8px 10px;display:flex;align-items:center;gap:8px;cursor:pointer;background-color:var(--sn-bg-surface);">
+                                <input type="checkbox" name="pin_zone_ZONE_D" id="sn-edit-pin-zone-ZONE_D" value="ZONE_D" />
+                                <span style="font-size:0.78rem;"><strong>Zone D</strong> — Special / NE / J&amp;K / Islands</span>
+                              </label>
+                            </div>
+                          </div>
+
+                          <div style="margin-bottom:12px;">
+                            <label for="sn-edit-pin-tokens" style="font-size:0.74rem;font-weight:700;display:block;margin-bottom:4px;">Exact 6-Digit PINs, Prefixes (e.g. 560*) &amp; Ranges (e.g. 560001-560099)</label>
+                            <input
+                              type="text"
+                              name="pincodeTokens"
+                              id="sn-edit-pin-tokens"
+                              placeholder="e.g. 560038, 560*, 400001-400099"
+                              class="sn-input"
+                              style="font-family:var(--sn-font-mono);"
+                            />
+                            <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);margin-top:3px;">
+                              Separate multiple rules with commas. Combine with Zone checkboxes above as needed.
+                            </div>
+                          </div>
+
+                          <div style="margin-bottom:12px;">
+                            <label for="sn-edit-pin-reason" style="font-size:0.74rem;font-weight:700;display:block;margin-bottom:4px;">Customer-Facing Restriction Note (Humanizer-Checked)</label>
+                            <input
+                              type="text"
+                              name="pincodeReason"
+                              id="sn-edit-pin-reason"
+                              placeholder="e.g. Fresh harvest soft dates are deliverable only across Bengaluru and South India."
+                              class="sn-input"
+                            />
+                          </div>
+
+                          <!-- Instant Admin PIN Rule Simulator inside Modal -->
+                          <div style="padding:10px 12px;border-radius:6px;background-color:var(--sn-bg-mortar);border:1px dashed var(--sn-border-strong);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                              <span style="font-family:var(--sn-font-mono);font-size:0.73rem;font-weight:700;color:var(--sn-bg-forest);">🧪 Live Rule Simulator:</span>
+                              <input type="text" id="sn-edit-pin-test-input" maxlength="6" value="560038" placeholder="6-Digit PIN" class="sn-input" style="width:96px;padding:4px 8px;min-height:30px;font-family:var(--sn-font-mono);font-size:0.76rem;" />
+                              <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-edit-pin-test-btn" style="min-height:30px;padding:4px 10px;">Test PIN</button>
+                            </div>
+                            <span id="sn-edit-pin-test-result" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.72rem;">
+                              ✓ Deliverable (Prepaid &amp; COD Allowed)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
                       <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--sn-border-warm);">
                         <button type="button" class="sn-btn sn-btn-outline" data-close-prod-modal>Cancel</button>
-                        <button type="submit" class="sn-btn sn-btn-forest">Save Product, Pricing &amp; Nutrition Edits</button>
+                        <button type="submit" class="sn-btn sn-btn-forest">Save Product, Pricing, Nutrition &amp; PIN Rules</button>
                       </div>
                     </form>
 

@@ -14,15 +14,15 @@
   <meta property="og:url" content="https://sasynaturals.com/admin" />
   <meta property="og:site_name" content="Sasya Naturals" />
   <meta property="og:image" content="https://sasynaturals.com/images/hero-pantry.jpg" />
-  <link rel="icon" type="image/webp" href="/sasya_naturals/images/favicon.webp?v=2.8.4" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/sasya_naturals/images/favicon-32.png?v=2.8.4" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/sasya_naturals/images/apple-touch-icon.png?v=2.8.4" />
+  <link rel="icon" type="image/webp" href="/sasya_naturals/images/favicon.webp?v=2.9.0" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/sasya_naturals/images/favicon-32.png?v=2.9.0" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/sasya_naturals/images/apple-touch-icon.png?v=2.9.0" />
   <link rel="preload" href="/sasya_naturals/assets/fonts/poppins-latin-400.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/sasya_naturals/assets/fonts/poppins-latin-500.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/sasya_naturals/assets/fonts/poppins-latin-600.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/sasya_naturals/assets/fonts/poppins-latin-700.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="/sasya_naturals/assets/fonts/lora-latin-var.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="/sasya_naturals/assets/sasya-core.css?v=2.8.4" />
+  <link rel="stylesheet" href="/sasya_naturals/assets/sasya-core.css?v=2.9.0" />
   <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://sasynaturals.com/#organization","name":"Sasya Naturals","url":"https://sasynaturals.com/","logo":{"@type":"ImageObject","url":"https://sasynaturals.com/images/logo-horizontal.webp"},"contactPoint":{"@type":"ContactPoint","telephone":"+91-80-4568-2200","contactType":"customer service","areaServed":"IN","availableLanguage":["en","hi","kn"]}},{"@type":"WebSite","@id":"https://sasynaturals.com/#website","url":"https://sasynaturals.com/","name":"Sasya Naturals","publisher":{"@id":"https://sasynaturals.com/#organization"},"potentialAction":{"@type":"SearchAction","target":"https://sasynaturals.com/shop?q={search_term_string}","query-input":"required name=search_term_string"}},{"@type":"BreadcrumbList","@id":"https://sasynaturals.com/admin#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://sasynaturals.com/"},{"@type":"ListItem","position":2,"name":"Admin Portal","item":"https://sasynaturals.com/admin"}]},{"@type":"WebPage","@id":"https://sasynaturals.com/admin#webpage","url":"https://sasynaturals.com/admin","name":"Staff RBAC Administration Portal | Sasya Naturals","description":"Role-based administration portal for Sasya Naturals Super Admin, Product Manager, Order Manager, Accounts Manager, and Staff.","isPartOf":{"@id":"https://sasynaturals.com/#website"},"breadcrumb":{"@id":"https://sasynaturals.com/admin#breadcrumb"}}]}</script>
 </head>
 <body>
@@ -153,7 +153,7 @@
   </header>
   <script>(function(){try{var c=JSON.parse(localStorage.getItem('sn_cart_v1')||'[]'),n=c.reduce(function(a,i){return a+Number(i.quantity||1)},0);if(n>0)document.querySelectorAll('[data-cart-count]').forEach(function(e){e.textContent=String(n)})}catch(e){}})();</script>
 
-  <main id="app-mount" data-ssr-rendered="true" data-app-version="2.8.4">
+  <main id="app-mount" data-ssr-rendered="true" data-app-version="2.9.0">
     
     <section class="sn-section" id="sn-admin-portal" data-active-admin-role="SUPER_ADMIN">
       <div class="sn-container">
@@ -2917,6 +2917,7 @@
                       <option value="bestseller">★ Bestsellers</option>
                       <option value="featured">Featured</option>
                       <option value="new">New Harvests</option>
+                      <option value="pin_restricted">📍 PIN Restricted</option>
                     </select>
                   </div>
                 </div>
@@ -2948,6 +2949,8 @@
                             data-prod-fssai="100% Natural Tree Nut. Store in an airtight jar away from moisture."
                             data-prod-variants-json="[{&quot;id&quot;:1,&quot;sku&quot;:&quot;SN-DF-ALM-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:360,&quot;sellInr&quot;:320,&quot;stockQty&quot;:45},{&quot;id&quot;:2,&quot;sku&quot;:&quot;SN-DF-ALM-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:845,&quot;sellInr&quot;:750,&quot;stockQty&quot;:60},{&quot;id&quot;:3,&quot;sku&quot;:&quot;SN-DF-ALM-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:1600,&quot;sellInr&quot;:1425,&quot;stockQty&quot;:35},{&quot;id&quot;:4,&quot;sku&quot;:&quot;SN-DF-ALM-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:3060,&quot;sellInr&quot;:2720,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:609,&quot;protein_g&quot;:20.8,&quot;carbs_g&quot;:10.5,&quot;dietary_fiber_g&quot;:12.5,&quot;total_sugars_g&quot;:4.2,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:58.9,&quot;saturated_fat_g&quot;:4.5,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:2,&quot;bioactive_label&quot;:&quot;Natural Vitamin E &amp; Almond Oil&quot;,&quot;bioactive_value&quot;:&quot;26 mg Vitamin E / 58.9% Oil&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/cat-dry-fruits.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="1"
@@ -2972,6 +2975,9 @@
                                 <span data-prod-origin-display="1" style="font-size:0.75rem;color:var(--sn-text-muted);">Pulwama, Jammu &amp; Kashmir • SN-KSH-2611A</span>
                                 <div data-prod-nut-summary="1" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 609 kcal • 20.8g Prot • 26 mg Vitamin E / 58.9% Oil
+                                </div>
+                                <div data-prod-pin-summary="1" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -3006,6 +3012,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="1"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -3037,6 +3050,8 @@
                             data-prod-fssai="Grade W240 Whole Kernels. Zero broken pieces guaranteed at packing."
                             data-prod-variants-json="[{&quot;id&quot;:5,&quot;sku&quot;:&quot;SN-DF-CSH-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:220,&quot;sellInr&quot;:185,&quot;stockQty&quot;:45},{&quot;id&quot;:6,&quot;sku&quot;:&quot;SN-DF-CSH-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:515,&quot;sellInr&quot;:435,&quot;stockQty&quot;:60},{&quot;id&quot;:7,&quot;sku&quot;:&quot;SN-DF-CSH-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:980,&quot;sellInr&quot;:825,&quot;stockQty&quot;:35},{&quot;id&quot;:8,&quot;sku&quot;:&quot;SN-DF-CSH-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:1870,&quot;sellInr&quot;:1575,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:582,&quot;protein_g&quot;:18.8,&quot;carbs_g&quot;:28.7,&quot;dietary_fiber_g&quot;:3.3,&quot;total_sugars_g&quot;:5.9,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:45.2,&quot;saturated_fat_g&quot;:8.8,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:12,&quot;bioactive_label&quot;:&quot;Plant Magnesium &amp; Zinc&quot;,&quot;bioactive_value&quot;:&quot;292 mg Magnesium / 5.8 mg Zinc&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-cashews.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="1"
@@ -3061,6 +3076,9 @@
                                 <span data-prod-origin-display="2" style="font-size:0.75rem;color:var(--sn-text-muted);">Bicholim, Goa • SN-GOA-2611B</span>
                                 <div data-prod-nut-summary="2" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 582 kcal • 18.8g Prot • 292 mg Magnesium / 5.8 mg Zinc
+                                </div>
+                                <div data-prod-pin-summary="2" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -3095,6 +3113,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="2"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -3126,6 +3151,8 @@
                             data-prod-fssai="Dry-roasted without oil. Contains 1.2% rock salt."
                             data-prod-variants-json="[{&quot;id&quot;:9,&quot;sku&quot;:&quot;SN-DF-PST-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:280,&quot;sellInr&quot;:245,&quot;stockQty&quot;:45},{&quot;id&quot;:10,&quot;sku&quot;:&quot;SN-DF-PST-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:660,&quot;sellInr&quot;:575,&quot;stockQty&quot;:60},{&quot;id&quot;:11,&quot;sku&quot;:&quot;SN-DF-PST-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:1245,&quot;sellInr&quot;:1090,&quot;stockQty&quot;:35},{&quot;id&quot;:12,&quot;sku&quot;:&quot;SN-DF-PST-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:2380,&quot;sellInr&quot;:2085,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:568,&quot;protein_g&quot;:20.5,&quot;carbs_g&quot;:27.2,&quot;dietary_fiber_g&quot;:10.3,&quot;total_sugars_g&quot;:7.6,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:45.3,&quot;saturated_fat_g&quot;:5.6,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:380,&quot;bioactive_label&quot;:&quot;Potassium &amp; Vitamin B6&quot;,&quot;bioactive_value&quot;:&quot;1025 mg Potassium / 1.7 mg B6&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-pistachios.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="0"
@@ -3150,6 +3177,9 @@
                                 <span data-prod-origin-display="3" style="font-size:0.75rem;color:var(--sn-text-muted);">Kerman Cultivar / Packed in Bengaluru • SN-PST-2611C</span>
                                 <div data-prod-nut-summary="3" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 568 kcal • 20.5g Prot • 1025 mg Potassium / 1.7 mg B6
+                                </div>
+                                <div data-prod-pin-summary="3" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -3184,6 +3214,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="3"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -3215,6 +3252,8 @@
                             data-prod-fssai="High natural polyunsaturated fat content. Refrigerate after opening."
                             data-prod-variants-json="[{&quot;id&quot;:13,&quot;sku&quot;:&quot;SN-DF-WLN-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:260,&quot;sellInr&quot;:225,&quot;stockQty&quot;:45},{&quot;id&quot;:14,&quot;sku&quot;:&quot;SN-DF-WLN-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:610,&quot;sellInr&quot;:530,&quot;stockQty&quot;:60},{&quot;id&quot;:15,&quot;sku&quot;:&quot;SN-DF-WLN-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:1155,&quot;sellInr&quot;:1000,&quot;stockQty&quot;:35},{&quot;id&quot;:16,&quot;sku&quot;:&quot;SN-DF-WLN-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:2210,&quot;sellInr&quot;:1915,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:687,&quot;protein_g&quot;:15.6,&quot;carbs_g&quot;:11,&quot;dietary_fiber_g&quot;:6.7,&quot;total_sugars_g&quot;:2.6,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:64.5,&quot;saturated_fat_g&quot;:6.1,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:2,&quot;bioactive_label&quot;:&quot;Plant Omega-3 (ALA)&quot;,&quot;bioactive_value&quot;:&quot;9.1 g Alpha-Linolenic Acid&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-walnuts.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="0"
@@ -3239,6 +3278,9 @@
                                 <span data-prod-origin-display="4" style="font-size:0.75rem;color:var(--sn-text-muted);">Kupwara, Jammu &amp; Kashmir • SN-WLN-2610D</span>
                                 <div data-prod-nut-summary="4" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 687 kcal • 15.6g Prot • 9.1 g Alpha-Linolenic Acid
+                                </div>
+                                <div data-prod-pin-summary="4" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -3273,6 +3315,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="4"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -3304,6 +3353,8 @@
                             data-prod-fssai="Unsulphured dried fruit. Natural sugar crystals may form in cool storage."
                             data-prod-variants-json="[{&quot;id&quot;:17,&quot;sku&quot;:&quot;SN-DF-FIG-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:250,&quot;sellInr&quot;:215,&quot;stockQty&quot;:45},{&quot;id&quot;:18,&quot;sku&quot;:&quot;SN-DF-FIG-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:590,&quot;sellInr&quot;:505,&quot;stockQty&quot;:60},{&quot;id&quot;:19,&quot;sku&quot;:&quot;SN-DF-FIG-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:1115,&quot;sellInr&quot;:955,&quot;stockQty&quot;:35},{&quot;id&quot;:20,&quot;sku&quot;:&quot;SN-DF-FIG-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:2125,&quot;sellInr&quot;:1830,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:254,&quot;protein_g&quot;:3.5,&quot;carbs_g&quot;:63.8,&quot;dietary_fiber_g&quot;:9.8,&quot;total_sugars_g&quot;:47.9,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:0.9,&quot;saturated_fat_g&quot;:0.1,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:10,&quot;bioactive_label&quot;:&quot;Plant Calcium &amp; Iron&quot;,&quot;bioactive_value&quot;:&quot;162 mg Calcium / 2.1 mg Iron&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-figs.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="1"
@@ -3328,6 +3379,9 @@
                                 <span data-prod-origin-display="5" style="font-size:0.75rem;color:var(--sn-text-muted);">Kandahar / Packed in Bengaluru • SN-ANJ-2611E</span>
                                 <div data-prod-nut-summary="5" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 254 kcal • 3.5g Prot • 162 mg Calcium / 2.1 mg Iron
+                                </div>
+                                <div data-prod-pin-summary="5" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -3362,6 +3416,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="5"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -3393,6 +3454,8 @@
                             data-prod-fssai="Zero added sugar, zero vegetable oil, zero artificial preservatives."
                             data-prod-variants-json="[{&quot;id&quot;:21,&quot;sku&quot;:&quot;SN-DF-MIX-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:240,&quot;sellInr&quot;:200,&quot;stockQty&quot;:45},{&quot;id&quot;:22,&quot;sku&quot;:&quot;SN-DF-MIX-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:565,&quot;sellInr&quot;:470,&quot;stockQty&quot;:60},{&quot;id&quot;:23,&quot;sku&quot;:&quot;SN-DF-MIX-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:1070,&quot;sellInr&quot;:885,&quot;stockQty&quot;:35},{&quot;id&quot;:24,&quot;sku&quot;:&quot;SN-DF-MIX-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:2040,&quot;sellInr&quot;:1690,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:538,&quot;protein_g&quot;:16.4,&quot;carbs_g&quot;:28.5,&quot;dietary_fiber_g&quot;:8.6,&quot;total_sugars_g&quot;:14.2,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:41.8,&quot;saturated_fat_g&quot;:5.1,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:18,&quot;bioactive_label&quot;:&quot;5-Nut Micronutrient Complex&quot;,&quot;bioactive_value&quot;:&quot;Zero Added Sugar / Zero Filler&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-panchmeva.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="1"
@@ -3417,6 +3480,9 @@
                                 <span data-prod-origin-display="6" style="font-size:0.75rem;color:var(--sn-text-muted);">Small-Batch Blended in Karnataka • SN-PMV-2611F</span>
                                 <div data-prod-nut-summary="6" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 538 kcal • 16.4g Prot • Zero Added Sugar / Zero Filler
+                                </div>
+                                <div data-prod-pin-summary="6" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -3451,6 +3517,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="6"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -3482,6 +3555,8 @@
                             data-prod-fssai="Naturally gluten-free whole grain millet."
                             data-prod-variants-json="[{&quot;id&quot;:25,&quot;sku&quot;:&quot;SN-ML-RAG-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:45,&quot;sellInr&quot;:35,&quot;stockQty&quot;:45},{&quot;id&quot;:26,&quot;sku&quot;:&quot;SN-ML-RAG-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:105,&quot;sellInr&quot;:80,&quot;stockQty&quot;:60},{&quot;id&quot;:27,&quot;sku&quot;:&quot;SN-ML-RAG-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:200,&quot;sellInr&quot;:155,&quot;stockQty&quot;:35},{&quot;id&quot;:28,&quot;sku&quot;:&quot;SN-ML-RAG-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:385,&quot;sellInr&quot;:300,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:328,&quot;protein_g&quot;:7.3,&quot;carbs_g&quot;:72,&quot;dietary_fiber_g&quot;:11.5,&quot;total_sugars_g&quot;:0.6,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:1.3,&quot;saturated_fat_g&quot;:0.3,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:11,&quot;bioactive_label&quot;:&quot;Natural Plant Calcium&quot;,&quot;bioactive_value&quot;:&quot;344 mg Calcium (IFCT 2017)&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-ragi.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="1"
@@ -3506,6 +3581,9 @@
                                 <span data-prod-origin-display="7" style="font-size:0.75rem;color:var(--sn-text-muted);">Haveri, Karnataka • SN-RAG-2611A</span>
                                 <div data-prod-nut-summary="7" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 328 kcal • 7.3g Prot • 344 mg Calcium (IFCT 2017)
+                                </div>
+                                <div data-prod-pin-summary="7" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -3540,6 +3618,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="7"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -3571,6 +3656,8 @@
                             data-prod-fssai="Soak for 30 minutes before cooking for optimal digestibility."
                             data-prod-variants-json="[{&quot;id&quot;:29,&quot;sku&quot;:&quot;SN-ML-FOX-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:55,&quot;sellInr&quot;:40,&quot;stockQty&quot;:45},{&quot;id&quot;:30,&quot;sku&quot;:&quot;SN-ML-FOX-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:130,&quot;sellInr&quot;:100,&quot;stockQty&quot;:60},{&quot;id&quot;:31,&quot;sku&quot;:&quot;SN-ML-FOX-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:245,&quot;sellInr&quot;:185,&quot;stockQty&quot;:35},{&quot;id&quot;:32,&quot;sku&quot;:&quot;SN-ML-FOX-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:470,&quot;sellInr&quot;:355,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:331,&quot;protein_g&quot;:12.3,&quot;carbs_g&quot;:60.9,&quot;dietary_fiber_g&quot;:8,&quot;total_sugars_g&quot;:0.5,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:4.3,&quot;saturated_fat_g&quot;:0.9,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:4,&quot;bioactive_label&quot;:&quot;Plant Protein &amp; Vitamin B1&quot;,&quot;bioactive_value&quot;:&quot;12.3 g Protein / 0.59 mg Thiamine&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-foxtail.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="1"
@@ -3595,6 +3682,9 @@
                                 <span data-prod-origin-display="8" style="font-size:0.75rem;color:var(--sn-text-muted);">Chitradurga, Karnataka • SN-FOX-2611B</span>
                                 <div data-prod-nut-summary="8" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 331 kcal • 12.3g Prot • 12.3 g Protein / 0.59 mg Thiamine
+                                </div>
+                                <div data-prod-pin-summary="8" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -3629,6 +3719,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="8"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -3660,6 +3757,8 @@
                             data-prod-fssai="Unpolished Siridhanya millet grain."
                             data-prod-variants-json="[{&quot;id&quot;:33,&quot;sku&quot;:&quot;SN-ML-LIT-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:60,&quot;sellInr&quot;:45,&quot;stockQty&quot;:45},{&quot;id&quot;:34,&quot;sku&quot;:&quot;SN-ML-LIT-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:140,&quot;sellInr&quot;:110,&quot;stockQty&quot;:60},{&quot;id&quot;:35,&quot;sku&quot;:&quot;SN-ML-LIT-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:265,&quot;sellInr&quot;:205,&quot;stockQty&quot;:35},{&quot;id&quot;:36,&quot;sku&quot;:&quot;SN-ML-LIT-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:510,&quot;sellInr&quot;:390,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:341,&quot;protein_g&quot;:7.7,&quot;carbs_g&quot;:67,&quot;dietary_fiber_g&quot;:7.6,&quot;total_sugars_g&quot;:0.4,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:4.7,&quot;saturated_fat_g&quot;:0.8,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:8,&quot;bioactive_label&quot;:&quot;Plant Iron &amp; Niacin (B3)&quot;,&quot;bioactive_value&quot;:&quot;9.3 mg Iron / Low Glycemic&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-little-millet.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="0"
@@ -3684,6 +3783,9 @@
                                 <span data-prod-origin-display="9" style="font-size:0.75rem;color:var(--sn-text-muted);">Dharwad, Karnataka • SN-LIT-2611C</span>
                                 <div data-prod-nut-summary="9" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 341 kcal • 7.7g Prot • 9.3 mg Iron / Low Glycemic
+                                </div>
+                                <div data-prod-pin-summary="9" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -3718,6 +3820,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="9"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -3749,6 +3858,8 @@
                             data-prod-fssai="Lab-tested for zero mycotoxins and zero pesticide residue."
                             data-prod-variants-json="[{&quot;id&quot;:37,&quot;sku&quot;:&quot;SN-ML-KOD-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:60,&quot;sellInr&quot;:45,&quot;stockQty&quot;:45},{&quot;id&quot;:38,&quot;sku&quot;:&quot;SN-ML-KOD-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:135,&quot;sellInr&quot;:105,&quot;stockQty&quot;:60},{&quot;id&quot;:39,&quot;sku&quot;:&quot;SN-ML-KOD-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:260,&quot;sellInr&quot;:200,&quot;stockQty&quot;:35},{&quot;id&quot;:40,&quot;sku&quot;:&quot;SN-ML-KOD-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:495,&quot;sellInr&quot;:385,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:309,&quot;protein_g&quot;:8.3,&quot;carbs_g&quot;:65.9,&quot;dietary_fiber_g&quot;:9,&quot;total_sugars_g&quot;:0.5,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:1.4,&quot;saturated_fat_g&quot;:0.3,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:5,&quot;bioactive_label&quot;:&quot;Soluble Dietary Fiber &amp; Lecithin&quot;,&quot;bioactive_value&quot;:&quot;9.0 g Fiber / Slow Release&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-kodo.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="0"
@@ -3773,6 +3884,9 @@
                                 <span data-prod-origin-display="10" style="font-size:0.75rem;color:var(--sn-text-muted);">Mandla &amp; Dindori Belt, Madhya Pradesh • SN-KOD-2611D</span>
                                 <div data-prod-nut-summary="10" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 309 kcal • 8.3g Prot • 9.0 g Fiber / Slow Release
+                                </div>
+                                <div data-prod-pin-summary="10" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -3807,6 +3921,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="10"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -3838,6 +3959,8 @@
                             data-prod-fssai="Whole grain sorghum suitable for home milling or whole cooking."
                             data-prod-variants-json="[{&quot;id&quot;:41,&quot;sku&quot;:&quot;SN-ML-JWR-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:40,&quot;sellInr&quot;:30,&quot;stockQty&quot;:45},{&quot;id&quot;:42,&quot;sku&quot;:&quot;SN-ML-JWR-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:100,&quot;sellInr&quot;:75,&quot;stockQty&quot;:60},{&quot;id&quot;:43,&quot;sku&quot;:&quot;SN-ML-JWR-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:185,&quot;sellInr&quot;:140,&quot;stockQty&quot;:35},{&quot;id&quot;:44,&quot;sku&quot;:&quot;SN-ML-JWR-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:355,&quot;sellInr&quot;:270,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:334,&quot;protein_g&quot;:10.4,&quot;carbs_g&quot;:72.6,&quot;dietary_fiber_g&quot;:9.7,&quot;total_sugars_g&quot;:1.2,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:1.9,&quot;saturated_fat_g&quot;:0.4,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:7,&quot;bioactive_label&quot;:&quot;Phosphorus &amp; Whole-Bran Fiber&quot;,&quot;bioactive_value&quot;:&quot;222 mg Phosphorus / Gluten-Free&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-jowar.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="0"
@@ -3862,6 +3985,9 @@
                                 <span data-prod-origin-display="11" style="font-size:0.75rem;color:var(--sn-text-muted);">Solapur, Maharashtra • SN-JWR-2611E</span>
                                 <div data-prod-nut-summary="11" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 334 kcal • 10.4g Prot • 222 mg Phosphorus / Gluten-Free
+                                </div>
+                                <div data-prod-pin-summary="11" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -3896,6 +4022,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="11"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -3927,6 +4060,8 @@
                             data-prod-fssai="Lab-certified 7.8% curcumin. Zero lead chromate, zero starch filler."
                             data-prod-variants-json="[{&quot;id&quot;:45,&quot;sku&quot;:&quot;SN-SP-TUR-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:160,&quot;sellInr&quot;:135,&quot;stockQty&quot;:45},{&quot;id&quot;:46,&quot;sku&quot;:&quot;SN-SP-TUR-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:375,&quot;sellInr&quot;:315,&quot;stockQty&quot;:60},{&quot;id&quot;:47,&quot;sku&quot;:&quot;SN-SP-TUR-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:710,&quot;sellInr&quot;:600,&quot;stockQty&quot;:35},{&quot;id&quot;:48,&quot;sku&quot;:&quot;SN-SP-TUR-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:1360,&quot;sellInr&quot;:1150,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:349,&quot;protein_g&quot;:7.8,&quot;carbs_g&quot;:64.9,&quot;dietary_fiber_g&quot;:21.1,&quot;total_sugars_g&quot;:3.2,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:5.1,&quot;saturated_fat_g&quot;:1.5,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:28,&quot;bioactive_label&quot;:&quot;Lab-Certified Natural Curcumin&quot;,&quot;bioactive_value&quot;:&quot;7.8% Curcuminoids (NABL Verified)&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-turmeric.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="1"
@@ -3951,6 +4086,9 @@
                                 <span data-prod-origin-display="12" style="font-size:0.75rem;color:var(--sn-text-muted);">West Jaintia Hills, Meghalaya • SN-LAK-2611A</span>
                                 <div data-prod-nut-summary="12" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 349 kcal • 7.8g Prot • 7.8% Curcuminoids (NABL Verified)
+                                </div>
+                                <div data-prod-pin-summary="12" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -3985,6 +4123,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="12"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -4016,6 +4161,8 @@
                             data-prod-fssai="Grade TGSEB (&gt;4.75mm pinhead free). Unextracted whole berries."
                             data-prod-variants-json="[{&quot;id&quot;:49,&quot;sku&quot;:&quot;SN-SP-PEP-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:195,&quot;sellInr&quot;:165,&quot;stockQty&quot;:45},{&quot;id&quot;:50,&quot;sku&quot;:&quot;SN-SP-PEP-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:460,&quot;sellInr&quot;:390,&quot;stockQty&quot;:60},{&quot;id&quot;:51,&quot;sku&quot;:&quot;SN-SP-PEP-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:870,&quot;sellInr&quot;:735,&quot;stockQty&quot;:35},{&quot;id&quot;:52,&quot;sku&quot;:&quot;SN-SP-PEP-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:1660,&quot;sellInr&quot;:1405,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:304,&quot;protein_g&quot;:10.4,&quot;carbs_g&quot;:64,&quot;dietary_fiber_g&quot;:25.3,&quot;total_sugars_g&quot;:0.6,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:3.3,&quot;saturated_fat_g&quot;:1.1,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:20,&quot;bioactive_label&quot;:&quot;Natural Piperine &amp; Volatile Oil&quot;,&quot;bioactive_value&quot;:&quot;6.2% Piperine / 3.8% Essential Oil&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-pepper.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="1"
@@ -4040,6 +4187,9 @@
                                 <span data-prod-origin-display="13" style="font-size:0.75rem;color:var(--sn-text-muted);">Wayanad, Kerala • SN-PEP-2611B</span>
                                 <div data-prod-nut-summary="13" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 304 kcal • 10.4g Prot • 6.2% Piperine / 3.8% Essential Oil
+                                </div>
+                                <div data-prod-pin-summary="13" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -4074,6 +4224,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="13"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -4105,6 +4262,8 @@
                             data-prod-fssai="Alleppey Green Extra Bold (AGEB 8mm+). Zero artificial coloring."
                             data-prod-variants-json="[{&quot;id&quot;:53,&quot;sku&quot;:&quot;SN-SP-CRD-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:480,&quot;sellInr&quot;:420,&quot;stockQty&quot;:45},{&quot;id&quot;:54,&quot;sku&quot;:&quot;SN-SP-CRD-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:1130,&quot;sellInr&quot;:985,&quot;stockQty&quot;:60},{&quot;id&quot;:55,&quot;sku&quot;:&quot;SN-SP-CRD-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:2135,&quot;sellInr&quot;:1870,&quot;stockQty&quot;:35},{&quot;id&quot;:56,&quot;sku&quot;:&quot;SN-SP-CRD-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:4080,&quot;sellInr&quot;:3570,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:311,&quot;protein_g&quot;:10.8,&quot;carbs_g&quot;:68.5,&quot;dietary_fiber_g&quot;:28,&quot;total_sugars_g&quot;:0,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:6.7,&quot;saturated_fat_g&quot;:0.7,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:18,&quot;bioactive_label&quot;:&quot;Essential Cineole &amp; Terpinyl Oil&quot;,&quot;bioactive_value&quot;:&quot;7.4% Volatile Aromatic Oil&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-cardamom.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="1"
@@ -4129,6 +4288,9 @@
                                 <span data-prod-origin-display="14" style="font-size:0.75rem;color:var(--sn-text-muted);">Idukki, Kerala • SN-CRD-2611C</span>
                                 <div data-prod-nut-summary="14" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 311 kcal • 10.8g Prot • 7.4% Volatile Aromatic Oil
+                                </div>
+                                <div data-prod-pin-summary="14" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -4163,6 +4325,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="14"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -4194,6 +4363,8 @@
                             data-prod-fssai="Zero artificial Sudan dye, zero added oil."
                             data-prod-variants-json="[{&quot;id&quot;:57,&quot;sku&quot;:&quot;SN-SP-CHL-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:115,&quot;sellInr&quot;:95,&quot;stockQty&quot;:45},{&quot;id&quot;:58,&quot;sku&quot;:&quot;SN-SP-CHL-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:270,&quot;sellInr&quot;:225,&quot;stockQty&quot;:60},{&quot;id&quot;:59,&quot;sku&quot;:&quot;SN-SP-CHL-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:510,&quot;sellInr&quot;:425,&quot;stockQty&quot;:35},{&quot;id&quot;:60,&quot;sku&quot;:&quot;SN-SP-CHL-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:980,&quot;sellInr&quot;:810,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:282,&quot;protein_g&quot;:13.5,&quot;carbs_g&quot;:49.7,&quot;dietary_fiber_g&quot;:34.8,&quot;total_sugars_g&quot;:7.2,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:14.3,&quot;saturated_fat_g&quot;:2.5,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:30,&quot;bioactive_label&quot;:&quot;Natural Capsanthin &amp; Capsaicin&quot;,&quot;bioactive_value&quot;:&quot;130 ASTA Natural Crimson Color&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-chilli.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="0"
@@ -4218,6 +4389,9 @@
                                 <span data-prod-origin-display="15" style="font-size:0.75rem;color:var(--sn-text-muted);">Byadgi (Karnataka) &amp; Guntur (Andhra Pradesh) • SN-CHL-2611D</span>
                                 <div data-prod-nut-summary="15" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 282 kcal • 13.5g Prot • 130 ASTA Natural Crimson Color
+                                </div>
+                                <div data-prod-pin-summary="15" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -4252,6 +4426,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="15"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -4283,6 +4464,8 @@
                             data-prod-fssai="True Cinnamomum verum (&lt;0.004% coumarin). Not Cassia bark."
                             data-prod-variants-json="[{&quot;id&quot;:61,&quot;sku&quot;:&quot;SN-SP-CIN-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:290,&quot;sellInr&quot;:245,&quot;stockQty&quot;:45},{&quot;id&quot;:62,&quot;sku&quot;:&quot;SN-SP-CIN-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:680,&quot;sellInr&quot;:575,&quot;stockQty&quot;:60},{&quot;id&quot;:63,&quot;sku&quot;:&quot;SN-SP-CIN-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:1290,&quot;sellInr&quot;:1090,&quot;stockQty&quot;:35},{&quot;id&quot;:64,&quot;sku&quot;:&quot;SN-SP-CIN-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:2465,&quot;sellInr&quot;:2085,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:247,&quot;protein_g&quot;:4,&quot;carbs_g&quot;:80.6,&quot;dietary_fiber_g&quot;:53.1,&quot;total_sugars_g&quot;:2.2,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:1.2,&quot;saturated_fat_g&quot;:0.3,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:10,&quot;bioactive_label&quot;:&quot;Cinnamaldehyde &amp; Ultra-Low Coumarin&quot;,&quot;bioactive_value&quot;:&quot;&lt;0.004% Coumarin (True Verum)&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-cinnamon.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="0"
@@ -4307,6 +4490,9 @@
                                 <span data-prod-origin-display="16" style="font-size:0.75rem;color:var(--sn-text-muted);">Southern Highlands / Packed in Bengaluru • SN-CIN-2611E</span>
                                 <div data-prod-nut-summary="16" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 247 kcal • 4g Prot • &lt;0.004% Coumarin (True Verum)
+                                </div>
+                                <div data-prod-pin-summary="16" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -4341,6 +4527,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="16"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -4372,6 +4565,8 @@
                             data-prod-fssai="Unsulphured shade-dried fruit. Rinse briefly in warm water before soaking."
                             data-prod-variants-json="[{&quot;id&quot;:65,&quot;sku&quot;:&quot;SN-DF-RSN-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:110,&quot;sellInr&quot;:85,&quot;stockQty&quot;:45},{&quot;id&quot;:66,&quot;sku&quot;:&quot;SN-DF-RSN-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:260,&quot;sellInr&quot;:200,&quot;stockQty&quot;:60},{&quot;id&quot;:67,&quot;sku&quot;:&quot;SN-DF-RSN-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:490,&quot;sellInr&quot;:380,&quot;stockQty&quot;:35},{&quot;id&quot;:68,&quot;sku&quot;:&quot;SN-DF-RSN-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:935,&quot;sellInr&quot;:725,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:304,&quot;protein_g&quot;:2.8,&quot;carbs_g&quot;:74.6,&quot;dietary_fiber_g&quot;:4.5,&quot;total_sugars_g&quot;:59.2,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:0.5,&quot;saturated_fat_g&quot;:0.1,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:14,&quot;bioactive_label&quot;:&quot;Bioavailable Iron &amp; Polyphenols&quot;,&quot;bioactive_value&quot;:&quot;2.6 mg Iron / Unsulphured&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-dates.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="1"
@@ -4396,6 +4591,9 @@
                                 <span data-prod-origin-display="17" style="font-size:0.75rem;color:var(--sn-text-muted);">Nashik, Maharashtra • SN-RSN-2611G</span>
                                 <div data-prod-nut-summary="17" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 304 kcal • 2.8g Prot • 2.6 mg Iron / Unsulphured
+                                </div>
+                                <div data-prod-pin-summary="17" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -4430,6 +4628,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="17"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -4461,6 +4666,8 @@
                             data-prod-fssai="100% natural unglazed dates. Store in a cool, dry place."
                             data-prod-variants-json="[{&quot;id&quot;:69,&quot;sku&quot;:&quot;SN-DF-DAT-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:185,&quot;sellInr&quot;:155,&quot;stockQty&quot;:45},{&quot;id&quot;:70,&quot;sku&quot;:&quot;SN-DF-DAT-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:435,&quot;sellInr&quot;:365,&quot;stockQty&quot;:60},{&quot;id&quot;:71,&quot;sku&quot;:&quot;SN-DF-DAT-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:825,&quot;sellInr&quot;:690,&quot;stockQty&quot;:35},{&quot;id&quot;:72,&quot;sku&quot;:&quot;SN-DF-DAT-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:1575,&quot;sellInr&quot;:1320,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:282,&quot;protein_g&quot;:2.5,&quot;carbs_g&quot;:75,&quot;dietary_fiber_g&quot;:8,&quot;total_sugars_g&quot;:63.4,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:0.4,&quot;saturated_fat_g&quot;:0.1,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:3,&quot;bioactive_label&quot;:&quot;Potassium &amp; Natural Minerals&quot;,&quot;bioactive_value&quot;:&quot;656 mg Potassium / Zero Syrup&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-dates.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="0"
@@ -4485,6 +4692,9 @@
                                 <span data-prod-origin-display="18" style="font-size:0.75rem;color:var(--sn-text-muted);">Mundra Belt (Kutch) / Packed in Bengaluru • SN-DAT-2611H</span>
                                 <div data-prod-nut-summary="18" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 282 kcal • 2.5g Prot • 656 mg Potassium / Zero Syrup
+                                </div>
+                                <div data-prod-pin-summary="18" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -4519,6 +4729,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="18"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -4550,6 +4767,8 @@
                             data-prod-fssai="Unpolished Siridhanya grain. Soak 20 minutes prior to boiling."
                             data-prod-variants-json="[{&quot;id&quot;:73,&quot;sku&quot;:&quot;SN-ML-BRN-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:60,&quot;sellInr&quot;:50,&quot;stockQty&quot;:45},{&quot;id&quot;:74,&quot;sku&quot;:&quot;SN-ML-BRN-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:145,&quot;sellInr&quot;:115,&quot;stockQty&quot;:60},{&quot;id&quot;:75,&quot;sku&quot;:&quot;SN-ML-BRN-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:275,&quot;sellInr&quot;:215,&quot;stockQty&quot;:35},{&quot;id&quot;:76,&quot;sku&quot;:&quot;SN-ML-BRN-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:525,&quot;sellInr&quot;:410,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:307,&quot;protein_g&quot;:6.2,&quot;carbs_g&quot;:65.5,&quot;dietary_fiber_g&quot;:10.1,&quot;total_sugars_g&quot;:0.4,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:2.2,&quot;saturated_fat_g&quot;:0.4,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:6,&quot;bioactive_label&quot;:&quot;Insoluble Fiber &amp; Plant Iron&quot;,&quot;bioactive_value&quot;:&quot;10.1 g Fiber / 5.0 mg Iron&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-little-millet.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="0"
@@ -4574,6 +4793,9 @@
                                 <span data-prod-origin-display="19" style="font-size:0.75rem;color:var(--sn-text-muted);">Almora, Uttarakhand • SN-BRN-2611F</span>
                                 <div data-prod-nut-summary="19" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 307 kcal • 6.2g Prot • 10.1 g Fiber / 5.0 mg Iron
+                                </div>
+                                <div data-prod-pin-summary="19" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -4608,6 +4830,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="19"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -4639,6 +4868,8 @@
                             data-prod-fssai="Whole unpolished pearl millet grain rich in iron and zinc."
                             data-prod-variants-json="[{&quot;id&quot;:77,&quot;sku&quot;:&quot;SN-ML-BAJ-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:40,&quot;sellInr&quot;:30,&quot;stockQty&quot;:45},{&quot;id&quot;:78,&quot;sku&quot;:&quot;SN-ML-BAJ-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:95,&quot;sellInr&quot;:70,&quot;stockQty&quot;:60},{&quot;id&quot;:79,&quot;sku&quot;:&quot;SN-ML-BAJ-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:180,&quot;sellInr&quot;:135,&quot;stockQty&quot;:35},{&quot;id&quot;:80,&quot;sku&quot;:&quot;SN-ML-BAJ-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:340,&quot;sellInr&quot;:255,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:361,&quot;protein_g&quot;:11.6,&quot;carbs_g&quot;:67.5,&quot;dietary_fiber_g&quot;:11.3,&quot;total_sugars_g&quot;:0.8,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:5,&quot;saturated_fat_g&quot;:1,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:10,&quot;bioactive_label&quot;:&quot;Bioavailable Iron &amp; Zinc&quot;,&quot;bioactive_value&quot;:&quot;8.0 mg Iron / 3.1 mg Zinc&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/cat-millets-grains.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="1"
@@ -4663,6 +4894,9 @@
                                 <span data-prod-origin-display="20" style="font-size:0.75rem;color:var(--sn-text-muted);">Barmer, Rajasthan • SN-BAJ-2611G</span>
                                 <div data-prod-nut-summary="20" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 361 kcal • 11.6g Prot • 8.0 mg Iron / 3.1 mg Zinc
+                                </div>
+                                <div data-prod-pin-summary="20" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -4697,6 +4931,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="20"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -4728,6 +4969,8 @@
                             data-prod-fssai="Unextracted whole clove buds with intact flower crowns."
                             data-prod-variants-json="[{&quot;id&quot;:81,&quot;sku&quot;:&quot;SN-SP-CLV-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:240,&quot;sellInr&quot;:195,&quot;stockQty&quot;:45},{&quot;id&quot;:82,&quot;sku&quot;:&quot;SN-SP-CLV-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:565,&quot;sellInr&quot;:460,&quot;stockQty&quot;:60},{&quot;id&quot;:83,&quot;sku&quot;:&quot;SN-SP-CLV-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:1070,&quot;sellInr&quot;:870,&quot;stockQty&quot;:35},{&quot;id&quot;:84,&quot;sku&quot;:&quot;SN-SP-CLV-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:2040,&quot;sellInr&quot;:1660,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:274,&quot;protein_g&quot;:6,&quot;carbs_g&quot;:65.5,&quot;dietary_fiber_g&quot;:33.9,&quot;total_sugars_g&quot;:2.4,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:13,&quot;saturated_fat_g&quot;:3.9,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:240,&quot;bioactive_label&quot;:&quot;Natural Eugenol Essential Oil&quot;,&quot;bioactive_value&quot;:&quot;16.5% Volatile Eugenol Oil&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-cloves.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="0"
@@ -4752,6 +4995,9 @@
                                 <span data-prod-origin-display="21" style="font-size:0.75rem;color:var(--sn-text-muted);">Maramalai Hills, Kanyakumari, Tamil Nadu • SN-CLV-2611F</span>
                                 <div data-prod-nut-summary="21" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 274 kcal • 6g Prot • 16.5% Volatile Eugenol Oil
+                                </div>
+                                <div data-prod-pin-summary="21" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -4786,6 +5032,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="21"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -4817,6 +5070,8 @@
                             data-prod-fssai="100% pure ground coriander seed. Zero husk filler."
                             data-prod-variants-json="[{&quot;id&quot;:85,&quot;sku&quot;:&quot;SN-SP-COR-100G&quot;,&quot;packLabel&quot;:&quot;100 g&quot;,&quot;weightGrams&quot;:100,&quot;mrpInr&quot;:85,&quot;sellInr&quot;:70,&quot;stockQty&quot;:45},{&quot;id&quot;:86,&quot;sku&quot;:&quot;SN-SP-COR-250G&quot;,&quot;packLabel&quot;:&quot;250 g&quot;,&quot;weightGrams&quot;:250,&quot;mrpInr&quot;:200,&quot;sellInr&quot;:160,&quot;stockQty&quot;:60},{&quot;id&quot;:87,&quot;sku&quot;:&quot;SN-SP-COR-500G&quot;,&quot;packLabel&quot;:&quot;500 g&quot;,&quot;weightGrams&quot;:500,&quot;mrpInr&quot;:380,&quot;sellInr&quot;:305,&quot;stockQty&quot;:35},{&quot;id&quot;:88,&quot;sku&quot;:&quot;SN-SP-COR-1KG&quot;,&quot;packLabel&quot;:&quot;1 kg&quot;,&quot;weightGrams&quot;:1000,&quot;mrpInr&quot;:725,&quot;sellInr&quot;:580,&quot;stockQty&quot;:20}]"
                             data-prod-nutrition-json="{&quot;serving_basis&quot;:&quot;Per 100 g&quot;,&quot;energy_kcal&quot;:298,&quot;protein_g&quot;:12.4,&quot;carbs_g&quot;:55,&quot;dietary_fiber_g&quot;:41.9,&quot;total_sugars_g&quot;:0.9,&quot;added_sugars_g&quot;:0,&quot;total_fat_g&quot;:17.8,&quot;saturated_fat_g&quot;:1,&quot;trans_fat_g&quot;:0,&quot;sodium_mg&quot;:35,&quot;bioactive_label&quot;:&quot;Linalool Essential Oil &amp; Dietary Fiber&quot;,&quot;bioactive_value&quot;:&quot;0.9% Cold-Milled Linalool Oil&quot;}"
+                            data-prod-pincode-json="{&quot;mode&quot;:&quot;NONE&quot;,&quot;scope&quot;:&quot;BLOCK_DELIVERY&quot;,&quot;zones&quot;:[],&quot;pincodes&quot;:[],&quot;prefixes&quot;:[],&quot;ranges&quot;:[],&quot;rawTokens&quot;:&quot;&quot;,&quot;reason&quot;:&quot;&quot;}"
+                            data-prod-pin-restricted="0"
                             data-prod-img="/sasya_naturals/images/prod-turmeric.jpg"
                             data-prod-active="1"
                             data-prod-bestseller="1"
@@ -4841,6 +5096,9 @@
                                 <span data-prod-origin-display="22" style="font-size:0.75rem;color:var(--sn-text-muted);">Cauvery Delta, Tamil Nadu • SN-COR-2611G</span>
                                 <div data-prod-nut-summary="22" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-bg-forest);margin-top:2px;">
                                   🥗 298 kcal • 12.4g Prot • 0.9% Cold-Milled Linalool Oil
+                                </div>
+                                <div data-prod-pin-summary="22" style="font-family:var(--sn-font-mono);font-size:0.69rem;color:var(--sn-text-muted);font-weight:400;margin-top:2px;">
+                                  📍 All Serviceable India PINs
                                 </div>
                               </div>
                             </td>
@@ -4875,6 +5133,13 @@
                                   data-open-modal-tab="nutrition"
                                   title="Edit FSSAI Per-100g Nutritional Value &amp; Labelling"
                                 >🥗 Nutrition</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-load-prod-editor="22"
+                                  data-open-modal-tab="pincode"
+                                  title="Configure Per-Product Delivery PIN &amp; Zone Restrictions"
+                                >📍 PIN Rules</button>
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
@@ -5088,7 +5353,7 @@
                 </div>
               </div>
 
-              <!-- Contextual Product Edit, Per-Weight Discount Matrix & FSSAI Nutrition Modal (Opens on Product ✏️ Edit / ⚖️ Discounts / 🥗 Nutrition Click) -->
+              <!-- Contextual Product Edit, Per-Weight Discount Matrix, FSSAI Nutrition & Delivery PIN Rules Modal -->
               <div id="sn-admin-edit-product-modal" class="sn-admin-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sn-edit-modal-heading" style="display:none;">
                 <div class="sn-admin-modal-card">
                   <div class="sn-admin-modal-header">
@@ -5108,6 +5373,7 @@
                       <button type="button" class="sn-admin-subtab-pill sn-active" data-prod-modal-tab="core">🏷️ 1. Core Info, Flags &amp; Photos</button>
                       <button type="button" class="sn-admin-subtab-pill" data-prod-modal-tab="pricing">⚖️ 2. Pack-Weight Pricing &amp; Discounts</button>
                       <button type="button" class="sn-admin-subtab-pill" data-prod-modal-tab="nutrition">🥗 3. FSSAI Nutrition (Per 100g) &amp; Labelling</button>
+                      <button type="button" class="sn-admin-subtab-pill" data-prod-modal-tab="pincode">📍 4. Delivery PIN &amp; Zone Rules</button>
                     </div>
 
                     <form id="sn-admin-edit-product-form" style="margin-bottom:14px;">
@@ -5396,9 +5662,99 @@
                         </div>
                       </div>
 
+                      <!-- Modal Pane 4: Per-Product Delivery PIN & Zone Restrictions -->
+                      <div data-prod-modal-pane="pincode" style="display:none;">
+                        <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:12px;">
+                          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+                            <div>
+                              <strong style="font-family:var(--sn-font-serif);font-size:0.95rem;color:var(--sn-bg-forest);">📍 Per-Product Delivery PIN Code &amp; 4-Zone Serviceability Rules</strong>
+                              <div style="font-size:0.75rem;color:var(--sn-text-secondary);">Restrict individual products to specific Shipping Zones, exact 6-digit PINs, 2-5 digit PIN prefixes (e.g. <code>560*</code>), or PIN ranges (e.g. <code>560001-560099</code>).</div>
+                            </div>
+                          </div>
+
+                          <div class="sn-grid-2" style="gap:12px;margin-bottom:12px;">
+                            <div>
+                              <label for="sn-edit-pin-mode" style="font-size:0.74rem;font-weight:700;display:block;margin-bottom:4px;">Delivery Restriction Mode *</label>
+                              <select name="pincode_restriction_mode" id="sn-edit-pin-mode" class="sn-select" style="font-weight:600;">
+                                <option value="NONE">NONE — Deliverable to All Serviceable Indian PINs (Default)</option>
+                                <option value="ALLOW_ONLY">ALLOW_ONLY (Allowlist) — Deliver ONLY to Selected Zones / PINs</option>
+                                <option value="BLOCK_LIST">BLOCK_LIST (Blocklist) — Block Delivery to Selected Zones / PINs</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label for="sn-edit-pin-scope" style="font-size:0.74rem;font-weight:700;display:block;margin-bottom:4px;">Enforcement Scope on Restricted PINs *</label>
+                              <select name="pincode_restriction_scope" id="sn-edit-pin-scope" class="sn-select">
+                                <option value="BLOCK_DELIVERY">BLOCK_DELIVERY — Block All Delivery (Prepaid &amp; COD)</option>
+                                <option value="BLOCK_COD_ONLY">BLOCK_COD_ONLY — Allow Prepaid Only (Disable Cash on Delivery)</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div style="margin-bottom:12px;">
+                            <label style="font-size:0.74rem;font-weight:700;display:block;margin-bottom:6px;">1-Click Shipping Zone Shortcuts (Optional)</label>
+                            <div class="sn-grid-2" style="gap:8px;">
+                              <label class="sn-card" style="padding:8px 10px;display:flex;align-items:center;gap:8px;cursor:pointer;background-color:var(--sn-bg-surface);">
+                                <input type="checkbox" name="pin_zone_ZONE_A" id="sn-edit-pin-zone-ZONE_A" value="ZONE_A" />
+                                <span style="font-size:0.78rem;"><strong>Zone A</strong> — Local Bengaluru (<code>560xxx</code>)</span>
+                              </label>
+                              <label class="sn-card" style="padding:8px 10px;display:flex;align-items:center;gap:8px;cursor:pointer;background-color:var(--sn-bg-surface);">
+                                <input type="checkbox" name="pin_zone_ZONE_B" id="sn-edit-pin-zone-ZONE_B" value="ZONE_B" />
+                                <span style="font-size:0.78rem;"><strong>Zone B</strong> — South India Regional (KA, TN, KL, AP, TG)</span>
+                              </label>
+                              <label class="sn-card" style="padding:8px 10px;display:flex;align-items:center;gap:8px;cursor:pointer;background-color:var(--sn-bg-surface);">
+                                <input type="checkbox" name="pin_zone_ZONE_C" id="sn-edit-pin-zone-ZONE_C" value="ZONE_C" />
+                                <span style="font-size:0.78rem;"><strong>Zone C</strong> — Rest of India National</span>
+                              </label>
+                              <label class="sn-card" style="padding:8px 10px;display:flex;align-items:center;gap:8px;cursor:pointer;background-color:var(--sn-bg-surface);">
+                                <input type="checkbox" name="pin_zone_ZONE_D" id="sn-edit-pin-zone-ZONE_D" value="ZONE_D" />
+                                <span style="font-size:0.78rem;"><strong>Zone D</strong> — Special / NE / J&amp;K / Islands</span>
+                              </label>
+                            </div>
+                          </div>
+
+                          <div style="margin-bottom:12px;">
+                            <label for="sn-edit-pin-tokens" style="font-size:0.74rem;font-weight:700;display:block;margin-bottom:4px;">Exact 6-Digit PINs, Prefixes (e.g. 560*) &amp; Ranges (e.g. 560001-560099)</label>
+                            <input
+                              type="text"
+                              name="pincodeTokens"
+                              id="sn-edit-pin-tokens"
+                              placeholder="e.g. 560038, 560*, 400001-400099"
+                              class="sn-input"
+                              style="font-family:var(--sn-font-mono);"
+                            />
+                            <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);margin-top:3px;">
+                              Separate multiple rules with commas. Combine with Zone checkboxes above as needed.
+                            </div>
+                          </div>
+
+                          <div style="margin-bottom:12px;">
+                            <label for="sn-edit-pin-reason" style="font-size:0.74rem;font-weight:700;display:block;margin-bottom:4px;">Customer-Facing Restriction Note (Humanizer-Checked)</label>
+                            <input
+                              type="text"
+                              name="pincodeReason"
+                              id="sn-edit-pin-reason"
+                              placeholder="e.g. Fresh harvest soft dates are deliverable only across Bengaluru and South India."
+                              class="sn-input"
+                            />
+                          </div>
+
+                          <!-- Instant Admin PIN Rule Simulator inside Modal -->
+                          <div style="padding:10px 12px;border-radius:6px;background-color:var(--sn-bg-mortar);border:1px dashed var(--sn-border-strong);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                              <span style="font-family:var(--sn-font-mono);font-size:0.73rem;font-weight:700;color:var(--sn-bg-forest);">🧪 Live Rule Simulator:</span>
+                              <input type="text" id="sn-edit-pin-test-input" maxlength="6" value="560038" placeholder="6-Digit PIN" class="sn-input" style="width:96px;padding:4px 8px;min-height:30px;font-family:var(--sn-font-mono);font-size:0.76rem;" />
+                              <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-edit-pin-test-btn" style="min-height:30px;padding:4px 10px;">Test PIN</button>
+                            </div>
+                            <span id="sn-edit-pin-test-result" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.72rem;">
+                              ✓ Deliverable (Prepaid &amp; COD Allowed)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
                       <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--sn-border-warm);">
                         <button type="button" class="sn-btn sn-btn-outline" data-close-prod-modal>Cancel</button>
-                        <button type="submit" class="sn-btn sn-btn-forest">Save Product, Pricing &amp; Nutrition Edits</button>
+                        <button type="submit" class="sn-btn sn-btn-forest">Save Product, Pricing, Nutrition &amp; PIN Rules</button>
                       </div>
                     </form>
 
@@ -9779,12 +10135,12 @@
                           data-admin-user-row="ananya.iyer@example.com"
                           data-user-account-type="registered"
                           data-user-orders-count="2"
-                          data-user-details-json="{&quot;userId&quot;:6,&quot;userIdLabel&quot;:&quot;USR-6&quot;,&quot;joinedDate&quot;:&quot;2026-11-24&quot;,&quot;fullName&quot;:&quot;Ananya Iyer&quot;,&quot;email&quot;:&quot;ananya.iyer@example.com&quot;,&quot;phone&quot;:&quot;+91 98450 22334&quot;,&quot;accountType&quot;:&quot;Registered Customer&quot;,&quot;isRegistered&quot;:true,&quot;addressCount&quot;:2,&quot;defaultCity&quot;:&quot;Bengaluru&quot;,&quot;defaultState&quot;:&quot;Karnataka&quot;,&quot;defaultPincode&quot;:&quot;560038&quot;,&quot;orderNumbers&quot;:[&quot;SN-2026-1000&quot;,&quot;SN-2026-1001&quot;],&quot;totalPacksBought&quot;:5,&quot;settledSpendPaise&quot;:224300,&quot;codPendingPaise&quot;:0,&quot;totalSpendPaise&quot;:224300,&quot;lastOrderDate&quot;:&quot;2026-11-19&quot;,&quot;purchasedItemsList&quot;:[&quot;Unpolished Haveri Finger Millet (Ragi Whole &amp; Flour) (1 kg × 1)&quot;,&quot;Idukki 8mm+ Bold Green Cardamom (Elaichi) (100 g × 1)&quot;,&quot;Kashmiri Snow-White Walnut Halves (Akhrot Giri) (250 g × 1)&quot;,&quot;Meghalaya Lakadong High-Curcumin Turmeric Powder (250 g × 1)&quot;,&quot;Kashmiri Mamra Giri Almonds (250 g × 1)&quot;],&quot;detailedOrders&quot;:[{&quot;orderNumber&quot;:&quot;SN-2026-1000&quot;,&quot;orderDate&quot;:&quot;2026-11-08&quot;,&quot;paymentMethod&quot;:&quot;ONLINE_CARD&quot;,&quot;paymentStatus&quot;:&quot;PAID&quot;,&quot;fulfilmentStatus&quot;:&quot;Delivered&quot;,&quot;totalPaise&quot;:128000,&quot;shippingCity&quot;:&quot;Bengaluru&quot;,&quot;shippingState&quot;:&quot;Karnataka&quot;,&quot;shippingPincode&quot;:&quot;560038&quot;,&quot;items&quot;:[{&quot;id&quot;:7,&quot;order_id&quot;:3,&quot;product_id&quot;:7,&quot;variant_id&quot;:27,&quot;product_name&quot;:&quot;Unpolished Haveri Finger Millet (Ragi Whole &amp; Flour)&quot;,&quot;sku&quot;:&quot;SN-ML-RAG-1KG&quot;,&quot;pack_label&quot;:&quot;1 kg&quot;,&quot;weight_grams&quot;:1000,&quot;unit_price_paise&quot;:30000,&quot;mrp_paise&quot;:38000,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:43000,&quot;hsn_code&quot;:&quot;100821&quot;},{&quot;id&quot;:6,&quot;order_id&quot;:3,&quot;product_id&quot;:14,&quot;variant_id&quot;:54,&quot;product_name&quot;:&quot;Idukki 8mm+ Bold Green Cardamom (Elaichi)&quot;,&quot;sku&quot;:&quot;SN-SP-CRD-100G&quot;,&quot;pack_label&quot;:&quot;100 g&quot;,&quot;weight_grams&quot;:100,&quot;unit_price_paise&quot;:42000,&quot;mrp_paise&quot;:48000,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:42000,&quot;hsn_code&quot;:&quot;090831&quot;},{&quot;id&quot;:5,&quot;order_id&quot;:3,&quot;product_id&quot;:4,&quot;variant_id&quot;:14,&quot;product_name&quot;:&quot;Kashmiri Snow-White Walnut Halves (Akhrot Giri)&quot;,&quot;sku&quot;:&quot;SN-DF-WLN-250G&quot;,&quot;pack_label&quot;:&quot;250 g&quot;,&quot;weight_grams&quot;:250,&quot;unit_price_paise&quot;:53000,&quot;mrp_paise&quot;:61000,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:53000,&quot;hsn_code&quot;:&quot;080290&quot;}]},{&quot;orderNumber&quot;:&quot;SN-2026-1001&quot;,&quot;orderDate&quot;:&quot;2026-11-19&quot;,&quot;paymentMethod&quot;:&quot;ONLINE_UPI&quot;,&quot;paymentStatus&quot;:&quot;PAID&quot;,&quot;fulfilmentStatus&quot;:&quot;Shipped&quot;,&quot;totalPaise&quot;:96300,&quot;shippingCity&quot;:&quot;Bengaluru&quot;,&quot;shippingState&quot;:&quot;Karnataka&quot;,&quot;shippingPincode&quot;:&quot;560038&quot;,&quot;items&quot;:[{&quot;id&quot;:2,&quot;order_id&quot;:1,&quot;product_id&quot;:12,&quot;variant_id&quot;:46,&quot;product_name&quot;:&quot;Meghalaya Lakadong High-Curcumin Turmeric Powder&quot;,&quot;sku&quot;:&quot;SN-SP-TUR-250G&quot;,&quot;pack_label&quot;:&quot;250 g&quot;,&quot;weight_grams&quot;:250,&quot;unit_price_paise&quot;:32000,&quot;mrp_paise&quot;:37500,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:32000,&quot;hsn_code&quot;:&quot;080290&quot;},{&quot;id&quot;:1,&quot;order_id&quot;:1,&quot;product_id&quot;:1,&quot;variant_id&quot;:2,&quot;product_name&quot;:&quot;Kashmiri Mamra Giri Almonds&quot;,&quot;sku&quot;:&quot;SN-DF-ALM-250G&quot;,&quot;pack_label&quot;:&quot;250 g&quot;,&quot;weight_grams&quot;:250,&quot;unit_price_paise&quot;:75000,&quot;mrp_paise&quot;:84500,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:75000,&quot;hsn_code&quot;:&quot;080290&quot;}]}]}"
+                          data-user-details-json="{&quot;userId&quot;:6,&quot;userIdLabel&quot;:&quot;USR-6&quot;,&quot;joinedDate&quot;:&quot;2026-11-25&quot;,&quot;fullName&quot;:&quot;Ananya Iyer&quot;,&quot;email&quot;:&quot;ananya.iyer@example.com&quot;,&quot;phone&quot;:&quot;+91 98450 22334&quot;,&quot;accountType&quot;:&quot;Registered Customer&quot;,&quot;isRegistered&quot;:true,&quot;addressCount&quot;:2,&quot;defaultCity&quot;:&quot;Bengaluru&quot;,&quot;defaultState&quot;:&quot;Karnataka&quot;,&quot;defaultPincode&quot;:&quot;560038&quot;,&quot;orderNumbers&quot;:[&quot;SN-2026-1000&quot;,&quot;SN-2026-1001&quot;],&quot;totalPacksBought&quot;:5,&quot;settledSpendPaise&quot;:224300,&quot;codPendingPaise&quot;:0,&quot;totalSpendPaise&quot;:224300,&quot;lastOrderDate&quot;:&quot;2026-11-19&quot;,&quot;purchasedItemsList&quot;:[&quot;Unpolished Haveri Finger Millet (Ragi Whole &amp; Flour) (1 kg × 1)&quot;,&quot;Idukki 8mm+ Bold Green Cardamom (Elaichi) (100 g × 1)&quot;,&quot;Kashmiri Snow-White Walnut Halves (Akhrot Giri) (250 g × 1)&quot;,&quot;Meghalaya Lakadong High-Curcumin Turmeric Powder (250 g × 1)&quot;,&quot;Kashmiri Mamra Giri Almonds (250 g × 1)&quot;],&quot;detailedOrders&quot;:[{&quot;orderNumber&quot;:&quot;SN-2026-1000&quot;,&quot;orderDate&quot;:&quot;2026-11-08&quot;,&quot;paymentMethod&quot;:&quot;ONLINE_CARD&quot;,&quot;paymentStatus&quot;:&quot;PAID&quot;,&quot;fulfilmentStatus&quot;:&quot;Delivered&quot;,&quot;totalPaise&quot;:128000,&quot;shippingCity&quot;:&quot;Bengaluru&quot;,&quot;shippingState&quot;:&quot;Karnataka&quot;,&quot;shippingPincode&quot;:&quot;560038&quot;,&quot;items&quot;:[{&quot;id&quot;:7,&quot;order_id&quot;:3,&quot;product_id&quot;:7,&quot;variant_id&quot;:27,&quot;product_name&quot;:&quot;Unpolished Haveri Finger Millet (Ragi Whole &amp; Flour)&quot;,&quot;sku&quot;:&quot;SN-ML-RAG-1KG&quot;,&quot;pack_label&quot;:&quot;1 kg&quot;,&quot;weight_grams&quot;:1000,&quot;unit_price_paise&quot;:30000,&quot;mrp_paise&quot;:38000,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:43000,&quot;hsn_code&quot;:&quot;100821&quot;},{&quot;id&quot;:6,&quot;order_id&quot;:3,&quot;product_id&quot;:14,&quot;variant_id&quot;:54,&quot;product_name&quot;:&quot;Idukki 8mm+ Bold Green Cardamom (Elaichi)&quot;,&quot;sku&quot;:&quot;SN-SP-CRD-100G&quot;,&quot;pack_label&quot;:&quot;100 g&quot;,&quot;weight_grams&quot;:100,&quot;unit_price_paise&quot;:42000,&quot;mrp_paise&quot;:48000,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:42000,&quot;hsn_code&quot;:&quot;090831&quot;},{&quot;id&quot;:5,&quot;order_id&quot;:3,&quot;product_id&quot;:4,&quot;variant_id&quot;:14,&quot;product_name&quot;:&quot;Kashmiri Snow-White Walnut Halves (Akhrot Giri)&quot;,&quot;sku&quot;:&quot;SN-DF-WLN-250G&quot;,&quot;pack_label&quot;:&quot;250 g&quot;,&quot;weight_grams&quot;:250,&quot;unit_price_paise&quot;:53000,&quot;mrp_paise&quot;:61000,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:53000,&quot;hsn_code&quot;:&quot;080290&quot;}]},{&quot;orderNumber&quot;:&quot;SN-2026-1001&quot;,&quot;orderDate&quot;:&quot;2026-11-19&quot;,&quot;paymentMethod&quot;:&quot;ONLINE_UPI&quot;,&quot;paymentStatus&quot;:&quot;PAID&quot;,&quot;fulfilmentStatus&quot;:&quot;Shipped&quot;,&quot;totalPaise&quot;:96300,&quot;shippingCity&quot;:&quot;Bengaluru&quot;,&quot;shippingState&quot;:&quot;Karnataka&quot;,&quot;shippingPincode&quot;:&quot;560038&quot;,&quot;items&quot;:[{&quot;id&quot;:2,&quot;order_id&quot;:1,&quot;product_id&quot;:12,&quot;variant_id&quot;:46,&quot;product_name&quot;:&quot;Meghalaya Lakadong High-Curcumin Turmeric Powder&quot;,&quot;sku&quot;:&quot;SN-SP-TUR-250G&quot;,&quot;pack_label&quot;:&quot;250 g&quot;,&quot;weight_grams&quot;:250,&quot;unit_price_paise&quot;:32000,&quot;mrp_paise&quot;:37500,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:32000,&quot;hsn_code&quot;:&quot;080290&quot;},{&quot;id&quot;:1,&quot;order_id&quot;:1,&quot;product_id&quot;:1,&quot;variant_id&quot;:2,&quot;product_name&quot;:&quot;Kashmiri Mamra Giri Almonds&quot;,&quot;sku&quot;:&quot;SN-DF-ALM-250G&quot;,&quot;pack_label&quot;:&quot;250 g&quot;,&quot;weight_grams&quot;:250,&quot;unit_price_paise&quot;:75000,&quot;mrp_paise&quot;:84500,&quot;gst_percent&quot;:5,&quot;quantity&quot;:1,&quot;line_total_paise&quot;:75000,&quot;hsn_code&quot;:&quot;080290&quot;}]}]}"
                         >
                           <td data-label="User ID &amp; Account">
                             <strong style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">USR-6</strong><br/>
                             <span class="sn-status sn-status-paid" style="margin-top:3px;display:inline-block;">Registered Customer</span>
-                            <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);margin-top:2px;">Joined: 2026-11-24</div>
+                            <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);margin-top:2px;">Joined: 2026-11-25</div>
                           </td>
                           <td data-label="Customer &amp; Contact">
                             <strong>Ananya Iyer</strong>
@@ -10203,7 +10559,7 @@
                     <tbody>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:18:16</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:49:32</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
@@ -10212,7 +10568,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:18:16</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:49:31</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
@@ -10221,7 +10577,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:18:16</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:49:31</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_RESET_VIA_OTP</td>
@@ -10230,7 +10586,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:18:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:49:31</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">ADMIN_SESSION_LOGIN</td>
@@ -10239,7 +10595,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:18:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:49:31</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">RBAC_VERIFICATION_GATE_TEST</td>
@@ -10248,7 +10604,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:18:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:49:30</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
@@ -10257,7 +10613,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:18:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:49:30</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
@@ -10266,7 +10622,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:18:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:49:30</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">CATEGORY_IMAGE_CHANGED</td>
@@ -10275,7 +10631,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:18:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:49:30</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">PRODUCT_GALLERY_IMAGE_ADDED</td>
@@ -10284,7 +10640,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:10:39</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:44:38</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
@@ -10293,7 +10649,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:10:39</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:44:37</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
@@ -10302,7 +10658,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:10:39</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:44:37</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_RESET_VIA_OTP</td>
@@ -10311,7 +10667,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:10:38</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:44:37</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">ADMIN_SESSION_LOGIN</td>
@@ -10320,7 +10676,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:10:38</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:44:36</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">RBAC_VERIFICATION_GATE_TEST</td>
@@ -10329,7 +10685,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:10:38</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:44:36</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
@@ -10338,7 +10694,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:10:38</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:44:36</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
@@ -10347,7 +10703,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:10:38</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:44:36</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">CATEGORY_IMAGE_CHANGED</td>
@@ -10356,7 +10712,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:10:38</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:44:36</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">PRODUCT_GALLERY_IMAGE_ADDED</td>
@@ -10365,7 +10721,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:03:16</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:43:59</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
@@ -10374,7 +10730,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:03:16</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:43:59</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
@@ -10383,7 +10739,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:03:16</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:43:58</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_RESET_VIA_OTP</td>
@@ -10392,7 +10748,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:03:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:43:58</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">ADMIN_SESSION_LOGIN</td>
@@ -10401,7 +10757,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:03:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:43:58</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">RBAC_VERIFICATION_GATE_TEST</td>
@@ -10410,7 +10766,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:03:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:43:57</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
@@ -10419,7 +10775,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:03:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:43:57</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">superadmin@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">SUPER_ADMIN</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">SHIPPING_POLICY_UPDATED</td>
@@ -10428,7 +10784,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:03:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:43:57</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">CATEGORY_IMAGE_CHANGED</td>
@@ -10437,7 +10793,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 15:03:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:43:57</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">catalog@sasynaturals.com</td>
                           <td><span class="sn-status sn-status-warn">PRODUCT_MANAGER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">PRODUCT_GALLERY_IMAGE_ADDED</td>
@@ -10446,7 +10802,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 14:28:25</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:25:06</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
@@ -10455,7 +10811,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 14:28:24</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:25:06</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_CHANGED</td>
@@ -10464,7 +10820,7 @@
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-24 14:28:24</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;white-space:nowrap;">2026-11-25 03:25:05</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td><span class="sn-status sn-status-warn">CUSTOMER</span></td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;font-size:0.76rem;">USER_PASSWORD_RESET_VIA_OTP</td>
@@ -10636,79 +10992,79 @@
                     <tbody>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 15:18:16</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-25 03:49:31</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">AUTH_OTP</td>
                           <td><span class="sn-status sn-status-paid">EMAIL</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">PASSWORD_RESET_OTP</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 244695 (valid for 10 minutes).</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 954079 (valid for 10 minutes).</td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 15:18:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-25 03:49:30</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">COD_OTP</td>
                           <td><span class="sn-status sn-status-paid">SMS_WHATSAPP</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">9845077889</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">COD_OTP_DISPATCHED</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 649677. Valid for 10 minutes.</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 115845. Valid for 10 minutes.</td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 15:10:39</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-25 03:44:37</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">AUTH_OTP</td>
                           <td><span class="sn-status sn-status-paid">EMAIL</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">PASSWORD_RESET_OTP</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 298437 (valid for 10 minutes).</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 673287 (valid for 10 minutes).</td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 15:10:38</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-25 03:44:36</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">COD_OTP</td>
                           <td><span class="sn-status sn-status-paid">SMS_WHATSAPP</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">9845077889</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">COD_OTP_DISPATCHED</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 270556. Valid for 10 minutes.</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 412049. Valid for 10 minutes.</td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 15:03:16</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-25 03:43:58</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">AUTH_OTP</td>
                           <td><span class="sn-status sn-status-paid">EMAIL</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">PASSWORD_RESET_OTP</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 755945 (valid for 10 minutes).</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 622918 (valid for 10 minutes).</td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 15:03:15</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-25 03:43:57</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">COD_OTP</td>
                           <td><span class="sn-status sn-status-paid">SMS_WHATSAPP</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">9845077889</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">COD_OTP_DISPATCHED</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 779626. Valid for 10 minutes.</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 193541. Valid for 10 minutes.</td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 14:28:24</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-25 03:25:05</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">AUTH_OTP</td>
                           <td><span class="sn-status sn-status-paid">EMAIL</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">PASSWORD_RESET_OTP</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 908008 (valid for 10 minutes).</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals Password Reset OTP</strong> - Your 6-digit password reset code is 720496 (valid for 10 minutes).</td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 14:28:23</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-25 03:25:05</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">COD_OTP</td>
                           <td><span class="sn-status sn-status-paid">SMS_WHATSAPP</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">9845077889</td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.75rem;">COD_OTP_DISPATCHED</td>
-                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 487179. Valid for 10 minutes.</td>
+                          <td style="font-size:0.8rem;"><strong>Sasya Naturals COD Verification OTP</strong> - Your 6-digit verification code for Sasya Naturals Cash on Delivery is 504554. Valid for 10 minutes.</td>
                         </tr>
                       
                         <tr>
-                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-24 14:28:21</td>
+                          <td style="font-family:var(--sn-font-mono);font-size:0.74rem;">2026-11-25 03:25:04</td>
                           <td style="font-family:var(--sn-font-mono);font-weight:600;">SN-2026-1001</td>
                           <td><span class="sn-status sn-status-paid">EMAIL</span></td>
                           <td style="font-family:var(--sn-font-mono);font-size:0.76rem;">ananya.iyer@example.com</td>
@@ -11098,15 +11454,15 @@ Every product is offered in 100 g, 250 g, 500 g, and 1 kg nitrogen-flushed packs
       </div>
       <div class="sn-footer-bottom">
         <span>© 2026 Sasya Naturals (sasynaturals.com). All rights reserved.</span>
-        <span>Engine: Node.js 22 SSR + Rust WASM Commerce Core (v2.8.4)</span>
+        <span>Engine: Node.js 22 SSR + Rust WASM Commerce Core (v2.9.0)</span>
       </div>
     </div>
   </footer>
   <script>
     window.__SN_STATIC_SHOWCASE__ = true;
     window.__SN_BASE_PATH__ = "/sasya_naturals";
-    window.__SN_STATIC_DATA__ = {"variants":[{"variant_id":1,"product_id":1,"sku":"SN-DF-ALM-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":36000,"selling_price_paise":32000,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5},{"variant_id":2,"product_id":1,"sku":"SN-DF-ALM-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":84500,"selling_price_paise":75000,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5},{"variant_id":3,"product_id":1,"sku":"SN-DF-ALM-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":160000,"selling_price_paise":142500,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5},{"variant_id":4,"product_id":1,"sku":"SN-DF-ALM-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":306000,"selling_price_paise":272000,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5},{"variant_id":5,"product_id":2,"sku":"SN-DF-CSH-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":22000,"selling_price_paise":18500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5},{"variant_id":6,"product_id":2,"sku":"SN-DF-CSH-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":51500,"selling_price_paise":43500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5},{"variant_id":7,"product_id":2,"sku":"SN-DF-CSH-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":98000,"selling_price_paise":82500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5},{"variant_id":8,"product_id":2,"sku":"SN-DF-CSH-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":187000,"selling_price_paise":157500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5},{"variant_id":9,"product_id":3,"sku":"SN-DF-PST-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":28000,"selling_price_paise":24500,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12},{"variant_id":10,"product_id":3,"sku":"SN-DF-PST-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":66000,"selling_price_paise":57500,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12},{"variant_id":11,"product_id":3,"sku":"SN-DF-PST-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":124500,"selling_price_paise":109000,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12},{"variant_id":12,"product_id":3,"sku":"SN-DF-PST-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":238000,"selling_price_paise":208500,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12},{"variant_id":13,"product_id":4,"sku":"SN-DF-WLN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":26000,"selling_price_paise":22500,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5},{"variant_id":14,"product_id":4,"sku":"SN-DF-WLN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":61000,"selling_price_paise":53000,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5},{"variant_id":15,"product_id":4,"sku":"SN-DF-WLN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":115500,"selling_price_paise":100000,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5},{"variant_id":16,"product_id":4,"sku":"SN-DF-WLN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":221000,"selling_price_paise":191500,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5},{"variant_id":17,"product_id":5,"sku":"SN-DF-FIG-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":25000,"selling_price_paise":21500,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5},{"variant_id":18,"product_id":5,"sku":"SN-DF-FIG-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":59000,"selling_price_paise":50500,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5},{"variant_id":19,"product_id":5,"sku":"SN-DF-FIG-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":111500,"selling_price_paise":95500,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5},{"variant_id":20,"product_id":5,"sku":"SN-DF-FIG-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":212500,"selling_price_paise":183000,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5},{"variant_id":21,"product_id":6,"sku":"SN-DF-MIX-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":24000,"selling_price_paise":20000,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12},{"variant_id":22,"product_id":6,"sku":"SN-DF-MIX-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":56500,"selling_price_paise":47000,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12},{"variant_id":23,"product_id":6,"sku":"SN-DF-MIX-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":107000,"selling_price_paise":88500,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12},{"variant_id":24,"product_id":6,"sku":"SN-DF-MIX-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":204000,"selling_price_paise":169000,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12},{"variant_id":25,"product_id":7,"sku":"SN-ML-RAG-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":4500,"selling_price_paise":3500,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5},{"variant_id":26,"product_id":7,"sku":"SN-ML-RAG-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":10500,"selling_price_paise":8000,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5},{"variant_id":27,"product_id":7,"sku":"SN-ML-RAG-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":20000,"selling_price_paise":15500,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5},{"variant_id":28,"product_id":7,"sku":"SN-ML-RAG-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":38500,"selling_price_paise":30000,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5},{"variant_id":29,"product_id":8,"sku":"SN-ML-FOX-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":5500,"selling_price_paise":4000,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5},{"variant_id":30,"product_id":8,"sku":"SN-ML-FOX-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":13000,"selling_price_paise":10000,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5},{"variant_id":31,"product_id":8,"sku":"SN-ML-FOX-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":24500,"selling_price_paise":18500,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5},{"variant_id":32,"product_id":8,"sku":"SN-ML-FOX-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":47000,"selling_price_paise":35500,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5},{"variant_id":33,"product_id":9,"sku":"SN-ML-LIT-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":6000,"selling_price_paise":4500,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5},{"variant_id":34,"product_id":9,"sku":"SN-ML-LIT-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":14000,"selling_price_paise":11000,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5},{"variant_id":35,"product_id":9,"sku":"SN-ML-LIT-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":26500,"selling_price_paise":20500,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5},{"variant_id":36,"product_id":9,"sku":"SN-ML-LIT-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":51000,"selling_price_paise":39000,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5},{"variant_id":37,"product_id":10,"sku":"SN-ML-KOD-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":6000,"selling_price_paise":4500,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5},{"variant_id":38,"product_id":10,"sku":"SN-ML-KOD-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":13500,"selling_price_paise":10500,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5},{"variant_id":39,"product_id":10,"sku":"SN-ML-KOD-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":26000,"selling_price_paise":20000,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5},{"variant_id":40,"product_id":10,"sku":"SN-ML-KOD-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":49500,"selling_price_paise":38500,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5},{"variant_id":41,"product_id":11,"sku":"SN-ML-JWR-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":4000,"selling_price_paise":3000,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5},{"variant_id":42,"product_id":11,"sku":"SN-ML-JWR-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":10000,"selling_price_paise":7500,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5},{"variant_id":43,"product_id":11,"sku":"SN-ML-JWR-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":18500,"selling_price_paise":14000,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5},{"variant_id":44,"product_id":11,"sku":"SN-ML-JWR-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":35500,"selling_price_paise":27000,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5},{"variant_id":45,"product_id":12,"sku":"SN-SP-TUR-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":16000,"selling_price_paise":13500,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5},{"variant_id":46,"product_id":12,"sku":"SN-SP-TUR-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":37500,"selling_price_paise":31500,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5},{"variant_id":47,"product_id":12,"sku":"SN-SP-TUR-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":71000,"selling_price_paise":60000,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5},{"variant_id":48,"product_id":12,"sku":"SN-SP-TUR-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":136000,"selling_price_paise":115000,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5},{"variant_id":49,"product_id":13,"sku":"SN-SP-PEP-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":19500,"selling_price_paise":16500,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5},{"variant_id":50,"product_id":13,"sku":"SN-SP-PEP-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":46000,"selling_price_paise":39000,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5},{"variant_id":51,"product_id":13,"sku":"SN-SP-PEP-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":87000,"selling_price_paise":73500,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5},{"variant_id":52,"product_id":13,"sku":"SN-SP-PEP-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":166000,"selling_price_paise":140500,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5},{"variant_id":53,"product_id":14,"sku":"SN-SP-CRD-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":48000,"selling_price_paise":42000,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5},{"variant_id":54,"product_id":14,"sku":"SN-SP-CRD-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":113000,"selling_price_paise":98500,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5},{"variant_id":55,"product_id":14,"sku":"SN-SP-CRD-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":213500,"selling_price_paise":187000,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5},{"variant_id":56,"product_id":14,"sku":"SN-SP-CRD-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":408000,"selling_price_paise":357000,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5},{"variant_id":57,"product_id":15,"sku":"SN-SP-CHL-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":11500,"selling_price_paise":9500,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5},{"variant_id":58,"product_id":15,"sku":"SN-SP-CHL-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":27000,"selling_price_paise":22500,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5},{"variant_id":59,"product_id":15,"sku":"SN-SP-CHL-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":51000,"selling_price_paise":42500,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5},{"variant_id":60,"product_id":15,"sku":"SN-SP-CHL-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":98000,"selling_price_paise":81000,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5},{"variant_id":61,"product_id":16,"sku":"SN-SP-CIN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":29000,"selling_price_paise":24500,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5},{"variant_id":62,"product_id":16,"sku":"SN-SP-CIN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":68000,"selling_price_paise":57500,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5},{"variant_id":63,"product_id":16,"sku":"SN-SP-CIN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":129000,"selling_price_paise":109000,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5},{"variant_id":64,"product_id":16,"sku":"SN-SP-CIN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":246500,"selling_price_paise":208500,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5},{"variant_id":65,"product_id":17,"sku":"SN-DF-RSN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":11000,"selling_price_paise":8500,"product_name":"Nashik Seedless Black Raisins (Kali Kishmish)","gst_percent":5},{"variant_id":66,"product_id":17,"sku":"SN-DF-RSN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":26000,"selling_price_paise":20000,"product_name":"Nashik Seedless Black Raisins (Kali Kishmish)","gst_percent":5},{"variant_id":67,"product_id":17,"sku":"SN-DF-RSN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":49000,"selling_price_paise":38000,"product_name":"Nashik Seedless Black Raisins (Kali Kishmish)","gst_percent":5},{"variant_id":68,"product_id":17,"sku":"SN-DF-RSN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":93500,"selling_price_paise":72500,"product_name":"Nashik Seedless Black Raisins (Kali Kishmish)","gst_percent":5},{"variant_id":69,"product_id":18,"sku":"SN-DF-DAT-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":18500,"selling_price_paise":15500,"product_name":"Soft Pitted Medjool & Kutch Crown Dates (Khajoor)","gst_percent":12},{"variant_id":70,"product_id":18,"sku":"SN-DF-DAT-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":43500,"selling_price_paise":36500,"product_name":"Soft Pitted Medjool & Kutch Crown Dates (Khajoor)","gst_percent":12},{"variant_id":71,"product_id":18,"sku":"SN-DF-DAT-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":82500,"selling_price_paise":69000,"product_name":"Soft Pitted Medjool & Kutch Crown Dates (Khajoor)","gst_percent":12},{"variant_id":72,"product_id":18,"sku":"SN-DF-DAT-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":157500,"selling_price_paise":132000,"product_name":"Soft Pitted Medjool & Kutch Crown Dates (Khajoor)","gst_percent":12},{"variant_id":73,"product_id":19,"sku":"SN-ML-BRN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":6000,"selling_price_paise":5000,"product_name":"Uttarakhand Unpolished Barnyard Millet (Sanwa / Oodalu)","gst_percent":5},{"variant_id":74,"product_id":19,"sku":"SN-ML-BRN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":14500,"selling_price_paise":11500,"product_name":"Uttarakhand Unpolished Barnyard Millet (Sanwa / Oodalu)","gst_percent":5},{"variant_id":75,"product_id":19,"sku":"SN-ML-BRN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":27500,"selling_price_paise":21500,"product_name":"Uttarakhand Unpolished Barnyard Millet (Sanwa / Oodalu)","gst_percent":5},{"variant_id":76,"product_id":19,"sku":"SN-ML-BRN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":52500,"selling_price_paise":41000,"product_name":"Uttarakhand Unpolished Barnyard Millet (Sanwa / Oodalu)","gst_percent":5},{"variant_id":77,"product_id":20,"sku":"SN-ML-BAJ-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":4000,"selling_price_paise":3000,"product_name":"Barmer Deshi Pearl Millet (Bajra / Sajje Whole Grain)","gst_percent":5},{"variant_id":78,"product_id":20,"sku":"SN-ML-BAJ-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":9500,"selling_price_paise":7000,"product_name":"Barmer Deshi Pearl Millet (Bajra / Sajje Whole Grain)","gst_percent":5},{"variant_id":79,"product_id":20,"sku":"SN-ML-BAJ-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":18000,"selling_price_paise":13500,"product_name":"Barmer Deshi Pearl Millet (Bajra / Sajje Whole Grain)","gst_percent":5},{"variant_id":80,"product_id":20,"sku":"SN-ML-BAJ-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":34000,"selling_price_paise":25500,"product_name":"Barmer Deshi Pearl Millet (Bajra / Sajje Whole Grain)","gst_percent":5},{"variant_id":81,"product_id":21,"sku":"SN-SP-CLV-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":24000,"selling_price_paise":19500,"product_name":"Kanyakumari Hand-Picked Whole Cloves (Laung)","gst_percent":5},{"variant_id":82,"product_id":21,"sku":"SN-SP-CLV-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":56500,"selling_price_paise":46000,"product_name":"Kanyakumari Hand-Picked Whole Cloves (Laung)","gst_percent":5},{"variant_id":83,"product_id":21,"sku":"SN-SP-CLV-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":107000,"selling_price_paise":87000,"product_name":"Kanyakumari Hand-Picked Whole Cloves (Laung)","gst_percent":5},{"variant_id":84,"product_id":21,"sku":"SN-SP-CLV-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":204000,"selling_price_paise":166000,"product_name":"Kanyakumari Hand-Picked Whole Cloves (Laung)","gst_percent":5},{"variant_id":85,"product_id":22,"sku":"SN-SP-COR-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":8500,"selling_price_paise":7000,"product_name":"Single-Origin Cold-Milled Coriander Powder (Dhaniya)","gst_percent":5},{"variant_id":86,"product_id":22,"sku":"SN-SP-COR-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":20000,"selling_price_paise":16000,"product_name":"Single-Origin Cold-Milled Coriander Powder (Dhaniya)","gst_percent":5},{"variant_id":87,"product_id":22,"sku":"SN-SP-COR-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":38000,"selling_price_paise":30500,"product_name":"Single-Origin Cold-Milled Coriander Powder (Dhaniya)","gst_percent":5},{"variant_id":88,"product_id":22,"sku":"SN-SP-COR-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":72500,"selling_price_paise":58000,"product_name":"Single-Origin Cold-Milled Coriander Powder (Dhaniya)","gst_percent":5}],"coupons":[{"code":"SASYA10","description":"10% off on orders above Rs. 499","discount_type":"PERCENT","discount_value":10,"min_order_paise":49900,"max_discount_paise":50000,"is_active":1},{"code":"WELCOME15","description":"15% off first pantry order above Rs. 999","discount_type":"PERCENT","discount_value":15,"min_order_paise":99900,"max_discount_paise":75000,"is_active":1},{"code":"PANTRY100","description":"Flat Rs. 100 off on orders above Rs. 799","discount_type":"FLAT_PAISE","discount_value":10000,"min_order_paise":79900,"max_discount_paise":10000,"is_active":1}]};
+    window.__SN_STATIC_DATA__ = {"variants":[{"variant_id":1,"product_id":1,"sku":"SN-DF-ALM-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":36000,"selling_price_paise":32000,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":2,"product_id":1,"sku":"SN-DF-ALM-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":84500,"selling_price_paise":75000,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":3,"product_id":1,"sku":"SN-DF-ALM-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":160000,"selling_price_paise":142500,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":4,"product_id":1,"sku":"SN-DF-ALM-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":306000,"selling_price_paise":272000,"product_name":"Kashmiri Mamra Giri Almonds","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":5,"product_id":2,"sku":"SN-DF-CSH-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":22000,"selling_price_paise":18500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":6,"product_id":2,"sku":"SN-DF-CSH-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":51500,"selling_price_paise":43500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":7,"product_id":2,"sku":"SN-DF-CSH-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":98000,"selling_price_paise":82500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":8,"product_id":2,"sku":"SN-DF-CSH-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":187000,"selling_price_paise":157500,"product_name":"Goan W240 Jumbo Whole Cashews","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":9,"product_id":3,"sku":"SN-DF-PST-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":28000,"selling_price_paise":24500,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":10,"product_id":3,"sku":"SN-DF-PST-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":66000,"selling_price_paise":57500,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":11,"product_id":3,"sku":"SN-DF-PST-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":124500,"selling_price_paise":109000,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":12,"product_id":3,"sku":"SN-DF-PST-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":238000,"selling_price_paise":208500,"product_name":"Lightly Salted Roasted Pistachios","gst_percent":12,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":13,"product_id":4,"sku":"SN-DF-WLN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":26000,"selling_price_paise":22500,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":14,"product_id":4,"sku":"SN-DF-WLN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":61000,"selling_price_paise":53000,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":15,"product_id":4,"sku":"SN-DF-WLN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":115500,"selling_price_paise":100000,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":16,"product_id":4,"sku":"SN-DF-WLN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":221000,"selling_price_paise":191500,"product_name":"Kashmiri Snow-White Walnut Halves (Akhrot Giri)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":17,"product_id":5,"sku":"SN-DF-FIG-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":25000,"selling_price_paise":21500,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":18,"product_id":5,"sku":"SN-DF-FIG-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":59000,"selling_price_paise":50500,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":19,"product_id":5,"sku":"SN-DF-FIG-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":111500,"selling_price_paise":95500,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":20,"product_id":5,"sku":"SN-DF-FIG-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":212500,"selling_price_paise":183000,"product_name":"Sun-Dried Jumbo Anjeer (Dried Figs)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":21,"product_id":6,"sku":"SN-DF-MIX-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":24000,"selling_price_paise":20000,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":22,"product_id":6,"sku":"SN-DF-MIX-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":56500,"selling_price_paise":47000,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":23,"product_id":6,"sku":"SN-DF-MIX-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":107000,"selling_price_paise":88500,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":24,"product_id":6,"sku":"SN-DF-MIX-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":204000,"selling_price_paise":169000,"product_name":"Royal Panchmeva Roasted & Raw Dry Fruit Mix","gst_percent":12,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":25,"product_id":7,"sku":"SN-ML-RAG-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":4500,"selling_price_paise":3500,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":26,"product_id":7,"sku":"SN-ML-RAG-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":10500,"selling_price_paise":8000,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":27,"product_id":7,"sku":"SN-ML-RAG-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":20000,"selling_price_paise":15500,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":28,"product_id":7,"sku":"SN-ML-RAG-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":38500,"selling_price_paise":30000,"product_name":"Unpolished Haveri Finger Millet (Ragi Whole & Flour)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":29,"product_id":8,"sku":"SN-ML-FOX-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":5500,"selling_price_paise":4000,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":30,"product_id":8,"sku":"SN-ML-FOX-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":13000,"selling_price_paise":10000,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":31,"product_id":8,"sku":"SN-ML-FOX-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":24500,"selling_price_paise":18500,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":32,"product_id":8,"sku":"SN-ML-FOX-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":47000,"selling_price_paise":35500,"product_name":"Chitradurga Unpolished Foxtail Millet (Navane / Kangni)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":33,"product_id":9,"sku":"SN-ML-LIT-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":6000,"selling_price_paise":4500,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":34,"product_id":9,"sku":"SN-ML-LIT-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":14000,"selling_price_paise":11000,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":35,"product_id":9,"sku":"SN-ML-LIT-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":26500,"selling_price_paise":20500,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":36,"product_id":9,"sku":"SN-ML-LIT-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":51000,"selling_price_paise":39000,"product_name":"Native Unpolished Little Millet (Saame / Kutki)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":37,"product_id":10,"sku":"SN-ML-KOD-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":6000,"selling_price_paise":4500,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":38,"product_id":10,"sku":"SN-ML-KOD-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":13500,"selling_price_paise":10500,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":39,"product_id":10,"sku":"SN-ML-KOD-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":26000,"selling_price_paise":20000,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":40,"product_id":10,"sku":"SN-ML-KOD-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":49500,"selling_price_paise":38500,"product_name":"Heirloom Unpolished Kodo Millet (Arikelu / Kodra)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":41,"product_id":11,"sku":"SN-ML-JWR-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":4000,"selling_price_paise":3000,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":42,"product_id":11,"sku":"SN-ML-JWR-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":10000,"selling_price_paise":7500,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":43,"product_id":11,"sku":"SN-ML-JWR-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":18500,"selling_price_paise":14000,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":44,"product_id":11,"sku":"SN-ML-JWR-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":35500,"selling_price_paise":27000,"product_name":"Solapur Maldandi White Jowar (Sorghum Grain)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":45,"product_id":12,"sku":"SN-SP-TUR-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":16000,"selling_price_paise":13500,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":46,"product_id":12,"sku":"SN-SP-TUR-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":37500,"selling_price_paise":31500,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":47,"product_id":12,"sku":"SN-SP-TUR-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":71000,"selling_price_paise":60000,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":48,"product_id":12,"sku":"SN-SP-TUR-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":136000,"selling_price_paise":115000,"product_name":"Meghalaya Lakadong High-Curcumin Turmeric Powder","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":49,"product_id":13,"sku":"SN-SP-PEP-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":19500,"selling_price_paise":16500,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":50,"product_id":13,"sku":"SN-SP-PEP-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":46000,"selling_price_paise":39000,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":51,"product_id":13,"sku":"SN-SP-PEP-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":87000,"selling_price_paise":73500,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":52,"product_id":13,"sku":"SN-SP-PEP-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":166000,"selling_price_paise":140500,"product_name":"Wayanad TGSEB Bold Black Peppercorns","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":53,"product_id":14,"sku":"SN-SP-CRD-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":48000,"selling_price_paise":42000,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":54,"product_id":14,"sku":"SN-SP-CRD-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":113000,"selling_price_paise":98500,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":55,"product_id":14,"sku":"SN-SP-CRD-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":213500,"selling_price_paise":187000,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":56,"product_id":14,"sku":"SN-SP-CRD-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":408000,"selling_price_paise":357000,"product_name":"Idukki 8mm+ Bold Green Cardamom (Elaichi)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":57,"product_id":15,"sku":"SN-SP-CHL-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":11500,"selling_price_paise":9500,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":58,"product_id":15,"sku":"SN-SP-CHL-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":27000,"selling_price_paise":22500,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":59,"product_id":15,"sku":"SN-SP-CHL-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":51000,"selling_price_paise":42500,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":60,"product_id":15,"sku":"SN-SP-CHL-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":98000,"selling_price_paise":81000,"product_name":"Dharwad Byadgi & Guntur Balanced Red Chilli Powder","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":61,"product_id":16,"sku":"SN-SP-CIN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":29000,"selling_price_paise":24500,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":62,"product_id":16,"sku":"SN-SP-CIN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":68000,"selling_price_paise":57500,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":63,"product_id":16,"sku":"SN-SP-CIN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":129000,"selling_price_paise":109000,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":64,"product_id":16,"sku":"SN-SP-CIN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":246500,"selling_price_paise":208500,"product_name":"True Ceylon Cinnamon Quills (Cinnamomum verum)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":65,"product_id":17,"sku":"SN-DF-RSN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":11000,"selling_price_paise":8500,"product_name":"Nashik Seedless Black Raisins (Kali Kishmish)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":66,"product_id":17,"sku":"SN-DF-RSN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":26000,"selling_price_paise":20000,"product_name":"Nashik Seedless Black Raisins (Kali Kishmish)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":67,"product_id":17,"sku":"SN-DF-RSN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":49000,"selling_price_paise":38000,"product_name":"Nashik Seedless Black Raisins (Kali Kishmish)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":68,"product_id":17,"sku":"SN-DF-RSN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":93500,"selling_price_paise":72500,"product_name":"Nashik Seedless Black Raisins (Kali Kishmish)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":69,"product_id":18,"sku":"SN-DF-DAT-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":18500,"selling_price_paise":15500,"product_name":"Soft Pitted Medjool & Kutch Crown Dates (Khajoor)","gst_percent":12,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":70,"product_id":18,"sku":"SN-DF-DAT-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":43500,"selling_price_paise":36500,"product_name":"Soft Pitted Medjool & Kutch Crown Dates (Khajoor)","gst_percent":12,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":71,"product_id":18,"sku":"SN-DF-DAT-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":82500,"selling_price_paise":69000,"product_name":"Soft Pitted Medjool & Kutch Crown Dates (Khajoor)","gst_percent":12,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":72,"product_id":18,"sku":"SN-DF-DAT-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":157500,"selling_price_paise":132000,"product_name":"Soft Pitted Medjool & Kutch Crown Dates (Khajoor)","gst_percent":12,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":73,"product_id":19,"sku":"SN-ML-BRN-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":6000,"selling_price_paise":5000,"product_name":"Uttarakhand Unpolished Barnyard Millet (Sanwa / Oodalu)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":74,"product_id":19,"sku":"SN-ML-BRN-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":14500,"selling_price_paise":11500,"product_name":"Uttarakhand Unpolished Barnyard Millet (Sanwa / Oodalu)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":75,"product_id":19,"sku":"SN-ML-BRN-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":27500,"selling_price_paise":21500,"product_name":"Uttarakhand Unpolished Barnyard Millet (Sanwa / Oodalu)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":76,"product_id":19,"sku":"SN-ML-BRN-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":52500,"selling_price_paise":41000,"product_name":"Uttarakhand Unpolished Barnyard Millet (Sanwa / Oodalu)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":77,"product_id":20,"sku":"SN-ML-BAJ-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":4000,"selling_price_paise":3000,"product_name":"Barmer Deshi Pearl Millet (Bajra / Sajje Whole Grain)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":78,"product_id":20,"sku":"SN-ML-BAJ-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":9500,"selling_price_paise":7000,"product_name":"Barmer Deshi Pearl Millet (Bajra / Sajje Whole Grain)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":79,"product_id":20,"sku":"SN-ML-BAJ-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":18000,"selling_price_paise":13500,"product_name":"Barmer Deshi Pearl Millet (Bajra / Sajje Whole Grain)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":80,"product_id":20,"sku":"SN-ML-BAJ-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":34000,"selling_price_paise":25500,"product_name":"Barmer Deshi Pearl Millet (Bajra / Sajje Whole Grain)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":81,"product_id":21,"sku":"SN-SP-CLV-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":24000,"selling_price_paise":19500,"product_name":"Kanyakumari Hand-Picked Whole Cloves (Laung)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":82,"product_id":21,"sku":"SN-SP-CLV-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":56500,"selling_price_paise":46000,"product_name":"Kanyakumari Hand-Picked Whole Cloves (Laung)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":83,"product_id":21,"sku":"SN-SP-CLV-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":107000,"selling_price_paise":87000,"product_name":"Kanyakumari Hand-Picked Whole Cloves (Laung)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":84,"product_id":21,"sku":"SN-SP-CLV-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":204000,"selling_price_paise":166000,"product_name":"Kanyakumari Hand-Picked Whole Cloves (Laung)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":85,"product_id":22,"sku":"SN-SP-COR-100G","pack_label":"100 g","weight_grams":100,"mrp_paise":8500,"selling_price_paise":7000,"product_name":"Single-Origin Cold-Milled Coriander Powder (Dhaniya)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":86,"product_id":22,"sku":"SN-SP-COR-250G","pack_label":"250 g","weight_grams":250,"mrp_paise":20000,"selling_price_paise":16000,"product_name":"Single-Origin Cold-Milled Coriander Powder (Dhaniya)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":87,"product_id":22,"sku":"SN-SP-COR-500G","pack_label":"500 g","weight_grams":500,"mrp_paise":38000,"selling_price_paise":30500,"product_name":"Single-Origin Cold-Milled Coriander Powder (Dhaniya)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"},{"variant_id":88,"product_id":22,"sku":"SN-SP-COR-1KG","pack_label":"1 kg","weight_grams":1000,"mrp_paise":72500,"selling_price_paise":58000,"product_name":"Single-Origin Cold-Milled Coriander Powder (Dhaniya)","gst_percent":5,"pincode_restriction_mode":"NONE","pincode_rules_json":"{}"}],"coupons":[{"code":"SASYA10","description":"10% off on orders above Rs. 499","discount_type":"PERCENT","discount_value":10,"min_order_paise":49900,"max_discount_paise":50000,"is_active":1},{"code":"WELCOME15","description":"15% off first pantry order above Rs. 999","discount_type":"PERCENT","discount_value":15,"min_order_paise":99900,"max_discount_paise":75000,"is_active":1},{"code":"PANTRY100","description":"Flat Rs. 100 off on orders above Rs. 799","discount_type":"FLAT_PAISE","discount_value":10000,"min_order_paise":79900,"max_discount_paise":10000,"is_active":1}]};
   </script>
-  <script src="/sasya_naturals/assets/sasya-client.js?v=2.8.4" defer></script>
+  <script src="/sasya_naturals/assets/sasya-client.js?v=2.9.0" defer></script>
 </body>
 </html>

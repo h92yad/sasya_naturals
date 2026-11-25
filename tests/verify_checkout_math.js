@@ -201,11 +201,114 @@ function runVerifyCheckoutMath() {
   // Restore default policy
   updateShippingPolicySettings({ shipping_free_mode: 'THRESHOLD_WITH_WEIGHT_CAP' });
 
+  // 8. Verify Per-Product PIN Code Delivery Restrictions (ALLOW_ONLY, BLOCK_LIST, BLOCK_COD_ONLY & Mixed-Cart Enforcement)
+  const { normalizePincodeRulesPayload, getDefaultPincodeRules } = require('../src/db/database');
+  assert.throws(
+    () => normalizePincodeRulesPayload({ mode: 'ALLOW_ONLY', zones: [], rawTokens: '' }, getDefaultPincodeRules(), { strict: true }),
+    /Please select at least one Shipping Zone or enter at least one PIN code/
+  );
+  assert.throws(
+    () => normalizePincodeRulesPayload({ mode: 'BLOCK_LIST', rawTokens: '560099-560001' }, getDefaultPincodeRules(), { strict: true }),
+    /start PIN \(560099\) must be <= end PIN/
+  );
+  assert.throws(
+    () => normalizePincodeRulesPayload({ mode: 'ALLOW_ONLY', rawTokens: '000123' }, getDefaultPincodeRules(), { strict: true }),
+    /Invalid PIN code token/
+  );
+
+  // 8a. Configure Product #2 (Goan W240 Cashews, variant #5) as ALLOW_ONLY for Zone A, prefix 400*, and range 110001-110010
+  const allowRule = normalizePincodeRulesPayload({
+    mode: 'ALLOW_ONLY',
+    scope: 'BLOCK_DELIVERY',
+    zones: ['ZONE_A'],
+    rawTokens: '400*, 110001-110010, 600001',
+    reason: 'Special batch deliverable only in Bengaluru (Zone A), Mumbai (400*), New Delhi (110001-110010), and Chennai (600001).'
+  }, getDefaultPincodeRules(), { strict: true });
+
+  db.prepare('UPDATE products SET pincode_restriction_mode = ?, pincode_rules_json = ? WHERE id = 2')
+    .run(allowRule.mode, JSON.stringify(allowRule));
+
+  // Verify allowed PINs (Zone A 560038, Prefix 400050, Range 110005, Exact 600001)
+  assert.strictEqual(validatePincodeServiceability('560038', 'ONLINE_UPI', { productId: 2 }).serviceable, true);
+  assert.strictEqual(validatePincodeServiceability('400050', 'ONLINE_UPI', { productId: 2 }).serviceable, true);
+  assert.strictEqual(validatePincodeServiceability('110005', 'ONLINE_UPI', { productId: 2 }).serviceable, true);
+  assert.strictEqual(validatePincodeServiceability('600001', 'ONLINE_UPI', { productId: 2 }).serviceable, true);
+
+  // Verify restricted PIN (700001 Kolkata)
+  assert.throws(
+    () => validatePincodeServiceability('700001', 'ONLINE_UPI', { productId: 2 }),
+    /is unavailable at PIN code 700001/
+  );
+  const nonThrowCheck = validatePincodeServiceability('700001', 'ONLINE_UPI', { productId: 2, throwOnProductBlock: false });
+  assert.strictEqual(nonThrowCheck.serviceable, false);
+  assert.strictEqual(nonThrowCheck.deliverablePrepaid, false);
+
+  // Mixed-cart pricing calculation at restricted PIN 700001 (Variant #2 unrestricted + Variant #5 restricted)
+  const mixedCartCalc = calculateCartPricing(
+    [{ variantId: 2, quantity: 1 }, { variantId: 5, quantity: 1 }],
+    '',
+    'ONLINE_UPI',
+    'West Bengal',
+    '700001'
+  );
+  assert.strictEqual(mixedCartCalc.allItemsServiceable, false, 'Mixed cart with restricted product must flag allItemsServiceable=false');
+  assert.strictEqual(mixedCartCalc.unserviceableItems.length, 1, 'Mixed cart must identify exactly 1 unserviceable item');
+  assert.strictEqual(mixedCartCalc.unserviceableItems[0].variantId, 5);
+
+  // Hard server gate on createOrder must block order creation for mixed cart at restricted PIN 700001
+  assert.throws(() => {
+    createOrder({
+      customerName: 'Mixed Cart Buyer',
+      customerEmail: 'buyer@example.com',
+      customerPhone: '+91 98111 22333',
+      shippingLine1: '14 Park Street',
+      shippingCity: 'Kolkata',
+      shippingState: 'West Bengal',
+      shippingPincode: '700001',
+      items: [{ variantId: 2, quantity: 1 }, { variantId: 5, quantity: 1 }],
+      paymentMethod: 'ONLINE_UPI'
+    });
+  }, /Delivery to PIN code 700001 is restricted for/);
+
+  // 8b. Configure Product #2 as BLOCK_LIST with scope BLOCK_COD_ONLY for Zone D (e.g. 781001 Guwahati)
+  const blockCodRule = normalizePincodeRulesPayload({
+    mode: 'BLOCK_LIST',
+    scope: 'BLOCK_COD_ONLY',
+    zones: ['ZONE_D'],
+    rawTokens: '500001',
+    reason: 'Prepaid only for this product in remote Zone D and PIN 500001.'
+  }, getDefaultPincodeRules(), { strict: true });
+
+  db.prepare('UPDATE products SET pincode_restriction_mode = ?, pincode_rules_json = ? WHERE id = 2')
+    .run(blockCodRule.mode, JSON.stringify(blockCodRule));
+
+  const prepaidZoneD = calculateCartPricing([{ variantId: 5, quantity: 1 }], '', 'ONLINE_UPI', 'Assam', '781001');
+  assert.strictEqual(prepaidZoneD.allItemsServiceable, true, 'Prepaid order must be serviceable when scope is BLOCK_COD_ONLY');
+  assert.strictEqual(prepaidZoneD.codRestrictedItems.length, 1);
+  assert.strictEqual(prepaidZoneD.codAllowed, false);
+
+  assert.throws(() => {
+    createOrder({
+      customerName: 'COD Zone D Buyer',
+      customerEmail: 'buyer@example.com',
+      customerPhone: '+91 98111 22333',
+      shippingLine1: 'GS Road',
+      shippingCity: 'Guwahati',
+      shippingState: 'Assam',
+      shippingPincode: '781001',
+      items: [{ variantId: 5, quantity: 1 }],
+      paymentMethod: 'COD'
+    });
+  }, /Cash on Delivery at PIN code 781001 is unavailable for/);
+
+  // Reset Product #2 back to unrestricted baseline
+  db.prepare("UPDATE products SET pincode_restriction_mode = 'NONE', pincode_rules_json = '{}' WHERE id = 2").run();
+
   // Clean up test order so showcase export stays canonical
   db.prepare('DELETE FROM orders WHERE order_number = ?').run(created.orderNumber);
   db.prepare("DELETE FROM orders WHERE customer_email = 'buyer@example.com'").run();
 
-  console.log('✓ [Suite 3/7: verify_checkout_math] Verified Rust WASM 4-Zone + 500g Weight-Slab Shipping, Free-Delivery Modes, CGST/SGST vs IGST, COD OTP & Razorpay HMAC');
+  console.log('✓ [Suite 3/7: verify_checkout_math] Verified Rust WASM 4-Zone + 500g Weight-Slab Shipping, Free-Delivery Modes, Per-Product PIN Restrictions, CGST/SGST vs IGST, COD OTP & Razorpay HMAC');
 }
 
 if (require.main === module) {

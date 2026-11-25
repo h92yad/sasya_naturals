@@ -19,7 +19,10 @@ const {
   hashPassword,
   getDefaultNutritionForProduct,
   normalizeNutritionPayload,
-  parseProductNutrition
+  parseProductNutrition,
+  getDefaultPincodeRules,
+  normalizePincodeRulesPayload,
+  parseProductPincodeRules
 } = require('./src/db/database');
 const {
   calculateCartPricing,
@@ -817,7 +820,10 @@ function createServerHandler() {
 
       if (pathname === '/api/checkout/pincode/check' && req.method === 'POST') {
         const body = await readJsonBody(req);
-        const pinRes = validatePincodeServiceability(body.pincode, body.paymentMethod || 'ONLINE_UPI');
+        const pinRes = validatePincodeServiceability(body.pincode, body.paymentMethod || 'ONLINE_UPI', {
+          productId: body.productId ? Number(body.productId) : undefined,
+          throwOnProductBlock: body.throwOnProductBlock !== false
+        });
         return sendJson(res, 200, pinRes);
       }
 
@@ -1174,8 +1180,24 @@ function createServerHandler() {
         const shelfLifeMonths = Math.max(1, Math.min(36, Math.round(Number(body.shelfLifeMonths || 12))));
         const nutritionObj = normalizeNutritionPayload(body.nutrition || body, getDefaultNutritionForProduct(skuBase, catId));
 
+        let pincodeRules;
+        try {
+          const hasPinInput = Boolean(
+            body.pincodeRules ||
+            body.pincode_restriction_mode !== undefined ||
+            body.pincodeRestrictionMode !== undefined
+          );
+          pincodeRules = normalizePincodeRulesPayload(
+            (body.pincodeRules && typeof body.pincodeRules === 'object') ? body.pincodeRules : body,
+            getDefaultPincodeRules(),
+            { strict: hasPinInput }
+          );
+        } catch (pinErr) {
+          return sendJson(res, 400, { error: pinErr.message });
+        }
+
         const lintCheck = lintContentText(
-          `${rawName} ${rawShortDesc} ${ingredients} ${allergenInfo} ${fssaiNotes} ${nutritionObj.bioactive_label} ${nutritionObj.bioactive_value}`,
+          `${rawName} ${rawShortDesc} ${ingredients} ${allergenInfo} ${fssaiNotes} ${nutritionObj.bioactive_label} ${nutritionObj.bioactive_value} ${pincodeRules.reason || ''}`,
           'new_product'
         );
         if (!lintCheck.valid) {
@@ -1207,8 +1229,9 @@ function createServerHandler() {
             sku_base, slug, name, category_id, short_description, description,
             origin_region, harvest_batch, shelf_life_months, fssai_notes,
             ingredients, allergen_info, gst_percent, hsn_code, image_url, image_caption,
-            nutrition_json, is_featured, is_new_arrival, is_bestseller, is_active
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, 0, 1)
+            nutrition_json, pincode_restriction_mode, pincode_rules_json,
+            is_featured, is_new_arrival, is_bestseller, is_active
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1, 0, 1)
         `).run(
           skuBase,
           slug,
@@ -1226,7 +1249,9 @@ function createServerHandler() {
           hsnCode,
           imageUrl,
           rawName,
-          JSON.stringify(nutritionObj)
+          JSON.stringify(nutritionObj),
+          pincodeRules.mode,
+          JSON.stringify(pincodeRules)
         );
 
         const newProdId = Number(prodRes.lastInsertRowid);
@@ -1252,10 +1277,12 @@ function createServerHandler() {
           action: 'PRODUCT_CREATED',
           entityType: 'PRODUCT',
           entityId: skuBase,
-          details: { name: rawName, slug, imageUrl, hsnCode, nutrition: nutritionObj }
+          details: { name: rawName, slug, imageUrl, hsnCode, nutrition: nutritionObj, pincodeRules }
         });
 
-        return sendJson(res, 201, { product: { id: newProdId, name: rawName, slug, imageUrl, nutrition: nutritionObj } });
+        return sendJson(res, 201, {
+          product: { id: newProdId, name: rawName, slug, imageUrl, nutrition: nutritionObj, pincodeRules }
+        });
       }
 
       if (pathname === '/api/admin/products/update' && req.method === 'POST') {
@@ -1298,6 +1325,22 @@ function createServerHandler() {
         const rawNutritionInput = (body.nutrition && typeof body.nutrition === 'object') ? body.nutrition : body;
         const nextNutrition = normalizeNutritionPayload(rawNutritionInput, currentNutrition);
 
+        const currentPincodeRules = parseProductPincodeRules(prod);
+        const hasPincodeInput = Boolean(
+          body.pincodeRules ||
+          body.pincode_restriction_mode !== undefined ||
+          body.pincodeRestrictionMode !== undefined
+        );
+        let nextPincodeRules = currentPincodeRules;
+        if (hasPincodeInput) {
+          try {
+            const rawPinInput = (body.pincodeRules && typeof body.pincodeRules === 'object') ? body.pincodeRules : body;
+            nextPincodeRules = normalizePincodeRulesPayload(rawPinInput, currentPincodeRules, { strict: true });
+          } catch (pinErr) {
+            return sendJson(res, 400, { error: pinErr.message });
+          }
+        }
+
         let nextCatId = prod.category_id;
         if (body.categoryId !== undefined && body.categoryId !== '') {
           const candidateCat = db.prepare('SELECT id FROM categories WHERE id = ?').get(Number(body.categoryId));
@@ -1308,7 +1351,7 @@ function createServerHandler() {
         }
 
         const lintCheck = lintContentText(
-          `${nextName} ${nextShortDesc} ${nextDesc} ${nextIngredients} ${nextAllergen} ${nextFssai} ${nextNutrition.bioactive_label} ${nextNutrition.bioactive_value}`,
+          `${nextName} ${nextShortDesc} ${nextDesc} ${nextIngredients} ${nextAllergen} ${nextFssai} ${nextNutrition.bioactive_label} ${nextNutrition.bioactive_value} ${nextPincodeRules.reason || ''}`,
           'edit_product'
         );
         if (!lintCheck.valid) {
@@ -1424,6 +1467,8 @@ function createServerHandler() {
               allergen_info = ?,
               fssai_notes = ?,
               nutrition_json = ?,
+              pincode_restriction_mode = ?,
+              pincode_rules_json = ?,
               gst_percent = ?,
               hsn_code = ?,
               is_featured = ?,
@@ -1443,6 +1488,8 @@ function createServerHandler() {
           nextAllergen,
           nextFssai,
           JSON.stringify(nextNutrition),
+          nextPincodeRules.mode,
+          JSON.stringify(nextPincodeRules),
           nextGst,
           nextHsn,
           nextFeatured,
@@ -1458,12 +1505,13 @@ function createServerHandler() {
         }
 
         const updatedVariants = db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY weight_grams ASC').all(productId);
+        const pincodeRulesChanged = JSON.stringify(currentPincodeRules) !== JSON.stringify(nextPincodeRules);
 
         recordAuditLog({
           actorId: adminUser.id,
           actorEmail: adminUser.email,
           actorRole: adminUser.role,
-          action: 'PRODUCT_UPDATED',
+          action: pincodeRulesChanged && hasPincodeInput && !body.name ? 'PRODUCT_PINCODE_RULES_UPDATED' : 'PRODUCT_UPDATED',
           entityType: 'PRODUCT',
           entityId: prod.sku_base,
           details: {
@@ -1477,6 +1525,8 @@ function createServerHandler() {
             isFeatured: nextFeatured,
             isBestseller: nextBestseller,
             nutrition: nextNutrition,
+            pincodeRules: nextPincodeRules,
+            pincodeRulesChanged,
             variantPricesUpdated: explicitVariantUpdates.map(vu => ({
               sku: vu.sku,
               packLabel: vu.packLabel,
@@ -1498,6 +1548,7 @@ function createServerHandler() {
           allergenInfo: nextAllergen,
           fssaiNotes: nextFssai,
           nutrition: nextNutrition,
+          pincodeRules: nextPincodeRules,
           variants: updatedVariants,
           isActive: nextActive
         });

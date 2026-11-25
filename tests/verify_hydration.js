@@ -48,13 +48,16 @@ function runVerifyHydration() {
   assert(pdpHtml.includes('data-pdp-spec-tab="nutrition"'), 'PDP must render the Nutritional Value (Per 100 g) tab');
   assert(pdpHtml.includes('Per 100 g Edible Portion'), 'PDP must SSR-render the FSSAI Per-100g nutrition table in DOM');
   assert(pdpHtml.includes('class="sn-pack-pill-save"'), 'PDP pack pills must render per-weight Save X% badges');
+  assert(pdpHtml.includes('data-product-pincode-rules='), 'PDP must embed data-product-pincode-rules on product container and PIN input');
 
   const adminHtml = pages.find(p => p.name === 'Admin Portal').html;
   assert(adminHtml.includes('data-prod-modal-tab="pricing"'), 'Admin Product Edit Modal must include isolated Pack-Weight Pricing & Discounts tab');
   assert(adminHtml.includes('data-prod-modal-tab="nutrition"'), 'Admin Product Edit Modal must include isolated FSSAI Nutrition & Labelling tab');
+  assert(adminHtml.includes('data-prod-modal-tab="pincode"'), 'Admin Product Edit Modal must include isolated Delivery PIN & Zone Rules tab');
+  assert(adminHtml.includes('id="sn-edit-pin-mode"') && adminHtml.includes('id="sn-edit-pin-test-btn"'), 'Admin Product Edit Modal must render PIN restriction mode selector and live PIN rule simulator');
   assert(adminHtml.includes('data-var-disc-input="500"') && adminHtml.includes('data-var-disc-input="1000"'), 'Admin Product Edit Modal must render per-weight discount inputs for 100g, 250g, 500g, and 1kg');
 
-  console.log(`✓ [Suite 1/7: verify_hydration] Passed 7/7 SSR routes with data-ssr-rendered="true", PDP Nutrition Tab, Per-Weight Discount Matrix & APP_VERSION=${APP_VERSION}`);
+  console.log(`✓ [Suite 1/7: verify_hydration] Passed 7/7 SSR routes with data-ssr-rendered="true", PDP Nutrition Tab, Per-Weight Discount Matrix, Per-Product PIN Rules & APP_VERSION=${APP_VERSION}`);
 }
 
 if (require.main === module) {

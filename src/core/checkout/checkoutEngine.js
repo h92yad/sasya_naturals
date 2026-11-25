@@ -12,6 +12,7 @@ const {
 } = require('../../config/appConfig');
 const { getVaultSecret } = require('../auth/credentialVault');
 const {
+  evaluateProductPincodeServiceability,
   validatePincodeServiceability,
   verifyCodOtp,
   isPhoneCodVerified
@@ -305,7 +306,9 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
       p.gst_percent,
       p.hsn_code,
       p.image_url,
-      p.is_active AS product_active
+      p.is_active AS product_active,
+      p.pincode_restriction_mode,
+      p.pincode_rules_json
     FROM product_variants v
     JOIN products p ON p.id = v.product_id
     WHERE v.id = ?
@@ -316,6 +319,8 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
   let rawGstPaise = 0;
   let totalWeightGrams = 0;
   const lineItems = [];
+  const unserviceableItems = [];
+  const codRestrictedItems = [];
 
   for (const [variantId, quantity] of consolidatedMap.entries()) {
     const row = variantStmt.get(variantId);
@@ -333,12 +338,14 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
     const lineMrpPaise = wasmLineTotalPaise(row.mrp_paise, quantity);
     const lineGstPaise = wasmInclusiveGstPaise(lineTotalPaise, row.gst_percent);
 
+    const pinEval = evaluateProductPincodeServiceability(row, shippingPincode, paymentMethod);
+
     subtotalPaise += lineTotalPaise;
     mrpTotalPaise += lineMrpPaise;
     rawGstPaise += lineGstPaise;
     totalWeightGrams += row.weight_grams * quantity;
 
-    lineItems.push({
+    const lineItemObj = {
       productId: row.product_id,
       variantId: row.variant_id,
       productName: row.product_name,
@@ -355,8 +362,35 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
       stockQty: row.stock_qty,
       lowStockThreshold: row.low_stock_threshold || 10,
       lineTotalPaise,
-      lineGstPaise
-    });
+      lineGstPaise,
+      pincodeServiceable: pinEval.serviceable,
+      deliverablePrepaid: pinEval.deliverablePrepaid,
+      codAllowedForProduct: pinEval.codAllowedForProduct,
+      pincodeRestricted: pinEval.restricted,
+      pincodeRestrictionMode: pinEval.mode,
+      pincodeRestrictionScope: pinEval.scope,
+      pincodeRestrictionReason: pinEval.reason
+    };
+
+    lineItems.push(lineItemObj);
+
+    if (!pinEval.deliverablePrepaid) {
+      unserviceableItems.push({
+        productId: row.product_id,
+        variantId: row.variant_id,
+        productName: row.product_name,
+        packLabel: row.pack_label,
+        reason: pinEval.reason
+      });
+    } else if (!pinEval.codAllowedForProduct) {
+      codRestrictedItems.push({
+        productId: row.product_id,
+        variantId: row.variant_id,
+        productName: row.product_name,
+        packLabel: row.pack_label,
+        reason: pinEval.reason
+      });
+    }
   }
 
   let discountPaise = 0;
@@ -428,15 +462,20 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
   const freeShippingApplied = freightPaise === 0 && rawZoneFreightPaise > 0;
 
   const totalPaise = wasmOrderTotalPaise(subtotalPaise, discountPaise, shippingPaise);
-  const codAllowed = totalPaise <= PAYMENT_CONFIG.maxCodOrderPaise;
+  const codAllowedByCap = totalPaise <= PAYMENT_CONFIG.maxCodOrderPaise;
 
-  if (paymentMethod === 'COD' && !codAllowed) {
+  if (paymentMethod === 'COD' && !codAllowedByCap) {
     throw new Error(`Cash on Delivery is available for orders up to Rs. ${(PAYMENT_CONFIG.maxCodOrderPaise / 100).toFixed(0)}.`);
   }
+
+  const codAllowed = codAllowedByCap && codRestrictedItems.length === 0;
 
   return {
     engine: 'rust-wasm-v1.2-zone-slab',
     lineItems,
+    unserviceableItems,
+    codRestrictedItems,
+    allItemsServiceable: unserviceableItems.length === 0 && (paymentMethod !== 'COD' || codRestrictedItems.length === 0),
     mrpTotalPaise,
     subtotalPaise,
     discountPaise,
@@ -468,6 +507,24 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
       ? 0
       : Math.max(0, shipPolicy.freeThresholdPaise - discountedSubtotalPaise)
   };
+}
+
+function assertCartPincodeServiceability(pricing, shippingPincode, paymentMethod = 'ONLINE_UPI') {
+  if (!pricing) return;
+  if (Array.isArray(pricing.unserviceableItems) && pricing.unserviceableItems.length > 0) {
+    const details = pricing.unserviceableItems
+      .map(it => `"${it.productName}" (${it.reason})`)
+      .join('; ');
+    throw new Error(`Delivery to PIN code ${shippingPincode} is restricted for: ${details}`);
+  }
+  if (paymentMethod === 'COD' && Array.isArray(pricing.codRestrictedItems) && pricing.codRestrictedItems.length > 0) {
+    const details = pricing.codRestrictedItems
+      .map(it => `"${it.productName}" (${it.reason})`)
+      .join('; ');
+    throw new Error(
+      `Cash on Delivery at PIN code ${shippingPincode} is unavailable for: ${details}. Please choose UPI, Card, or Net Banking.`
+    );
+  }
 }
 
 function allocateNextOrderNumber(db) {
@@ -534,6 +591,7 @@ function createOrder({
   }
 
   const pricing = calculateCartPricing(items, couponCode, paymentMethod, cleanState, cleanPincode);
+  assertCartPincodeServiceability(pricing, cleanPincode, paymentMethod);
   const db = getDb();
 
   const orderNumber = allocateNextOrderNumber(db);
@@ -751,6 +809,7 @@ function createAdminOrder({
   }
 
   const pricing = calculateCartPricing(items, couponCode, paymentMethod, cleanState, cleanPincode);
+  assertCartPincodeServiceability(pricing, cleanPincode, paymentMethod);
   const db = getDb();
 
   let resolvedUserId = userId ? Number(userId) : null;
@@ -1423,6 +1482,25 @@ function updateOrderDeliveryAddress({
     throw new Error('Recipient name, phone, street address, city, state, and a valid 6-digit Indian PIN code are required.');
   }
 
+  validatePincodeServiceability(nextPin, order.payment_method);
+
+  const ordItems = db.prepare(`
+    SELECT oi.product_id, oi.product_name, p.pincode_restriction_mode, p.pincode_rules_json
+    FROM order_items oi
+    JOIN products p ON p.id = oi.product_id
+    WHERE oi.order_id = ?
+  `).all(order.id);
+
+  for (const it of ordItems) {
+    const pinEval = evaluateProductPincodeServiceability(it, nextPin, order.payment_method);
+    if (!pinEval.deliverablePrepaid) {
+      throw new Error(`Delivery to PIN code ${nextPin} is restricted for "${it.product_name}" (${pinEval.reason})`);
+    }
+    if (!pinEval.codAllowedForProduct && order.payment_method === 'COD') {
+      throw new Error(`Cash on Delivery at PIN code ${nextPin} is unavailable for "${it.product_name}" (${pinEval.reason})`);
+    }
+  }
+
   const gstSplit = computeStateGstSplit(order.gst_paise || 0, nextState, nextPin);
 
   db.prepare(`
@@ -1496,6 +1574,7 @@ module.exports = {
   verifyRazorpaySignature,
   computeStateGstSplit,
   calculateCartPricing,
+  assertCartPincodeServiceability,
   createOrder,
   createAdminOrder,
   verifyAndCaptureOnlinePayment,

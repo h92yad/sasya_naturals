@@ -276,6 +276,8 @@ function initSchema(db) {
     "ALTER TABLE products ADD COLUMN hsn_code TEXT NOT NULL DEFAULT '080290'",
     "ALTER TABLE products ADD COLUMN gallery_json TEXT NOT NULL DEFAULT '[]'",
     "ALTER TABLE products ADD COLUMN nutrition_json TEXT NOT NULL DEFAULT '{}'",
+    "ALTER TABLE products ADD COLUMN pincode_restriction_mode TEXT NOT NULL DEFAULT 'NONE'",
+    "ALTER TABLE products ADD COLUMN pincode_rules_json TEXT NOT NULL DEFAULT '{}'",
     "ALTER TABLE orders ADD COLUMN tax_supply_type TEXT NOT NULL DEFAULT 'CGST_SGST'",
     "ALTER TABLE orders ADD COLUMN cgst_paise INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE orders ADD COLUMN sgst_paise INTEGER NOT NULL DEFAULT 0",
@@ -1740,11 +1742,255 @@ function seedProductNutritionProfiles(db) {
   }
 }
 
+const VALID_PINCODE_MODES = ['NONE', 'ALLOW_ONLY', 'BLOCK_LIST'];
+const VALID_PINCODE_SCOPES = ['BLOCK_DELIVERY', 'BLOCK_COD_ONLY'];
+const VALID_SHIPPING_ZONES = ['ZONE_A', 'ZONE_B', 'ZONE_C', 'ZONE_D'];
+
+function getDefaultPincodeRules() {
+  return {
+    mode: 'NONE',
+    scope: 'BLOCK_DELIVERY',
+    zones: [],
+    pincodes: [],
+    prefixes: [],
+    ranges: [],
+    rawTokens: '',
+    reason: ''
+  };
+}
+
+function normalizePincodeRulesPayload(raw = {}, fallback = getDefaultPincodeRules(), { strict = false } = {}) {
+  const cleanDash = (str) => String(str || '').replace(/[—–]/g, '-').trim();
+  const rawMode = String(
+    raw.mode ?? raw.pincode_restriction_mode ?? raw.pincodeRestrictionMode ?? fallback.mode ?? 'NONE'
+  ).trim().toUpperCase();
+
+  if (strict && !VALID_PINCODE_MODES.includes(rawMode)) {
+    throw new Error(`Invalid PIN code restriction mode: "${rawMode}". Expected NONE, ALLOW_ONLY, or BLOCK_LIST.`);
+  }
+  const mode = VALID_PINCODE_MODES.includes(rawMode) ? rawMode : 'NONE';
+
+  if (mode === 'NONE') {
+    return getDefaultPincodeRules();
+  }
+
+  const rawScope = String(
+    raw.scope ?? raw.pincode_restriction_scope ?? raw.pincodeRestrictionScope ?? fallback.scope ?? 'BLOCK_DELIVERY'
+  ).trim().toUpperCase();
+  if (strict && !VALID_PINCODE_SCOPES.includes(rawScope)) {
+    throw new Error(`Invalid PIN code restriction scope: "${rawScope}". Expected BLOCK_DELIVERY or BLOCK_COD_ONLY.`);
+  }
+  const scope = VALID_PINCODE_SCOPES.includes(rawScope) ? rawScope : 'BLOCK_DELIVERY';
+
+  let candidateZones = [];
+  if (Array.isArray(raw.zones)) {
+    candidateZones = raw.zones;
+  } else if (typeof raw.zones === 'string') {
+    candidateZones = raw.zones.split(/[\s,;]+/).filter(Boolean);
+  } else if (
+    raw.pin_zone_ZONE_A !== undefined ||
+    raw.pin_zone_ZONE_B !== undefined ||
+    raw.pin_zone_ZONE_C !== undefined ||
+    raw.pin_zone_ZONE_D !== undefined
+  ) {
+    for (const zCode of VALID_SHIPPING_ZONES) {
+      const v = raw[`pin_zone_${zCode}`];
+      if (v && v !== '0' && v !== 'false') {
+        candidateZones.push(zCode);
+      }
+    }
+  } else if (Array.isArray(fallback.zones)) {
+    candidateZones = fallback.zones;
+  }
+
+  const zones = Array.from(
+    new Set(
+      candidateZones
+        .map(z => String(z || '').trim().toUpperCase())
+        .filter(z => VALID_SHIPPING_ZONES.includes(z))
+    )
+  );
+
+  const pincodeSet = new Set();
+  const prefixSet = new Set();
+  const ranges = [];
+  const rangeKeySet = new Set();
+
+  const processToken = (rawTok) => {
+    const tok = cleanDash(rawTok).replace(/\s+/g, '');
+    if (!tok) return;
+    if (/^[1-8]\d{5}$/.test(tok)) {
+      pincodeSet.add(tok);
+      return;
+    }
+    const rangeMatch = tok.match(/^([1-8]\d{5})-([1-8]\d{5})$/);
+    if (rangeMatch) {
+      const fromPin = rangeMatch[1];
+      const toPin = rangeMatch[2];
+      if (Number(fromPin) > Number(toPin)) {
+        if (strict) {
+          throw new Error(`Invalid PIN code range "${tok}": start PIN (${fromPin}) must be <= end PIN (${toPin}).`);
+        }
+        return;
+      }
+      const rKey = `${fromPin}-${toPin}`;
+      if (!rangeKeySet.has(rKey)) {
+        rangeKeySet.add(rKey);
+        ranges.push({ from: fromPin, to: toPin });
+      }
+      return;
+    }
+    const prefixMatch = tok.match(/^([1-8]\d{1,4})(?:\*+|x+|X+)?$/);
+    if (prefixMatch) {
+      prefixSet.add(prefixMatch[1]);
+      return;
+    }
+    if (strict) {
+      throw new Error(
+        `Invalid PIN code token "${rawTok}". Use 6-digit Indian PINs (560038), 2-5 digit prefixes (560 or 560*), or 6-digit ranges (560001-560099) starting with 1-8.`
+      );
+    }
+  };
+
+  if (raw.rawTokens !== undefined || raw.pincodeTokens !== undefined) {
+    const tokenStr = cleanDash(raw.rawTokens ?? raw.pincodeTokens ?? '');
+    const parts = tokenStr.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean);
+    for (const part of parts) {
+      // Also split whitespace-separated tokens if not a range with spaces around hyphen
+      const normalizedPart = part.replace(/\s*-\s*/g, '-');
+      for (const sub of normalizedPart.split(/\s+/).filter(Boolean)) {
+        processToken(sub);
+      }
+    }
+  } else if (Array.isArray(raw.pincodes) || Array.isArray(raw.prefixes) || Array.isArray(raw.ranges)) {
+    for (const p of (raw.pincodes || [])) processToken(p);
+    for (const pr of (raw.prefixes || [])) processToken(pr);
+    for (const r of (raw.ranges || [])) {
+      if (r && typeof r === 'object' && r.from && r.to) {
+        processToken(`${r.from}-${r.to}`);
+      } else if (typeof r === 'string') {
+        processToken(r);
+      }
+    }
+  } else {
+    for (const p of (fallback.pincodes || [])) processToken(p);
+    for (const pr of (fallback.prefixes || [])) processToken(pr);
+    for (const r of (fallback.ranges || [])) {
+      if (r && typeof r === 'object' && r.from && r.to) {
+        processToken(`${r.from}-${r.to}`);
+      }
+    }
+  }
+
+  const pincodes = Array.from(pincodeSet);
+  const prefixes = Array.from(prefixSet);
+
+  if (strict && zones.length === 0 && pincodes.length === 0 && prefixes.length === 0 && ranges.length === 0) {
+    throw new Error(
+      'Please select at least one Shipping Zone or enter at least one PIN code, prefix, or range when enabling a product delivery restriction.'
+    );
+  }
+
+  const canonicalTokens = [
+    ...pincodes,
+    ...prefixes.map(pr => `${pr}*`),
+    ...ranges.map(r => `${r.from}-${r.to}`)
+  ];
+
+  const defaultReason = mode === 'ALLOW_ONLY'
+    ? (scope === 'BLOCK_COD_ONLY'
+      ? 'Cash on Delivery is available only in selected delivery zones/PIN codes for this product.'
+      : 'This product is deliverable only to selected regional PIN codes and zones.')
+    : (scope === 'BLOCK_COD_ONLY'
+      ? 'Cash on Delivery is disabled for this product at the selected PIN code.'
+      : 'This product is not deliverable to the selected PIN code.');
+
+  const rawReason = cleanDash(raw.reason ?? raw.pincodeReason ?? fallback.reason ?? '');
+  const reason = rawReason || defaultReason;
+
+  return {
+    mode,
+    scope,
+    zones,
+    pincodes,
+    prefixes,
+    ranges,
+    rawTokens: canonicalTokens.join(', '),
+    reason
+  };
+}
+
+function parseProductPincodeRules(product = {}) {
+  const def = getDefaultPincodeRules();
+  if (!product) return def;
+  const modeHint = product.pincode_restriction_mode || 'NONE';
+  if ((!product.pincode_rules_json || product.pincode_rules_json === '{}') && modeHint === 'NONE') {
+    return def;
+  }
+  try {
+    const parsed = typeof product.pincode_rules_json === 'string'
+      ? JSON.parse(product.pincode_rules_json || '{}')
+      : (product.pincode_rules_json || {});
+    return normalizePincodeRulesPayload(
+      { ...parsed, mode: parsed.mode || modeHint },
+      def,
+      { strict: false }
+    );
+  } catch {
+    return def;
+  }
+}
+
+function summarizePincodeRules(rulesInput = {}) {
+  const rules = rulesInput && rulesInput.mode ? rulesInput : parseProductPincodeRules(rulesInput);
+  if (!rules || rules.mode === 'NONE') {
+    return {
+      hasRestriction: false,
+      shortBadge: 'All India PINs',
+      detailText: 'Deliverable across all serviceable Indian PIN codes'
+    };
+  }
+  const zoneShortMap = {
+    ZONE_A: 'Zone A (BLR)',
+    ZONE_B: 'Zone B (South)',
+    ZONE_C: 'Zone C (National)',
+    ZONE_D: 'Zone D (Remote)'
+  };
+  const targets = [
+    ...(rules.zones || []).map(z => zoneShortMap[z] || z),
+    ...(rules.pincodes || []),
+    ...(rules.prefixes || []).map(p => `${p}*`),
+    ...(rules.ranges || []).map(r => `${r.from}-${r.to}`)
+  ];
+  const targetPreview = targets.length <= 2
+    ? targets.join(', ')
+    : `${targets.slice(0, 2).join(', ')} +${targets.length - 2} more`;
+
+  const actionPrefix = rules.mode === 'ALLOW_ONLY'
+    ? (rules.scope === 'BLOCK_COD_ONLY' ? 'COD Only In' : 'Only')
+    : (rules.scope === 'BLOCK_COD_ONLY' ? 'No COD In' : 'Blocked');
+
+  return {
+    hasRestriction: true,
+    mode: rules.mode,
+    scope: rules.scope,
+    shortBadge: `📍 ${actionPrefix}: ${targetPreview || 'Custom PINs'}`,
+    detailText: rules.reason || `${actionPrefix}: ${targets.join(', ')}`
+  };
+}
+
 module.exports = {
   getDb,
   hashPassword,
   verifyPassword,
   getDefaultNutritionForProduct,
   normalizeNutritionPayload,
-  parseProductNutrition
+  parseProductNutrition,
+  VALID_PINCODE_MODES,
+  VALID_PINCODE_SCOPES,
+  VALID_SHIPPING_ZONES,
+  getDefaultPincodeRules,
+  normalizePincodeRulesPayload,
+  parseProductPincodeRules,
+  summarizePincodeRules
 };
