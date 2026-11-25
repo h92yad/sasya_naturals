@@ -17,6 +17,7 @@ const {
   verifyCodOtp,
   isPhoneCodVerified
 } = require('./codProtection');
+const { lintContentText } = require('../content/contentLinter');
 
 // Load compiled Rust WebAssembly Commerce Core (wasm_core.wasm)
 const wasmPath = path.join(__dirname, 'wasm_core.wasm');
@@ -268,10 +269,491 @@ function computeStateGstSplit(gstPaise, shippingState = 'Karnataka', shippingPin
   };
 }
 
+const VALID_COUPON_USAGE_TYPES = ['UNIVERSAL', 'ONCE_PER_CUSTOMER', 'SINGLE_USE_GLOBAL'];
+const VALID_COUPON_VISIBILITIES = ['PUBLIC_CHIP', 'SECRET_CODE'];
+
+/**
+ * Returns current Indian Standard Time (UTC+05:30) formatted as YYYY-MM-DDTHH:mm (16 chars).
+ */
+function getCurrentIstIsoMinute(nowDate = new Date()) {
+  const istMs = nowDate.getTime() + (5.5 * 60 * 60 * 1000);
+  return new Date(istMs).toISOString().slice(0, 16);
+}
+
+/**
+ * Normalizes an IST datetime-local string into YYYY-MM-DDTHH:mm (or empty string).
+ */
+function normalizeIstDateTimeInput(val, isEndOfDayFallback = false) {
+  const raw = String(val || '').trim();
+  if (!raw) return '';
+  const normalized = raw.replace(' ', 'T');
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return `${normalized}T${isEndOfDayFallback ? '23:59' : '00:00'}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z?$/.test(normalized)) {
+    return normalized.slice(0, 16);
+  }
+  throw new Error('Invalid IST date-time format. Use YYYY-MM-DDTHH:mm (for example 2026-11-25T09:00).');
+}
+
+/**
+ * Normalizes an Indian mobile phone number to its trailing 10 digits for per-customer coupon tracking.
+ */
+function normalizePhoneForCoupon(phone) {
+  const digits = String(phone || '').replace(/\D+/g, '');
+  return digits.length >= 10 ? digits.slice(-10) : digits;
+}
+
+/**
+ * Counts finalized, non-cancelled, non-refunded redemptions for a coupon code.
+ * Unpaid PENDING_PAYMENT / FAILED orders and Cancelled/Refunded orders never burn a coupon slot.
+ */
+function getCouponUsageStats(db, couponCode, { customerEmail = '', customerPhone = '' } = {}) {
+  const cleanCode = String(couponCode || '').trim().toUpperCase();
+  if (!cleanCode) return { totalUsed: 0, customerUsed: 0 };
+
+  const rows = db.prepare(`
+    SELECT customer_email, customer_phone
+    FROM orders
+    WHERE UPPER(coupon_code) = ?
+      AND fulfilment_status NOT IN ('Cancelled', 'Refunded')
+      AND payment_status IN ('PAID', 'COD_PENDING', 'COD_COLLECTED', 'PARTIALLY_REFUNDED')
+  `).all(cleanCode);
+
+  const totalUsed = rows.length;
+  const cleanEmail = String(customerEmail || '').trim().toLowerCase();
+  const cleanPhone10 = normalizePhoneForCoupon(customerPhone);
+  let customerUsed = 0;
+
+  if (cleanEmail || (cleanPhone10 && cleanPhone10.length >= 10)) {
+    for (const r of rows) {
+      const rowEmail = String(r.customer_email || '').trim().toLowerCase();
+      const rowPhone10 = normalizePhoneForCoupon(r.customer_phone);
+      const emailMatch = Boolean(cleanEmail && rowEmail && rowEmail === cleanEmail);
+      const phoneMatch = Boolean(cleanPhone10 && cleanPhone10.length >= 10 && rowPhone10 && rowPhone10 === cleanPhone10);
+      if (emailMatch || phoneMatch) {
+        customerUsed += 1;
+      }
+    }
+  }
+
+  return { totalUsed, customerUsed };
+}
+
+/**
+ * Evaluates a coupon row's live lifecycle status, IST schedule window, total usage cap, per-customer cap, and optional subtotal requirement.
+ */
+function evaluateCouponStatus(db, coupon, {
+  subtotalPaise = null,
+  customerEmail = '',
+  customerPhone = '',
+  nowIst = null
+} = {}) {
+  if (!coupon) {
+    return {
+      valid: false,
+      status: 'INVALID',
+      message: 'Coupon code is invalid.',
+      totalUsed: 0,
+      customerUsed: 0,
+      effectiveMaxTotalUses: 0,
+      effectiveMaxUsesPerCustomer: 0
+    };
+  }
+
+  const currentIst = nowIst || getCurrentIstIsoMinute();
+  const usageType = VALID_COUPON_USAGE_TYPES.includes(String(coupon.usage_type || '').toUpperCase())
+    ? String(coupon.usage_type).toUpperCase()
+    : 'UNIVERSAL';
+  const effectiveMaxTotalUses = usageType === 'SINGLE_USE_GLOBAL'
+    ? 1
+    : Math.max(0, Number(coupon.max_total_uses) || 0);
+  const effectiveMaxUsesPerCustomer = usageType === 'ONCE_PER_CUSTOMER'
+    ? Math.max(1, Number(coupon.max_uses_per_customer) || 1)
+    : Math.max(0, Number(coupon.max_uses_per_customer) || 0);
+
+  const { totalUsed, customerUsed } = getCouponUsageStats(db, coupon.code, {
+    customerEmail,
+    customerPhone
+  });
+
+  if (!Number(coupon.is_active)) {
+    return {
+      valid: false,
+      status: 'PAUSED',
+      message: `Coupon "${coupon.code}" is currently paused or inactive.`,
+      totalUsed,
+      customerUsed,
+      effectiveMaxTotalUses,
+      effectiveMaxUsesPerCustomer
+    };
+  }
+
+  const startsAtIst = String(coupon.starts_at_ist || '').trim();
+  if (startsAtIst && currentIst < startsAtIst) {
+    return {
+      valid: false,
+      status: 'SCHEDULED',
+      message: `Coupon "${coupon.code}" is scheduled to start on ${startsAtIst.replace('T', ' ')} IST.`,
+      totalUsed,
+      customerUsed,
+      effectiveMaxTotalUses,
+      effectiveMaxUsesPerCustomer
+    };
+  }
+
+  const expiresAtIst = String(coupon.expires_at_ist || '').trim();
+  if (expiresAtIst && currentIst > expiresAtIst) {
+    return {
+      valid: false,
+      status: 'EXPIRED',
+      message: `Coupon "${coupon.code}" expired on ${expiresAtIst.replace('T', ' ')} IST.`,
+      totalUsed,
+      customerUsed,
+      effectiveMaxTotalUses,
+      effectiveMaxUsesPerCustomer
+    };
+  }
+
+  if (effectiveMaxTotalUses > 0 && totalUsed >= effectiveMaxTotalUses) {
+    return {
+      valid: false,
+      status: 'LIMIT_REACHED',
+      message: `Coupon "${coupon.code}" has reached its maximum redemption limit (${effectiveMaxTotalUses}/${effectiveMaxTotalUses} used).`,
+      totalUsed,
+      customerUsed,
+      effectiveMaxTotalUses,
+      effectiveMaxUsesPerCustomer
+    };
+  }
+
+  if (effectiveMaxUsesPerCustomer > 0 && customerUsed >= effectiveMaxUsesPerCustomer) {
+    return {
+      valid: false,
+      status: 'CUSTOMER_LIMIT_REACHED',
+      message: `Coupon "${coupon.code}" has already been used on a previous order for this email or phone number (limit: ${effectiveMaxUsesPerCustomer} per customer).`,
+      totalUsed,
+      customerUsed,
+      effectiveMaxTotalUses,
+      effectiveMaxUsesPerCustomer
+    };
+  }
+
+  if (subtotalPaise !== null && subtotalPaise !== undefined && subtotalPaise < Number(coupon.min_order_paise || 0)) {
+    return {
+      valid: false,
+      status: 'MIN_SUBTOTAL_NOT_MET',
+      message: `Coupon "${coupon.code}" requires a minimum subtotal of Rs. ${(Number(coupon.min_order_paise) / 100).toFixed(0)}.`,
+      totalUsed,
+      customerUsed,
+      effectiveMaxTotalUses,
+      effectiveMaxUsesPerCustomer
+    };
+  }
+
+  return {
+    valid: true,
+    status: 'ACTIVE',
+    message: '',
+    totalUsed,
+    customerUsed,
+    effectiveMaxTotalUses,
+    effectiveMaxUsesPerCustomer
+  };
+}
+
+/**
+ * Lists all coupons enriched with live computed status, IST window evaluation, and finalized redemption counts.
+ */
+function listEnrichedCoupons(nowIst = null) {
+  const db = getDb();
+  const currentIst = nowIst || getCurrentIstIsoMinute();
+  const rows = db.prepare('SELECT * FROM coupons ORDER BY is_auto_apply DESC, is_active DESC, code ASC').all();
+  return rows.map(c => {
+    const evalRes = evaluateCouponStatus(db, c, { nowIst: currentIst });
+    return {
+      ...c,
+      usage_type: VALID_COUPON_USAGE_TYPES.includes(String(c.usage_type || '').toUpperCase())
+        ? String(c.usage_type).toUpperCase()
+        : 'UNIVERSAL',
+      visibility: VALID_COUPON_VISIBILITIES.includes(String(c.visibility || '').toUpperCase())
+        ? String(c.visibility).toUpperCase()
+        : 'PUBLIC_CHIP',
+      is_auto_apply: Number(c.is_auto_apply) ? 1 : 0,
+      is_active: Number(c.is_active) ? 1 : 0,
+      computed_status: evalRes.status,
+      status_message: evalRes.message,
+      total_used: evalRes.totalUsed,
+      effective_max_total_uses: evalRes.effectiveMaxTotalUses,
+      effective_max_uses_per_customer: evalRes.effectiveMaxUsesPerCustomer
+    };
+  });
+}
+
+/**
+ * Creates or updates a promotional coupon in the coupons table and records an immutable audit log entry.
+ */
+function upsertAdminCoupon(payload = {}, actor = {}) {
+  const db = getDb();
+  const cleanCode = String(payload.code || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9_-]/g, '');
+
+  if (cleanCode.length < 3 || cleanCode.length > 24) {
+    throw new Error('Coupon code must be 3 to 24 alphanumeric characters (A-Z, 0-9, hyphen, or underscore).');
+  }
+
+  const rawDesc = String(payload.description || '')
+    .replace(/[\u2013\u2014]/g, '-')
+    .trim();
+  if (!rawDesc) {
+    throw new Error('Coupon description is required.');
+  }
+  const lintCheck = lintContentText(`${cleanCode} ${rawDesc}`, `coupon_${cleanCode}`);
+  if (!lintCheck.valid) {
+    throw new Error(lintCheck.issues.join(' '));
+  }
+
+  const rawType = String(payload.discountType || payload.discount_type || 'PERCENT').trim().toUpperCase();
+  const discountType = (rawType === 'FLAT_PAISE' || rawType === 'FLAT_INR' || rawType === 'FLAT')
+    ? 'FLAT_PAISE'
+    : (rawType === 'PERCENT' ? 'PERCENT' : '');
+  if (!discountType) {
+    throw new Error('Invalid discountType. Must be PERCENT or FLAT_PAISE.');
+  }
+
+  let discountValue = 0;
+  if (discountType === 'PERCENT') {
+    const rawPct = payload.discountValueInr !== undefined ? payload.discountValueInr : (payload.discountValue ?? payload.discount_value);
+    discountValue = Math.round(Number(rawPct));
+    if (!Number.isFinite(discountValue) || discountValue < 1 || discountValue > 90) {
+      throw new Error('Percentage discount value must be between 1% and 90%.');
+    }
+  } else {
+    if (payload.discountValuePaise !== undefined) {
+      discountValue = Math.round(Number(payload.discountValuePaise));
+    } else if (payload.discountValueInr !== undefined) {
+      discountValue = Math.round(Number(payload.discountValueInr) * 100);
+    } else {
+      const rawVal = Number(payload.discountValue ?? payload.discount_value);
+      discountValue = rawType === 'FLAT_INR' || rawType === 'FLAT'
+        ? Math.round(rawVal * 100)
+        : Math.round(rawVal);
+    }
+    if (!Number.isFinite(discountValue) || discountValue < 100 || discountValue > 500000) {
+      throw new Error('Flat discount amount must be between Rs. 1 and Rs. 5,000.');
+    }
+  }
+
+  const minOrderPaise = payload.minOrderInr !== undefined
+    ? Math.max(0, Math.round(Number(payload.minOrderInr) * 100))
+    : Math.max(0, Math.round(Number(payload.minOrderPaise ?? payload.min_order_paise ?? 0)));
+  if (!Number.isFinite(minOrderPaise) || minOrderPaise < 0) {
+    throw new Error('Minimum order subtotal must be a non-negative amount.');
+  }
+
+  let maxDiscountPaise = payload.maxDiscountInr !== undefined
+    ? Math.max(0, Math.round(Number(payload.maxDiscountInr) * 100))
+    : Math.max(0, Math.round(Number(payload.maxDiscountPaise ?? payload.max_discount_paise ?? 0)));
+  if (!Number.isFinite(maxDiscountPaise) || maxDiscountPaise < 0) {
+    throw new Error('Maximum discount cap must be a non-negative amount.');
+  }
+  if (discountType === 'FLAT_PAISE') {
+    maxDiscountPaise = discountValue;
+  } else if (maxDiscountPaise === 0) {
+    maxDiscountPaise = 500000; // Default Rs. 5,000 cap when 0 / uncapped is entered for PERCENT
+  }
+
+  const rawUsageType = String(payload.usageType || payload.usage_type || 'UNIVERSAL').trim().toUpperCase();
+  if (!VALID_COUPON_USAGE_TYPES.includes(rawUsageType)) {
+    throw new Error(`Invalid usageType "${rawUsageType}". Must be UNIVERSAL, ONCE_PER_CUSTOMER, or SINGLE_USE_GLOBAL.`);
+  }
+
+  let maxTotalUses = Math.max(0, Math.round(Number(payload.maxTotalUses ?? payload.max_total_uses ?? 0) || 0));
+  let maxUsesPerCustomer = Math.max(0, Math.round(Number(payload.maxUsesPerCustomer ?? payload.max_uses_per_customer ?? 0) || 0));
+  if (rawUsageType === 'SINGLE_USE_GLOBAL') {
+    maxTotalUses = 1;
+    maxUsesPerCustomer = 1;
+  } else if (rawUsageType === 'ONCE_PER_CUSTOMER') {
+    maxUsesPerCustomer = Math.max(1, maxUsesPerCustomer || 1);
+  }
+
+  const startsAtIst = normalizeIstDateTimeInput(payload.startsAtIst ?? payload.starts_at_ist ?? '', false);
+  const expiresAtIst = normalizeIstDateTimeInput(payload.expiresAtIst ?? payload.expires_at_ist ?? '', true);
+  if (startsAtIst && expiresAtIst && startsAtIst >= expiresAtIst) {
+    throw new Error(`Coupon expiry time (${expiresAtIst} IST) must be after start time (${startsAtIst} IST).`);
+  }
+
+  const rawVisibility = String(payload.visibility || 'PUBLIC_CHIP').trim().toUpperCase();
+  const visibility = VALID_COUPON_VISIBILITIES.includes(rawVisibility) ? rawVisibility : 'PUBLIC_CHIP';
+  const isAutoApply = (payload.isAutoApply === true || payload.isAutoApply === 1 || payload.isAutoApply === '1' || payload.is_auto_apply === 1 || payload.is_auto_apply === true) ? 1 : 0;
+  const isActive = (payload.isActive === undefined && payload.is_active === undefined)
+    ? 1
+    : ((payload.isActive === true || payload.isActive === 1 || payload.isActive === '1' || payload.is_active === 1 || payload.is_active === true) ? 1 : 0);
+
+  const existing = db.prepare('SELECT code FROM coupons WHERE code = ?').get(cleanCode);
+
+  db.exec('BEGIN IMMEDIATE TRANSACTION;');
+  try {
+    if (isAutoApply === 1) {
+      db.prepare('UPDATE coupons SET is_auto_apply = 0 WHERE code != ?').run(cleanCode);
+    }
+
+    if (existing) {
+      db.prepare(`
+        UPDATE coupons
+        SET description = ?,
+            discount_type = ?,
+            discount_value = ?,
+            min_order_paise = ?,
+            max_discount_paise = ?,
+            usage_type = ?,
+            max_total_uses = ?,
+            max_uses_per_customer = ?,
+            starts_at_ist = ?,
+            expires_at_ist = ?,
+            visibility = ?,
+            is_auto_apply = ?,
+            is_active = ?,
+            updated_at = datetime('now')
+        WHERE code = ?
+      `).run(
+        rawDesc,
+        discountType,
+        discountValue,
+        minOrderPaise,
+        maxDiscountPaise,
+        rawUsageType,
+        maxTotalUses,
+        maxUsesPerCustomer,
+        startsAtIst,
+        expiresAtIst,
+        visibility,
+        isAutoApply,
+        isActive,
+        cleanCode
+      );
+    } else {
+      db.prepare(`
+        INSERT INTO coupons (
+          code, description, discount_type, discount_value, min_order_paise, max_discount_paise,
+          usage_type, max_total_uses, max_uses_per_customer, starts_at_ist, expires_at_ist,
+          visibility, is_auto_apply, is_active, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
+      `).run(
+        cleanCode,
+        rawDesc,
+        discountType,
+        discountValue,
+        minOrderPaise,
+        maxDiscountPaise,
+        rawUsageType,
+        maxTotalUses,
+        maxUsesPerCustomer,
+        startsAtIst,
+        expiresAtIst,
+        visibility,
+        isAutoApply,
+        isActive
+      );
+    }
+
+    db.prepare(`
+      INSERT INTO audit_logs (actor_id, actor_email, actor_role, action, entity_type, entity_id, details_json)
+      VALUES (?, ?, ?, ?, 'COUPON', ?, ?)
+    `).run(
+      actor.actorId || null,
+      actor.actorEmail || 'superadmin@sashyanaturals.com',
+      actor.actorRole || 'SUPER_ADMIN',
+      existing ? 'COUPON_UPDATED' : 'COUPON_CREATED',
+      cleanCode,
+      JSON.stringify({
+        code: cleanCode,
+        discountType,
+        discountValue,
+        minOrderPaise,
+        maxDiscountPaise,
+        usageType: rawUsageType,
+        maxTotalUses,
+        maxUsesPerCustomer,
+        startsAtIst,
+        expiresAtIst,
+        visibility,
+        isAutoApply,
+        isActive
+      })
+    );
+
+    db.exec('COMMIT;');
+  } catch (err) {
+    db.exec('ROLLBACK;');
+    throw err;
+  }
+
+  return listEnrichedCoupons().find(c => c.code === cleanCode);
+}
+
+/**
+ * Toggles a coupon's active/paused state (or auto-apply flag) and logs the change.
+ */
+function toggleAdminCouponActive(code, isActive, actor = {}) {
+  const db = getDb();
+  const cleanCode = String(code || '').trim().toUpperCase();
+  const existing = db.prepare('SELECT * FROM coupons WHERE code = ?').get(cleanCode);
+  if (!existing) {
+    throw new Error(`Coupon "${cleanCode}" not found.`);
+  }
+  const nextActive = (isActive === true || isActive === 1 || isActive === '1') ? 1 : 0;
+  db.prepare("UPDATE coupons SET is_active = ?, updated_at = datetime('now') WHERE code = ?").run(nextActive, cleanCode);
+  db.prepare(`
+    INSERT INTO audit_logs (actor_id, actor_email, actor_role, action, entity_type, entity_id, details_json)
+    VALUES (?, ?, ?, 'COUPON_STATUS_TOGGLED', 'COUPON', ?, ?)
+  `).run(
+    actor.actorId || null,
+    actor.actorEmail || 'superadmin@sashyanaturals.com',
+    actor.actorRole || 'SUPER_ADMIN',
+    cleanCode,
+    JSON.stringify({ code: cleanCode, isActive: nextActive })
+  );
+  return listEnrichedCoupons().find(c => c.code === cleanCode);
+}
+
+/**
+ * Deletes a coupon code from the coupons table and records an audit log entry.
+ */
+function deleteAdminCoupon(code, actor = {}) {
+  const db = getDb();
+  const cleanCode = String(code || '').trim().toUpperCase();
+  const existing = db.prepare('SELECT * FROM coupons WHERE code = ?').get(cleanCode);
+  if (!existing) {
+    throw new Error(`Coupon "${cleanCode}" not found.`);
+  }
+  db.prepare('DELETE FROM coupons WHERE code = ?').run(cleanCode);
+  db.prepare(`
+    INSERT INTO audit_logs (actor_id, actor_email, actor_role, action, entity_type, entity_id, details_json)
+    VALUES (?, ?, ?, 'COUPON_DELETED', 'COUPON', ?, ?)
+  `).run(
+    actor.actorId || null,
+    actor.actorEmail || 'superadmin@sashyanaturals.com',
+    actor.actorRole || 'SUPER_ADMIN',
+    cleanCode,
+    JSON.stringify({ code: cleanCode })
+  );
+  return { deleted: true, code: cleanCode };
+}
+
 /**
  * Deterministically calculates cart totals in integer paise via Rust WASM Core + database variant prices.
  */
-function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLINE_UPI', shippingState = 'Karnataka', shippingPincode = '560001') {
+function calculateCartPricing(
+  items = [],
+  couponCode = '',
+  paymentMethod = 'ONLINE_UPI',
+  shippingState = 'Karnataka',
+  shippingPincode = '560001',
+  customerContext = {}
+) {
   const db = getDb();
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error('Cart is empty. Please add at least one product pack.');
@@ -396,24 +878,35 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
   let discountPaise = 0;
   let appliedCoupon = '';
   let couponMessage = '';
+  let couponStatus = 'NONE';
   const cleanCode = String(couponCode || '').trim().toUpperCase();
 
   if (cleanCode) {
-    const coupon = db.prepare('SELECT * FROM coupons WHERE code = ? AND is_active = 1').get(cleanCode);
+    const coupon = db.prepare('SELECT * FROM coupons WHERE code = ?').get(cleanCode);
     if (!coupon) {
+      couponStatus = 'INVALID';
       couponMessage = `Coupon "${cleanCode}" is invalid or expired.`;
-    } else if (subtotalPaise < coupon.min_order_paise) {
-      couponMessage = `Coupon "${cleanCode}" requires a minimum subtotal of Rs. ${(coupon.min_order_paise / 100).toFixed(0)}.`;
     } else {
-      discountPaise = wasmCouponDiscountPaise(
+      const evalRes = evaluateCouponStatus(db, coupon, {
         subtotalPaise,
-        coupon.discount_type,
-        coupon.discount_value,
-        coupon.min_order_paise,
-        coupon.max_discount_paise
-      );
-      appliedCoupon = coupon.code;
-      couponMessage = `Coupon ${coupon.code} applied (-Rs. ${(discountPaise / 100).toFixed(2)}).`;
+        customerEmail: customerContext && customerContext.customerEmail ? customerContext.customerEmail : '',
+        customerPhone: customerContext && customerContext.customerPhone ? customerContext.customerPhone : '',
+        nowIst: customerContext && customerContext.nowIst ? customerContext.nowIst : null
+      });
+      couponStatus = evalRes.status;
+      if (!evalRes.valid) {
+        couponMessage = evalRes.message;
+      } else {
+        discountPaise = wasmCouponDiscountPaise(
+          subtotalPaise,
+          coupon.discount_type,
+          coupon.discount_value,
+          coupon.min_order_paise,
+          coupon.max_discount_paise
+        );
+        appliedCoupon = coupon.code;
+        couponMessage = `Coupon ${coupon.code} applied (-Rs. ${(discountPaise / 100).toFixed(2)}).`;
+      }
     }
   }
 
@@ -501,6 +994,7 @@ function calculateCartPricing(items = [], couponCode = '', paymentMethod = 'ONLI
     freeShippingApplied,
     totalPaise,
     appliedCoupon,
+    couponStatus,
     couponMessage,
     codAllowed,
     amountForFreeShippingPaise: shipPolicy.freeMode === 'DISABLED'
@@ -590,7 +1084,14 @@ function createOrder({
     }
   }
 
-  const pricing = calculateCartPricing(items, couponCode, paymentMethod, cleanState, cleanPincode);
+  const pricing = calculateCartPricing(items, couponCode, paymentMethod, cleanState, cleanPincode, {
+    customerEmail: cleanEmail,
+    customerPhone: cleanPhone
+  });
+  const explicitCoupon = String(couponCode || '').trim();
+  if (explicitCoupon && ['EXPIRED', 'SCHEDULED', 'LIMIT_REACHED', 'CUSTOMER_LIMIT_REACHED', 'PAUSED'].includes(pricing.couponStatus)) {
+    throw new Error(pricing.couponMessage);
+  }
   assertCartPincodeServiceability(pricing, cleanPincode, paymentMethod);
   const db = getDb();
 
@@ -604,6 +1105,17 @@ function createOrder({
 
   db.exec('BEGIN IMMEDIATE TRANSACTION;');
   try {
+    if (pricing.appliedCoupon) {
+      const lockedCoupon = db.prepare('SELECT * FROM coupons WHERE code = ?').get(pricing.appliedCoupon);
+      const lockedEval = evaluateCouponStatus(db, lockedCoupon, {
+        subtotalPaise: pricing.subtotalPaise,
+        customerEmail: cleanEmail,
+        customerPhone: cleanPhone
+      });
+      if (!lockedEval.valid) {
+        throw new Error(lockedEval.message);
+      }
+    }
     const insertOrderStmt = db.prepare(`
       INSERT INTO orders (
         order_number, user_id, customer_name, customer_email, customer_phone,
@@ -808,7 +1320,14 @@ function createAdminOrder({
     throw new Error(`Invalid payment status "${paymentStatus}" for Online Payment (must be PAID or PENDING_PAYMENT).`);
   }
 
-  const pricing = calculateCartPricing(items, couponCode, paymentMethod, cleanState, cleanPincode);
+  const pricing = calculateCartPricing(items, couponCode, paymentMethod, cleanState, cleanPincode, {
+    customerEmail: cleanEmail,
+    customerPhone: cleanPhone
+  });
+  const explicitCoupon = String(couponCode || '').trim();
+  if (explicitCoupon && ['EXPIRED', 'SCHEDULED', 'LIMIT_REACHED', 'CUSTOMER_LIMIT_REACHED', 'PAUSED'].includes(pricing.couponStatus)) {
+    throw new Error(pricing.couponMessage);
+  }
   assertCartPincodeServiceability(pricing, cleanPincode, paymentMethod);
   const db = getDb();
 
@@ -845,6 +1364,17 @@ function createAdminOrder({
 
   db.exec('BEGIN IMMEDIATE TRANSACTION;');
   try {
+    if (pricing.appliedCoupon) {
+      const lockedCoupon = db.prepare('SELECT * FROM coupons WHERE code = ?').get(pricing.appliedCoupon);
+      const lockedEval = evaluateCouponStatus(db, lockedCoupon, {
+        subtotalPaise: pricing.subtotalPaise,
+        customerEmail: cleanEmail,
+        customerPhone: cleanPhone
+      });
+      if (!lockedEval.valid) {
+        throw new Error(lockedEval.message);
+      }
+    }
     const insertOrderStmt = db.prepare(`
       INSERT INTO orders (
         order_number, user_id, customer_name, customer_email, customer_phone,
@@ -1573,6 +2103,17 @@ module.exports = {
   computeRazorpaySignature,
   verifyRazorpaySignature,
   computeStateGstSplit,
+  VALID_COUPON_USAGE_TYPES,
+  VALID_COUPON_VISIBILITIES,
+  getCurrentIstIsoMinute,
+  normalizeIstDateTimeInput,
+  normalizePhoneForCoupon,
+  getCouponUsageStats,
+  evaluateCouponStatus,
+  listEnrichedCoupons,
+  upsertAdminCoupon,
+  toggleAdminCouponActive,
+  deleteAdminCoupon,
   calculateCartPricing,
   assertCartPincodeServiceability,
   createOrder,

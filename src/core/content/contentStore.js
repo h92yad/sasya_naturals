@@ -163,10 +163,20 @@ function safeParseJson(str, fallback = {}) {
   }
 }
 
+const DEFAULT_HELLOBAR_CONFIG = {
+  enabled: true,
+  templateText: '{{SHIPPING_POLICY}} | Use code SASHYA10 for 10% off',
+  linkedCouponCode: 'SASHYA10',
+  expiredCouponBehavior: 'STRIP_COUPON_CLAUSE', // 'STRIP_COUPON_CLAUSE' | 'HIDE_BAR'
+  topbarBadge1: DEFAULT_HOMEPAGE_CONTENT.topbarBadge1,
+  topbarBadge2: DEFAULT_HOMEPAGE_CONTENT.topbarBadge2,
+  topbarBadge3: DEFAULT_HOMEPAGE_CONTENT.topbarBadge3
+};
+
 function getStorefrontContentAndSeo() {
   const db = getDb();
   const rows = db
-    .prepare("SELECT key, value FROM store_settings WHERE key IN ('content_homepage_json', 'content_pages_json', 'content_seo_json')")
+    .prepare("SELECT key, value FROM store_settings WHERE key IN ('content_homepage_json', 'content_pages_json', 'content_seo_json', 'content_hellobar_json')")
     .all();
   const map = Object.fromEntries(rows.map(r => [r.key, r.value]));
 
@@ -174,6 +184,29 @@ function getStorefrontContentAndSeo() {
   const homepage = {
     ...DEFAULT_HOMEPAGE_CONTENT,
     ...savedHomepage
+  };
+
+  const savedHelloBar = safeParseJson(map.content_hellobar_json, {});
+  const helloBar = {
+    enabled: savedHelloBar.enabled === undefined ? DEFAULT_HELLOBAR_CONFIG.enabled : Boolean(savedHelloBar.enabled),
+    templateText: savedHelloBar.templateText !== undefined
+      ? String(savedHelloBar.templateText).trim()
+      : DEFAULT_HELLOBAR_CONFIG.templateText,
+    linkedCouponCode: savedHelloBar.linkedCouponCode !== undefined
+      ? String(savedHelloBar.linkedCouponCode).trim().toUpperCase()
+      : DEFAULT_HELLOBAR_CONFIG.linkedCouponCode,
+    expiredCouponBehavior: ['STRIP_COUPON_CLAUSE', 'HIDE_BAR'].includes(savedHelloBar.expiredCouponBehavior)
+      ? savedHelloBar.expiredCouponBehavior
+      : DEFAULT_HELLOBAR_CONFIG.expiredCouponBehavior,
+    topbarBadge1: savedHelloBar.topbarBadge1 !== undefined
+      ? String(savedHelloBar.topbarBadge1).trim()
+      : homepage.topbarBadge1,
+    topbarBadge2: savedHelloBar.topbarBadge2 !== undefined
+      ? String(savedHelloBar.topbarBadge2).trim()
+      : homepage.topbarBadge2,
+    topbarBadge3: savedHelloBar.topbarBadge3 !== undefined
+      ? String(savedHelloBar.topbarBadge3).trim()
+      : homepage.topbarBadge3
   };
 
   const savedPages = safeParseJson(map.content_pages_json, {});
@@ -225,9 +258,68 @@ function getStorefrontContentAndSeo() {
 
   return {
     homepage,
+    helloBar,
     infoPages,
     seoRoutes
   };
+}
+
+function getHelloBarConfig() {
+  return getStorefrontContentAndSeo().helloBar;
+}
+
+function updateHelloBarConfig(payload = {}, actor = {}) {
+  const current = getHelloBarConfig();
+  const cleanDash = s => String(s ?? '').replace(/[\u2013\u2014]/g, '-').trim();
+
+  const enabled = payload.enabled === undefined
+    ? current.enabled
+    : (payload.enabled === true || payload.enabled === 1 || payload.enabled === '1' || payload.enabled === 'true');
+  const templateText = payload.templateText !== undefined
+    ? cleanDash(payload.templateText)
+    : current.templateText;
+  const linkedCouponCode = payload.linkedCouponCode !== undefined
+    ? String(payload.linkedCouponCode || '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '')
+    : current.linkedCouponCode;
+  const expiredCouponBehavior = ['STRIP_COUPON_CLAUSE', 'HIDE_BAR'].includes(payload.expiredCouponBehavior)
+    ? payload.expiredCouponBehavior
+    : current.expiredCouponBehavior;
+  const topbarBadge1 = payload.topbarBadge1 !== undefined ? cleanDash(payload.topbarBadge1) : current.topbarBadge1;
+  const topbarBadge2 = payload.topbarBadge2 !== undefined ? cleanDash(payload.topbarBadge2) : current.topbarBadge2;
+  const topbarBadge3 = payload.topbarBadge3 !== undefined ? cleanDash(payload.topbarBadge3) : current.topbarBadge3;
+
+  const combinedText = [templateText, topbarBadge1, topbarBadge2, topbarBadge3].filter(Boolean).join(' ');
+  const lintCheck = lintContentText(combinedText, 'hellobar_content');
+  if (!lintCheck.valid) {
+    throw new Error(lintCheck.issues.join(' '));
+  }
+
+  const next = {
+    enabled,
+    templateText,
+    linkedCouponCode,
+    expiredCouponBehavior,
+    topbarBadge1,
+    topbarBadge2,
+    topbarBadge3
+  };
+
+  const db = getDb();
+  db.prepare(
+    "INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES ('content_hellobar_json', ?, datetime('now'))"
+  ).run(JSON.stringify(next));
+
+  db.prepare(`
+    INSERT INTO audit_logs (actor_id, actor_email, actor_role, action, entity_type, entity_id, details_json)
+    VALUES (?, ?, ?, 'HELLOBAR_CONTENT_UPDATED', 'CONTENT', 'HELLOBAR_ANNOUNCEMENT', ?)
+  `).run(
+    actor.actorId || null,
+    actor.actorEmail || 'superadmin@sashyanaturals.com',
+    actor.actorRole || 'SUPER_ADMIN',
+    JSON.stringify(next)
+  );
+
+  return next;
 }
 
 function updateHomepageContent(payload = {}, actor = {}) {
@@ -606,9 +698,12 @@ function buildUsersAndPurchasesExportCsv({
 
 module.exports = {
   DEFAULT_HOMEPAGE_CONTENT,
+  DEFAULT_HELLOBAR_CONFIG,
   DEFAULT_INFO_PAGES,
   DEFAULT_SEO_ROUTES,
   getStorefrontContentAndSeo,
+  getHelloBarConfig,
+  updateHelloBarConfig,
   updateHomepageContent,
   updateInfoPageContent,
   updateRouteSeoMeta,

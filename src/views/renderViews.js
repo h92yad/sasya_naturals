@@ -15,7 +15,11 @@ const {
   summarizePincodeRules
 } = require('../db/database');
 const { buildMasterSchemaGraph } = require('../core/content/schemaBuilder');
-const { getShippingPolicyFromDb } = require('../core/checkout/checkoutEngine');
+const {
+  getShippingPolicyFromDb,
+  evaluateCouponStatus,
+  listEnrichedCoupons
+} = require('../core/checkout/checkoutEngine');
 const { buildComprehensiveReports } = require('../core/reports/reportingEngine');
 const { getStorefrontContentAndSeo } = require('../core/content/contentStore');
 const { evaluateLaunchReadiness } = require('../core/auth/launchReadiness');
@@ -57,27 +61,118 @@ function getDynamicShippingCopy() {
     const threshInr = Math.round(pol.freeThresholdPaise / 100);
     if (pol.freeMode === 'DISABLED') {
       const zoneABaseInr = Math.round(((pol.zones && pol.zones.ZONE_A && pol.zones.ZONE_A.base500gPaise) || 4000) / 100);
+      const shippingPolicyClause = `Pan-India 4-Zone + 500g Weight-Slab Delivery (from ₹${zoneABaseInr})`;
       return {
-        topbarHtml: `Pan-India 4-Zone + 500g Weight-Slab Delivery (from ₹${zoneABaseInr}) | Use code <strong>SASHYA10</strong> for 10% off`,
+        shippingPolicyClause,
+        topbarHtml: `${shippingPolicyClause} | Use code <strong>SASHYA10</strong> for 10% off`,
         pdpShortText: `4-Zone Weight-Slab Delivery (from ₹${zoneABaseInr} / 500g)`
       };
     }
     if (pol.freeMode === 'UNCONDITIONAL_THRESHOLD') {
+      const shippingPolicyClause = `Complimentary India-Wide Delivery on all orders above ₹${threshInr}`;
       return {
-        topbarHtml: `Complimentary India-Wide Delivery on all orders above ₹${threshInr} | Use code <strong>SASHYA10</strong> for 10% off`,
+        shippingPolicyClause,
+        topbarHtml: `${shippingPolicyClause} | Use code <strong>SASHYA10</strong> for 10% off`,
         pdpShortText: `Free delivery above ₹${threshInr}`
       };
     }
+    const shippingPolicyClause = `Complimentary India-Wide Delivery on orders above ₹${threshInr} (up to ${(pol.freeMaxWeightGrams / 1000).toFixed(1)} kg)`;
     return {
-      topbarHtml: `Complimentary India-Wide Delivery on orders above ₹${threshInr} (up to ${(pol.freeMaxWeightGrams / 1000).toFixed(1)} kg) | Use code <strong>SASHYA10</strong> for 10% off`,
+      shippingPolicyClause,
+      topbarHtml: `${shippingPolicyClause} | Use code <strong>SASHYA10</strong> for 10% off`,
       pdpShortText: `Free delivery above ₹${threshInr} (up to ${(pol.freeMaxWeightGrams / 1000).toFixed(1)} kg)`
     };
   } catch {
+    const shippingPolicyClause = 'Complimentary India-Wide Delivery on orders above ₹799';
     return {
-      topbarHtml: 'Complimentary India-Wide Delivery on orders above ₹799 | Use code <strong>SASHYA10</strong> for 10% off',
+      shippingPolicyClause,
+      topbarHtml: `${shippingPolicyClause} | Use code <strong>SASHYA10</strong> for 10% off`,
       pdpShortText: 'Free delivery above ₹799'
     };
   }
+}
+
+/**
+ * Resolves the Storefront Hello Bar (.sn-topbar) state.
+ * - If disabled or announcement content is empty, returns { visible: false } so the Hello Bar disappears completely.
+ * - If linkedCouponCode is set and that coupon is not ACTIVE (expired, limit reached, paused, scheduled),
+ *   either hides the entire bar ('HIDE_BAR') or strips the coupon clause ('STRIP_COUPON_CLAUSE').
+ */
+function resolveHelloBarForRender(helloBarConfig = null, shipCopy = getDynamicShippingCopy(), nowIst = null) {
+  const cfg = helloBarConfig || (getStorefrontContentAndSeo().helloBar);
+  if (!cfg || !cfg.enabled) {
+    return { visible: false, announcementHtml: '', announcementPlain: '', badges: [], linkedCouponStatus: 'DISABLED' };
+  }
+
+  let rawText = String(cfg.templateText || '').trim();
+  if (!rawText) {
+    return { visible: false, announcementHtml: '', announcementPlain: '', badges: [], linkedCouponStatus: 'EMPTY_CONTENT' };
+  }
+
+  const linkedCode = String(cfg.linkedCouponCode || '').trim().toUpperCase();
+  let linkedCouponStatus = 'NONE';
+  if (linkedCode) {
+    try {
+      const db = getDb();
+      const couponRow = db.prepare('SELECT * FROM coupons WHERE code = ?').get(linkedCode);
+      const evalRes = evaluateCouponStatus(db, couponRow, { nowIst });
+      linkedCouponStatus = evalRes.status;
+      if (!evalRes.valid) {
+        if (cfg.expiredCouponBehavior === 'HIDE_BAR') {
+          return { visible: false, announcementHtml: '', announcementPlain: '', badges: [], linkedCouponStatus };
+        }
+        // Default: STRIP_COUPON_CLAUSE
+        const segments = rawText.split(/\s*\|\s*/).map(s => s.trim()).filter(Boolean);
+        if (segments.length > 1) {
+          const codeRegex = new RegExp(`\\b${linkedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+          const filtered = segments.filter(seg => !codeRegex.test(seg) && !/\buse\s+code\b/i.test(seg));
+          rawText = filtered.join(' | ').trim();
+        } else {
+          const codeRegex = new RegExp(`\\b${linkedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+          if (codeRegex.test(rawText) || /\buse\s+code\b/i.test(rawText)) {
+            rawText = '';
+          }
+        }
+      }
+    } catch {
+      // Fallback if DB is unavailable
+    }
+  }
+
+  if (!rawText) {
+    return { visible: false, announcementHtml: '', announcementPlain: '', badges: [], linkedCouponStatus };
+  }
+
+  const shippingClause = (shipCopy && shipCopy.shippingPolicyClause)
+    ? shipCopy.shippingPolicyClause
+    : 'Complimentary India-Wide Delivery on orders above ₹799';
+  const expandedPlain = rawText.replace(/\{\{\s*SHIPPING_POLICY\s*\}\}/gi, shippingClause).trim();
+  if (!expandedPlain) {
+    return { visible: false, announcementHtml: '', announcementPlain: '', badges: [], linkedCouponStatus };
+  }
+
+  // Escape HTML and bold uppercase coupon tokens after "code " (e.g. Use code SASHYA10 -> Use code <strong>SASHYA10</strong>)
+  let announcementHtml = escapeHtml(expandedPlain).replace(
+    /\b(code\s+)([A-Z0-9_-]{3,24})\b/gi,
+    (_, prefix, codeTok) => `${prefix}<strong>${codeTok}</strong>`
+  );
+  if (linkedCode && !announcementHtml.includes(`<strong>${escapeHtml(linkedCode)}</strong>`)) {
+    const escapedLinked = escapeHtml(linkedCode);
+    const exactCodeRe = new RegExp(`\\b(${escapedLinked.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'g');
+    announcementHtml = announcementHtml.replace(exactCodeRe, '<strong>$1</strong>');
+  }
+
+  const badges = [cfg.topbarBadge1, cfg.topbarBadge2, cfg.topbarBadge3]
+    .map(b => String(b || '').trim())
+    .filter(Boolean);
+
+  return {
+    visible: true,
+    announcementHtml,
+    announcementPlain: expandedPlain,
+    badges,
+    linkedCouponStatus
+  };
 }
 
 function renderProductCard(p, variants = [], basePath = '') {
@@ -185,6 +280,7 @@ function renderShell({
   const shipCopy = getDynamicShippingCopy();
   const contentAndSeo = getStorefrontContentAndSeo();
   const hp = contentAndSeo.homepage;
+  const helloBarRender = resolveHelloBarForRender(contentAndSeo.helloBar, shipCopy);
   const routeSeo = contentAndSeo.seoRoutes[canonicalPath] || null;
   const finalTitle = routeSeo && routeSeo.metaTitle ? routeSeo.metaTitle : title;
   const finalDescription = routeSeo && routeSeo.metaDescription ? routeSeo.metaDescription : description;
@@ -222,16 +318,18 @@ function renderShell({
   <script type="application/ld+json">${JSON.stringify(schemaGraph)}</script>
 </head>
 <body>
-  <div class="sn-topbar">
+  ${helloBarRender.visible ? `
+  <div class="sn-topbar" id="sn-hellobar">
     <div class="sn-container sn-topbar-inner">
-      <span id="sn-dynamic-topbar-ship">${shipCopy.topbarHtml}</span>
+      <span id="sn-dynamic-topbar-ship">${helloBarRender.announcementHtml}</span>
+      ${helloBarRender.badges.length > 0 ? `
       <div class="sn-topbar-badges">
-        <span>${escapeHtml(hp.topbarBadge1)}</span>
-        <span>${escapeHtml(hp.topbarBadge2)}</span>
-        <span>${escapeHtml(hp.topbarBadge3)}</span>
+        ${helloBarRender.badges.map(b => `<span>${escapeHtml(b)}</span>`).join('')}
       </div>
+      ` : ''}
     </div>
   </div>
+  ` : ''}
 
   <header class="sn-header">
     <div class="sn-container sn-header-inner">
@@ -1146,17 +1244,27 @@ function renderCheckoutPage({
           </form>
 
           <div class="sn-checkout-sidebar">
+            ${(() => {
+              const enrichedList = listEnrichedCoupons();
+              const activeCoupons = enrichedList.filter(c => c.computed_status === 'ACTIVE');
+              const publicChipCoupons = activeCoupons.filter(
+                c => c.visibility !== 'SECRET_CODE' && (c.code !== 'SASYA10' || !activeCoupons.some(x => x.code === 'SASHYA10'))
+              );
+              const autoApplyCoupon = activeCoupons.find(c => Number(c.is_auto_apply) === 1);
+              const defaultCouponVal = autoApplyCoupon ? autoApplyCoupon.code : '';
+              return `
             <div class="sn-card" style="margin-bottom:20px;">
               <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">Apply Promotional Coupon</h3>
               <div style="display:flex;gap:10px;margin-bottom:10px;">
-                <input type="text" id="sn-checkout-coupon" placeholder="Enter SASHYA10 or WELCOME15" value="SASHYA10" class="sn-input" />
+                <input type="text" id="sn-checkout-coupon" placeholder="Enter coupon code" value="${escapeHtml(defaultCouponVal)}" class="sn-input" />
                 <button type="button" class="sn-btn sn-btn-forest" id="sn-apply-coupon-btn">Apply</button>
               </div>
+              ${publicChipCoupons.length > 0 ? `
               <div style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);margin-bottom:6px;">
                 Tap a coupon below to apply automatically:
               </div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                ${coupons.filter(c => c.code !== 'SASYA10' || !coupons.some(x => x.code === 'SASHYA10')).map(c => `
+              <div style="display:flex;gap:6px;flex-wrap:wrap;" id="sn-checkout-public-coupon-chips">
+                ${publicChipCoupons.map(c => `
                   <button
                     type="button"
                     class="sn-coupon-chip"
@@ -1165,7 +1273,10 @@ function renderCheckoutPage({
                   >🏷️ ${escapeHtml(c.code)} <span style="font-weight:400;opacity:0.85;">(${escapeHtml(c.description)})</span></button>
                 `).join('')}
               </div>
+              ` : ''}
             </div>
+              `;
+            })()}
 
             <div class="sn-card">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -2295,11 +2406,12 @@ function renderAdminPortalPage({
                 </ul>
               </li>
               <li style="${modDisplayStyle('content')}">
-                <button type="button" class="${defaultAdminMod === 'content' ? 'sn-active' : ''}" data-admin-tab-btn="content" id="tab-btn-content">9. Storefront Content &amp; SEO ▾</button>
+                <button type="button" class="${defaultAdminMod === 'content' ? 'sn-active' : ''}" data-admin-tab-btn="content" id="tab-btn-content">9. Content, SEO, Coupons &amp; Hello Bar ▾</button>
                 <ul class="sn-admin-submenu" data-admin-submenu-for="content">
                   <li><button type="button" class="sn-admin-subbtn sn-sub-active" data-admin-subtab-link="content:homepage">9.1 Homepage Hero, Topbar &amp; Footer</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="content:pages">9.2 Info &amp; Policy Pages (6 Pages)</button></li>
                   <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="content:seo">9.3 Route SEO Meta &amp; SERP Preview</button></li>
+                  <li><button type="button" class="sn-admin-subbtn" data-admin-subtab-link="content:coupons">9.4 Coupons, Promotions &amp; Hello Bar</button></li>
                 </ul>
               </li>
             </ul>
@@ -4480,6 +4592,7 @@ function renderAdminPortalPage({
                 <button type="button" class="sn-admin-subtab-pill sn-active" data-admin-subtab-btn="content:homepage">🏠 9.1 Homepage Hero, Topbar &amp; Footer</button>
                 <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="content:pages">📄 9.2 Info &amp; Policy Pages (6 Pages)</button>
                 <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="content:seo">🔍 9.3 Route SEO Meta &amp; SERP Preview</button>
+                <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="content:coupons" id="subtab-btn-content-coupons">🏷️ 9.4 Coupons, Promotions &amp; Hello Bar</button>
               </div>
 
               <!-- Sub-Panel 9.1 (Default): Homepage Hero, Topbar Badges, Trust Strip & Footer Copy -->
@@ -4675,6 +4788,302 @@ function renderAdminPortalPage({
                   </div>
                 </form>
               </div>
+
+              <!-- Sub-Panel 9.4: Promotional Coupons Engine (Universal, Once-Per-Customer, Single-Use, IST Time Window) & Hello Bar Controller -->
+              ${(() => {
+                const enrichedCoupons = listEnrichedCoupons();
+                const hb = contentAndSeo.helloBar;
+                const shipCopyAdmin = getDynamicShippingCopy();
+                const hbPreview = resolveHelloBarForRender(hb, shipCopyAdmin);
+                const statusBadgeMap = {
+                  ACTIVE: { cls: 'sn-status-paid', label: '🟢 ACTIVE' },
+                  SCHEDULED: { cls: 'sn-status-warn', label: '🕒 SCHEDULED' },
+                  EXPIRED: { cls: 'sn-status-danger', label: '🔴 EXPIRED' },
+                  LIMIT_REACHED: { cls: 'sn-status-danger', label: '🛑 LIMIT REACHED' },
+                  PAUSED: { cls: 'sn-status-warn', label: '⚪ PAUSED' }
+                };
+                const usageTypeLabelMap = {
+                  UNIVERSAL: 'Universal Campaign',
+                  ONCE_PER_CUSTOMER: '1× Per Customer (Phone + Email)',
+                  SINGLE_USE_GLOBAL: '1× Global Single-Use'
+                };
+                return `
+              <div data-admin-subpanel="content:coupons" style="display:none;">
+                <!-- 1. Storefront Hello Bar (.sn-topbar) Announcement & Auto-Disappear Controller -->
+                <form id="sn-admin-hellobar-form" class="sn-card" style="background-color:var(--sn-bg-parchment);padding:16px 18px;margin-bottom:20px;">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+                    <div>
+                      <span class="sn-eyebrow" style="margin:0;">Global Top Announcement Bar (.sn-topbar)</span>
+                      <h3 style="font-family:var(--sn-font-serif);margin:2px 0 4px;font-size:1.12rem;color:var(--sn-bg-forest);">1. Storefront Hello Bar Content &amp; Auto-Disappear Controller</h3>
+                      <p style="font-size:0.8rem;color:var(--sn-text-secondary);margin:0;">
+                        Control the entire content of the top Hello Bar. Use <code>{{SHIPPING_POLICY}}</code> to inject the live 4-Zone shipping threshold automatically, or type any 100% custom message. <strong>If the announcement text is cleared (empty) or disabled, the entire Hello Bar disappears (<code>0px</code> height).</strong>
+                      </p>
+                    </div>
+                    <label style="display:inline-flex;align-items:center;gap:8px;font-family:var(--sn-font-mono);font-size:0.78rem;font-weight:700;background-color:var(--sn-bg-surface);padding:8px 12px;border-radius:6px;border:1px solid var(--sn-border-strong);cursor:pointer;">
+                      <input type="checkbox" name="enabled" id="sn-admin-hellobar-enabled" value="1" ${hb.enabled ? 'checked' : ''} />
+                      <span>Hello Bar Enabled</span>
+                    </label>
+                  </div>
+
+                  <div style="margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:4px;">
+                      <label for="sn-admin-hellobar-text" style="font-size:0.74rem;font-weight:700;">Hello Bar Announcement Content (Leave blank to hide Hello Bar completely)</label>
+                      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-hellobar-insert-shipping-btn" style="padding:2px 8px;min-height:26px;font-size:0.71rem;">+ Insert {{SHIPPING_POLICY}}</button>
+                        <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-hellobar-clear-text-btn" style="padding:2px 8px;min-height:26px;font-size:0.71rem;color:var(--sn-status-danger);">✕ Clear Text (Hide Hello Bar)</button>
+                      </div>
+                    </div>
+                    <input
+                      type="text"
+                      name="templateText"
+                      id="sn-admin-hellobar-text"
+                      value="${escapeHtml(hb.templateText)}"
+                      placeholder="e.g. {{SHIPPING_POLICY}} | Use code SASHYA10 for 10% off (or leave empty to hide Hello Bar)"
+                      data-shipping-clause-preview="${escapeHtml(shipCopyAdmin.shippingPolicyClause)}"
+                      class="sn-input"
+                    />
+                  </div>
+
+                  <div class="sn-grid-2" style="gap:10px;margin-bottom:12px;">
+                    <div>
+                      <label for="sn-admin-hellobar-linked-coupon" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Linked Coupon Circuit-Breaker (Prevents advertising expired/exhausted codes)</label>
+                      <select name="linkedCouponCode" id="sn-admin-hellobar-linked-coupon" class="sn-select">
+                        <option value="" ${!hb.linkedCouponCode ? 'selected' : ''}>None (No Linked Coupon Check)</option>
+                        ${enrichedCoupons.map(c => `
+                          <option value="${escapeHtml(c.code)}" data-coupon-status="${escapeHtml(c.computed_status)}" ${hb.linkedCouponCode === c.code ? 'selected' : ''}>
+                            ${escapeHtml(c.code)} (${escapeHtml(c.computed_status)} • ${escapeHtml(c.description)})
+                          </option>
+                        `).join('')}
+                      </select>
+                    </div>
+                    <div>
+                      <label for="sn-admin-hellobar-expired-behavior" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">If Linked Coupon Expires, Hits Limit, or Is Paused</label>
+                      <select name="expiredCouponBehavior" id="sn-admin-hellobar-expired-behavior" class="sn-select">
+                        <option value="STRIP_COUPON_CLAUSE" ${hb.expiredCouponBehavior === 'STRIP_COUPON_CLAUSE' ? 'selected' : ''}>Strip Coupon Clause ("| Use code ...") &amp; Keep Shipping Text</option>
+                        <option value="HIDE_BAR" ${hb.expiredCouponBehavior === 'HIDE_BAR' ? 'selected' : ''}>Hide Entire Hello Bar Automatically</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="sn-grid-3" style="gap:10px;margin-bottom:14px;">
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Desktop Right Badge 1 (Optional)</label>
+                      <input type="text" name="topbarBadge1" id="sn-admin-hellobar-badge1" value="${escapeHtml(hb.topbarBadge1)}" placeholder="Leave blank to hide badge" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Desktop Right Badge 2 (Optional)</label>
+                      <input type="text" name="topbarBadge2" id="sn-admin-hellobar-badge2" value="${escapeHtml(hb.topbarBadge2)}" placeholder="Leave blank to hide badge" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Desktop Right Badge 3 (Optional)</label>
+                      <input type="text" name="topbarBadge3" id="sn-admin-hellobar-badge3" value="${escapeHtml(hb.topbarBadge3)}" placeholder="Leave blank to hide badge" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <!-- Live Hello Bar Preview -->
+                  <div style="margin-bottom:14px;">
+                    <div style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-text-muted);text-transform:uppercase;margin-bottom:4px;">Live Storefront Hello Bar Preview</div>
+                    <div
+                      id="sn-admin-hellobar-live-preview"
+                      style="border-radius:6px;padding:10px 14px;font-size:0.8rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;${hbPreview.visible ? 'background-color:var(--sn-bg-forest);color:#FAF5E4;' : 'background-color:var(--sn-bg-surface);color:var(--sn-text-muted);border:1px dashed var(--sn-border-strong);'}"
+                    >
+                      ${hbPreview.visible ? `
+                        <span>${hbPreview.announcementHtml}</span>
+                        <span style="font-family:var(--sn-font-mono);font-size:0.72rem;opacity:0.88;">${hbPreview.badges.map(b => escapeHtml(b)).join(' • ')}</span>
+                      ` : `
+                        <span>🚫 Hello Bar Hidden (0px height — disappears completely on storefront)</span>
+                      `}
+                    </div>
+                  </div>
+
+                  <div style="display:flex;justify-content:flex-end;">
+                    <button type="submit" class="sn-btn sn-btn-forest" id="sn-save-hellobar-btn">Save Hello Bar Configuration</button>
+                  </div>
+                </form>
+
+                <!-- 2. Create / Edit Coupon Code Form (Universal, Once-Per-Customer, Single-Use Global & IST Time Window) -->
+                <form id="sn-admin-coupon-form" class="sn-card" style="background-color:var(--sn-bg-parchment);padding:16px 18px;margin-bottom:20px;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+                    <div>
+                      <span class="sn-eyebrow" style="margin:0;">Promotional Discount Engine • IST (UTC+05:30) Time Window &amp; Zero-Burn Order Tracking</span>
+                      <h3 style="font-family:var(--sn-font-serif);margin:2px 0 0;font-size:1.12rem;color:var(--sn-bg-forest);" id="sn-admin-coupon-form-heading">2. Create or Edit Coupon Code</h3>
+                    </div>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-coupon-reset-btn">+ New Coupon / Reset Form</button>
+                  </div>
+
+                  <div class="sn-grid-4" style="gap:10px;margin-bottom:12px;">
+                    <div>
+                      <label for="sn-coupon-code" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Coupon Code (A-Z, 0-9) *</label>
+                      <input type="text" name="code" id="sn-coupon-code" required maxlength="24" placeholder="e.g. DIWALI20" class="sn-input" style="font-family:var(--sn-font-mono);text-transform:uppercase;" />
+                    </div>
+                    <div style="grid-column:span 2;">
+                      <label for="sn-coupon-description" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Customer-Facing Description *</label>
+                      <input type="text" name="description" id="sn-coupon-description" required placeholder="e.g. 20% off festive harvest orders above Rs. 999" class="sn-input" />
+                    </div>
+                    <div>
+                      <label for="sn-coupon-visibility" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Storefront Visibility *</label>
+                      <select name="visibility" id="sn-coupon-visibility" class="sn-select">
+                        <option value="PUBLIC_CHIP">Public Chip (Shown at Checkout &amp; Cart)</option>
+                        <option value="SECRET_CODE">Secret Code (Hidden Chip • Works When Typed)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="sn-grid-4" style="gap:10px;margin-bottom:12px;">
+                    <div>
+                      <label for="sn-coupon-discount-type" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Discount Type *</label>
+                      <select name="discountType" id="sn-coupon-discount-type" class="sn-select">
+                        <option value="PERCENT">Percentage Off (%)</option>
+                        <option value="FLAT_PAISE">Flat Rupee Discount (₹)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="sn-coupon-discount-val" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;" id="sn-coupon-discount-val-label">Discount Value (% or ₹) *</label>
+                      <input type="number" name="discountValueInr" id="sn-coupon-discount-val" required min="1" max="5000" value="10" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                    </div>
+                    <div>
+                      <label for="sn-coupon-min-order" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Min Order Subtotal (₹) *</label>
+                      <input type="number" name="minOrderInr" id="sn-coupon-min-order" required min="0" max="100000" value="499" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                    </div>
+                    <div>
+                      <label for="sn-coupon-max-discount" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Max Discount Cap (₹) *</label>
+                      <input type="number" name="maxDiscountInr" id="sn-coupon-max-discount" required min="0" max="50000" value="500" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                    </div>
+                  </div>
+
+                  <div class="sn-grid-3" style="gap:10px;margin-bottom:12px;">
+                    <div>
+                      <label for="sn-coupon-usage-type" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Usage Limit Rule *</label>
+                      <select name="usageType" id="sn-coupon-usage-type" class="sn-select">
+                        <option value="UNIVERSAL">Universal Code (Unlimited or Total Campaign Cap)</option>
+                        <option value="ONCE_PER_CUSTOMER">One-Time Per Customer (Validated by Phone + Email)</option>
+                        <option value="SINGLE_USE_GLOBAL">Single-Use Global Code (1 Total Redemption Across Store)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label for="sn-coupon-max-total" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Total Store Redemptions Cap (0 = Unlimited)</label>
+                      <input type="number" name="maxTotalUses" id="sn-coupon-max-total" min="0" max="1000000" value="0" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                    </div>
+                    <div>
+                      <label for="sn-coupon-max-per-customer" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Max Uses Per Customer (0 = Unlimited)</label>
+                      <input type="number" name="maxUsesPerCustomer" id="sn-coupon-max-per-customer" min="0" max="100" value="0" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                    </div>
+                  </div>
+
+                  <div class="sn-grid-3" style="gap:10px;margin-bottom:14px;align-items:end;">
+                    <div>
+                      <label for="sn-coupon-starts-ist" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Valid From (IST • Optional Schedule Start)</label>
+                      <input type="datetime-local" name="startsAtIst" id="sn-coupon-starts-ist" value="" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                    </div>
+                    <div>
+                      <label for="sn-coupon-expires-ist" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Valid Until / Expiry (IST • Optional Auto-Expire)</label>
+                      <input type="datetime-local" name="expiresAtIst" id="sn-coupon-expires-ist" value="" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                    </div>
+                    <div style="display:flex;gap:14px;flex-wrap:wrap;padding-bottom:6px;">
+                      <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;cursor:pointer;">
+                        <input type="checkbox" name="isAutoApply" id="sn-coupon-auto-apply" value="1" />
+                        <span>Auto-Prefill at Checkout</span>
+                      </label>
+                      <label style="display:inline-flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;cursor:pointer;">
+                        <input type="checkbox" name="isActive" id="sn-coupon-is-active" value="1" checked />
+                        <span>Coupon Active</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                    <span style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);">
+                      Zero-Burn Protection: Abandoned Razorpay popups (<code>PENDING_PAYMENT</code>) &amp; Cancelled/Refunded orders never consume a customer's one-time coupon.
+                    </span>
+                    <button type="submit" class="sn-btn sn-btn-forest" id="sn-save-coupon-btn">Save Coupon Code</button>
+                  </div>
+                </form>
+
+                <!-- 3. Active, Scheduled & Expired Coupons Ledger Table -->
+                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+                  <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">3. Promotional Coupons Ledger (${enrichedCoupons.length} Codes)</h3>
+                  <span style="font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-text-muted);">Evaluated in Indian Standard Time (IST • UTC+05:30)</span>
+                </div>
+
+                <div class="sn-table-wrap">
+                  <table class="sn-table sn-table-cards" id="sn-admin-coupons-table">
+                    <thead>
+                      <tr>
+                        <th>Code &amp; Description</th>
+                        <th>Discount &amp; Min Order</th>
+                        <th>Usage Rule &amp; Redemptions</th>
+                        <th>IST Schedule Window</th>
+                        <th>Visibility &amp; Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${enrichedCoupons.map(c => {
+                        const badge = statusBadgeMap[c.computed_status] || { cls: 'sn-status-warn', label: c.computed_status };
+                        const discLabel = c.discount_type === 'PERCENT'
+                          ? `${c.discount_value}% OFF (Cap ${formatInr(c.max_discount_paise)})`
+                          : `Flat ${formatInr(c.discount_value)} OFF`;
+                        const totalCapLabel = c.effective_max_total_uses > 0 ? `${c.total_used} / ${c.effective_max_total_uses} used` : `${c.total_used} / ∞ used`;
+                        const custCapLabel = c.effective_max_uses_per_customer > 0 ? `Max ${c.effective_max_uses_per_customer}/customer` : 'Unlimited/customer';
+                        const windowLabel = (c.starts_at_ist || c.expires_at_ist)
+                          ? `${c.starts_at_ist ? `From: ${c.starts_at_ist.replace('T', ' ')}` : 'From: Any'}${c.expires_at_ist ? `<br/>Until: ${c.expires_at_ist.replace('T', ' ')}` : ''}`
+                          : 'Always Valid (No Expiry)';
+                        return `
+                          <tr data-admin-coupon-row="${escapeHtml(c.code)}">
+                            <td data-label="Code &amp; Description">
+                              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                <strong style="font-family:var(--sn-font-mono);font-size:0.9rem;color:var(--sn-bg-forest);">${escapeHtml(c.code)}</strong>
+                                ${c.is_auto_apply ? '<span class="sn-status sn-status-paid" style="font-size:0.66rem;padding:1px 6px;">★ Auto-Prefill</span>' : ''}
+                              </div>
+                              <div style="font-size:0.78rem;color:var(--sn-text-secondary);margin-top:2px;">${escapeHtml(c.description)}</div>
+                            </td>
+                            <td data-label="Discount &amp; Min Order" style="font-family:var(--sn-font-mono);font-size:0.77rem;">
+                              <strong>${escapeHtml(discLabel)}</strong><br/>
+                              <span style="color:var(--sn-text-muted);">Min Subtotal: ${formatInr(c.min_order_paise)}</span>
+                            </td>
+                            <td data-label="Usage Rule &amp; Redemptions" style="font-family:var(--sn-font-mono);font-size:0.76rem;">
+                              <strong>${escapeHtml(usageTypeLabelMap[c.usage_type] || c.usage_type)}</strong><br/>
+                              <span>${escapeHtml(totalCapLabel)} • ${escapeHtml(custCapLabel)}</span>
+                            </td>
+                            <td data-label="IST Time Window" style="font-family:var(--sn-font-mono);font-size:0.74rem;">
+                              ${windowLabel}
+                            </td>
+                            <td data-label="Visibility &amp; Status">
+                              <span class="sn-status ${badge.cls}">${escapeHtml(badge.label)}</span><br/>
+                              <span style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);margin-top:3px;display:inline-block;">
+                                ${c.visibility === 'SECRET_CODE' ? '🔒 Secret Code' : '🏷️ Public Chip'}
+                              </span>
+                            </td>
+                            <td data-label="Actions">
+                              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-edit-coupon="${escapeHtml(JSON.stringify(c))}"
+                                >✏️ Edit</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  data-toggle-coupon="${escapeHtml(c.code)}"
+                                  data-next-active="${c.is_active ? '0' : '1'}"
+                                >${c.is_active ? '⏸ Pause' : '▶ Activate'}</button>
+                                <button
+                                  type="button"
+                                  class="sn-btn sn-btn-outline sn-btn-sm"
+                                  style="color:var(--sn-status-danger);"
+                                  data-delete-coupon="${escapeHtml(c.code)}"
+                                >🗑 Delete</button>
+                              </div>
+                            </td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+                `;
+              })()}
             </div>
           </div>
         </div>
@@ -4825,6 +5234,7 @@ function renderMarkdownTwin({ title, canonicalPath, description, sections = [] }
 module.exports = {
   formatInr,
   getDynamicShippingCopy,
+  resolveHelloBarForRender,
   renderHomePage,
   renderCatalogPage,
   renderProductDetailPage,

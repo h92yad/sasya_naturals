@@ -31,7 +31,11 @@ const {
   verifyAndCaptureOnlinePayment,
   updateOrderFulfilmentAndShipping,
   recordPaymentAdminAction,
-  updateOrderDeliveryAddress
+  updateOrderDeliveryAddress,
+  listEnrichedCoupons,
+  upsertAdminCoupon,
+  toggleAdminCouponActive,
+  deleteAdminCoupon
 } = require('./src/core/checkout/checkoutEngine');
 const {
   requestCodOtp,
@@ -75,6 +79,7 @@ const {
 const { lintContentText } = require('./src/core/content/contentLinter');
 const {
   getStorefrontContentAndSeo,
+  updateHelloBarConfig,
   updateHomepageContent,
   updateInfoPageContent,
   updateRouteSeoMeta,
@@ -810,6 +815,54 @@ function createServerHandler() {
         return sendJson(res, 200, { seo });
       }
 
+      if (pathname === '/api/admin/content/hellobar' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'settings.manage');
+        const body = await readJsonBody(req);
+        const helloBar = updateHelloBarConfig(body, {
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role
+        });
+        return sendJson(res, 200, { helloBar });
+      }
+
+      if (pathname === '/api/admin/coupons/upsert' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'settings.manage');
+        const body = await readJsonBody(req);
+        const coupon = upsertAdminCoupon(body, {
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role
+        });
+        return sendJson(res, 200, { coupon, coupons: listEnrichedCoupons() });
+      }
+
+      if (pathname === '/api/admin/coupons/toggle' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'settings.manage');
+        const body = await readJsonBody(req);
+        const coupon = toggleAdminCouponActive(body.code, body.isActive, {
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role
+        });
+        return sendJson(res, 200, { coupon, coupons: listEnrichedCoupons() });
+      }
+
+      if (pathname === '/api/admin/coupons/delete' && req.method === 'POST') {
+        const adminUser = resolveAdminUser(req);
+        assertAdminPermission(adminUser, 'settings.manage');
+        const body = await readJsonBody(req);
+        const delRes = deleteAdminCoupon(body.code, {
+          actorId: adminUser.id,
+          actorEmail: adminUser.email,
+          actorRole: adminUser.role
+        });
+        return sendJson(res, 200, { ...delRes, coupons: listEnrichedCoupons() });
+      }
+
       if (pathname === '/api/checkout/cod-otp/request' && req.method === 'POST') {
         const body = await readJsonBody(req);
         const otpRes = requestCodOtp(body.phone);
@@ -833,12 +886,17 @@ function createServerHandler() {
 
       if (pathname === '/api/cart/calculate' && req.method === 'POST') {
         const body = await readJsonBody(req);
+        const custUser = resolveCustomerUser(req);
         const pricing = calculateCartPricing(
           body.items || [],
           body.couponCode || '',
           body.paymentMethod || 'ONLINE_UPI',
           body.shippingState || 'Karnataka',
-          body.shippingPincode || '560001'
+          body.shippingPincode || '560001',
+          {
+            customerEmail: body.customerEmail || (custUser ? custUser.email : ''),
+            customerPhone: body.customerPhone || (custUser ? custUser.phone : '')
+          }
         );
         return sendJson(res, 200, { pricing });
       }

@@ -272,14 +272,31 @@
     let discountPaise = 0;
     let appliedCoupon = '';
     let couponMessage = '';
+    let couponStatus = 'NONE';
     const cleanCode = String(couponCode || '').trim().toUpperCase();
     if (cleanCode) {
       const c = (dbSnap.coupons || []).find(x => x.code === cleanCode);
+      const nowIst = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 16);
       if (!c) {
-        couponMessage = `Coupon "${cleanCode}" is invalid.`;
+        couponStatus = 'INVALID';
+        couponMessage = `Coupon "${cleanCode}" is invalid or expired.`;
+      } else if (c.is_active !== undefined && !Number(c.is_active)) {
+        couponStatus = 'PAUSED';
+        couponMessage = `Coupon "${cleanCode}" is currently paused.`;
+      } else if (c.starts_at_ist && nowIst < c.starts_at_ist) {
+        couponStatus = 'SCHEDULED';
+        couponMessage = `Coupon "${cleanCode}" starts on ${c.starts_at_ist.replace('T', ' ')} IST.`;
+      } else if (c.expires_at_ist && nowIst > c.expires_at_ist) {
+        couponStatus = 'EXPIRED';
+        couponMessage = `Coupon "${cleanCode}" expired on ${c.expires_at_ist.replace('T', ' ')} IST.`;
+      } else if (c.effective_max_total_uses > 0 && Number(c.total_used || 0) >= Number(c.effective_max_total_uses)) {
+        couponStatus = 'LIMIT_REACHED';
+        couponMessage = `Coupon "${cleanCode}" has reached its maximum redemption limit.`;
       } else if (subtotalPaise < c.min_order_paise) {
+        couponStatus = 'MIN_SUBTOTAL_NOT_MET';
         couponMessage = `Coupon "${cleanCode}" requires min subtotal Rs. ${c.min_order_paise / 100}.`;
       } else {
+        couponStatus = 'ACTIVE';
         discountPaise = c.discount_type === 'PERCENT'
           ? Math.min(c.max_discount_paise, Math.round((subtotalPaise * c.discount_value) / 100))
           : Math.min(c.max_discount_paise, c.discount_value);
@@ -370,19 +387,28 @@
         freeShippingMaxWeightGrams: freeMaxWeightGrams,
         totalPaise,
         appliedCoupon,
+        couponStatus,
         couponMessage
       }
     };
   }
 
-  async function requestCartPricing(items, couponCode, paymentMethod, shippingState = 'Karnataka', shippingPincode = '560003') {
+  async function requestCartPricing(items, couponCode, paymentMethod, shippingState = 'Karnataka', shippingPincode = '560003', customerContext = {}) {
     if (IS_STATIC_SHOWCASE) {
       return calculateCartClientSide(items, couponCode, paymentMethod, shippingState, shippingPincode);
     }
     const res = await fetch('/api/cart/calculate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items, couponCode, paymentMethod, shippingState, shippingPincode })
+      body: JSON.stringify({
+        items,
+        couponCode,
+        paymentMethod,
+        shippingState,
+        shippingPincode,
+        customerEmail: customerContext.customerEmail || '',
+        customerPhone: customerContext.customerPhone || ''
+      })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Unable to calculate cart');
@@ -892,15 +918,22 @@
       const paymentMethod = methodEl ? methodEl.value : 'ONLINE_UPI';
       const pinEl = document.getElementById('chk-pin');
       const stateEl = document.getElementById('chk-state');
+      const emailEl = document.getElementById('chk-email');
+      const phoneEl = document.getElementById('chk-phone');
       const shippingPincode = pinEl ? pinEl.value.trim() : '560003';
       const shippingState = stateEl ? stateEl.value.trim() : 'Karnataka';
+      const customerEmail = emailEl ? emailEl.value.trim() : '';
+      const customerPhone = phoneEl ? phoneEl.value.trim() : '';
 
       if (/^[1-8]\d{5}$/.test(shippingPincode)) {
         setActiveDeliveryPin(shippingPincode);
       }
 
       try {
-        const data = await requestCartPricing(cart, couponCode, paymentMethod, shippingState, shippingPincode);
+        const data = await requestCartPricing(cart, couponCode, paymentMethod, shippingState, shippingPincode, {
+          customerEmail,
+          customerPhone
+        });
         const p = data.pricing;
         const taxLabel = p.taxSupplyType === 'IGST' ? 'Inter-State IGST' : 'Intra-State (CGST + SGST)';
         const unserviceableItems = Array.isArray(p.unserviceableItems) ? p.unserviceableItems : [];
@@ -1024,6 +1057,10 @@
     }
     const pinInputEl = document.getElementById('chk-pin');
     if (pinInputEl) pinInputEl.addEventListener('input', renderSummary);
+    const emailInputEl = document.getElementById('chk-email');
+    if (emailInputEl) emailInputEl.addEventListener('change', renderSummary);
+    const phoneInputEl = document.getElementById('chk-phone');
+    if (phoneInputEl) phoneInputEl.addEventListener('change', renderSummary);
     checkoutForm.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
       radio.addEventListener('change', renderSummary);
     });
@@ -4357,6 +4394,387 @@
         showToast(`Saved SEO Meta & OpenGraph tags for ${payload.routePath}!`);
       });
     }
+
+    // 10D. Module 9.4: Storefront Hello Bar (.sn-topbar) Controller & Promotional Coupons Engine
+    const helloBarForm = document.getElementById('sn-admin-hellobar-form');
+    const helloBarEnabledCb = document.getElementById('sn-admin-hellobar-enabled');
+    const helloBarTextInput = document.getElementById('sn-admin-hellobar-text');
+    const helloBarLinkedSelect = document.getElementById('sn-admin-hellobar-linked-coupon');
+    const helloBarBehaviorSelect = document.getElementById('sn-admin-hellobar-expired-behavior');
+    const helloBarBadge1 = document.getElementById('sn-admin-hellobar-badge1');
+    const helloBarBadge2 = document.getElementById('sn-admin-hellobar-badge2');
+    const helloBarBadge3 = document.getElementById('sn-admin-hellobar-badge3');
+    const helloBarPreviewBox = document.getElementById('sn-admin-hellobar-live-preview');
+    const helloBarInsertShipBtn = document.getElementById('sn-hellobar-insert-shipping-btn');
+    const helloBarClearBtn = document.getElementById('sn-hellobar-clear-text-btn');
+
+    function updateAdminHelloBarPreview() {
+      if (!helloBarPreviewBox) return;
+      const enabled = helloBarEnabledCb ? helloBarEnabledCb.checked : true;
+      let rawText = String(helloBarTextInput ? helloBarTextInput.value : '').trim();
+      const linkedCode = String(helloBarLinkedSelect ? helloBarLinkedSelect.value : '').trim().toUpperCase();
+      const behavior = helloBarBehaviorSelect ? helloBarBehaviorSelect.value : 'STRIP_COUPON_CLAUSE';
+      const shipClause = (helloBarTextInput && helloBarTextInput.getAttribute('data-shipping-clause-preview'))
+        || 'Complimentary India-Wide Delivery on orders above ₹799 (up to 2.0 kg)';
+
+      let linkedStatus = 'ACTIVE';
+      if (linkedCode && helloBarLinkedSelect && helloBarLinkedSelect.selectedIndex >= 0) {
+        const opt = helloBarLinkedSelect.options[helloBarLinkedSelect.selectedIndex];
+        linkedStatus = (opt && opt.getAttribute('data-coupon-status')) || 'ACTIVE';
+      }
+
+      if (!enabled || !rawText) {
+        helloBarPreviewBox.style.cssText = 'border-radius:6px;padding:10px 14px;font-size:0.8rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background-color:var(--sn-bg-surface);color:var(--sn-text-muted);border:1px dashed var(--sn-border-strong);';
+        helloBarPreviewBox.innerHTML = '<span>🚫 Hello Bar Hidden (0px height — disappears completely on storefront)</span>';
+        return;
+      }
+
+      if (linkedCode && linkedStatus !== 'ACTIVE') {
+        if (behavior === 'HIDE_BAR') {
+          helloBarPreviewBox.style.cssText = 'border-radius:6px;padding:10px 14px;font-size:0.8rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background-color:var(--sn-bg-surface);color:var(--sn-text-muted);border:1px dashed var(--sn-border-strong);';
+          helloBarPreviewBox.innerHTML = `<span>🚫 Hello Bar Auto-Hidden (Linked coupon ${escapeHtmlClient(linkedCode)} is ${escapeHtmlClient(linkedStatus)})</span>`;
+          return;
+        }
+        const segments = rawText.split(/\s*\|\s*/).map(s => s.trim()).filter(Boolean);
+        if (segments.length > 1) {
+          rawText = segments.filter(seg => !seg.toUpperCase().includes(linkedCode) && !/\buse\s+code\b/i.test(seg)).join(' | ').trim();
+        } else if (rawText.toUpperCase().includes(linkedCode) || /\buse\s+code\b/i.test(rawText)) {
+          rawText = '';
+        }
+      }
+
+      const expanded = rawText.replace(/\{\{\s*SHIPPING_POLICY\s*\}\}/gi, shipClause).trim();
+      if (!expanded) {
+        helloBarPreviewBox.style.cssText = 'border-radius:6px;padding:10px 14px;font-size:0.8rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background-color:var(--sn-bg-surface);color:var(--sn-text-muted);border:1px dashed var(--sn-border-strong);';
+        helloBarPreviewBox.innerHTML = '<span>🚫 Hello Bar Hidden (0px height — disappears completely on storefront)</span>';
+        return;
+      }
+
+      const badges = [
+        helloBarBadge1 ? helloBarBadge1.value.trim() : '',
+        helloBarBadge2 ? helloBarBadge2.value.trim() : '',
+        helloBarBadge3 ? helloBarBadge3.value.trim() : ''
+      ].filter(Boolean);
+
+      helloBarPreviewBox.style.cssText = 'border-radius:6px;padding:10px 14px;font-size:0.8rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;background-color:var(--sn-bg-forest);color:#FAF5E4;';
+      helloBarPreviewBox.innerHTML = `
+        <span>${escapeHtmlClient(expanded)}</span>
+        <span style="font-family:var(--sn-font-mono);font-size:0.72rem;opacity:0.88;">${badges.map(b => escapeHtmlClient(b)).join(' • ')}</span>
+      `;
+    }
+
+    [helloBarEnabledCb, helloBarTextInput, helloBarLinkedSelect, helloBarBehaviorSelect, helloBarBadge1, helloBarBadge2, helloBarBadge3].forEach(el => {
+      if (el) {
+        el.addEventListener('input', updateAdminHelloBarPreview);
+        el.addEventListener('change', updateAdminHelloBarPreview);
+      }
+    });
+
+    if (helloBarInsertShipBtn && helloBarTextInput) {
+      helloBarInsertShipBtn.addEventListener('click', () => {
+        const cur = helloBarTextInput.value.trim();
+        if (!cur.includes('{{SHIPPING_POLICY}}')) {
+          helloBarTextInput.value = cur ? `{{SHIPPING_POLICY}} | ${cur}` : '{{SHIPPING_POLICY}}';
+        }
+        updateAdminHelloBarPreview();
+      });
+    }
+
+    if (helloBarClearBtn && helloBarTextInput) {
+      helloBarClearBtn.addEventListener('click', () => {
+        helloBarTextInput.value = '';
+        updateAdminHelloBarPreview();
+      });
+    }
+
+    if (helloBarForm) {
+      helloBarForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = getActiveAdminEmail();
+        const payload = {
+          enabled: helloBarEnabledCb ? helloBarEnabledCb.checked : true,
+          templateText: helloBarTextInput ? helloBarTextInput.value.trim() : '',
+          linkedCouponCode: helloBarLinkedSelect ? helloBarLinkedSelect.value.trim() : '',
+          expiredCouponBehavior: helloBarBehaviorSelect ? helloBarBehaviorSelect.value : 'STRIP_COUPON_CLAUSE',
+          topbarBadge1: helloBarBadge1 ? helloBarBadge1.value.trim() : '',
+          topbarBadge2: helloBarBadge2 ? helloBarBadge2.value.trim() : '',
+          topbarBadge3: helloBarBadge3 ? helloBarBadge3.value.trim() : ''
+        };
+
+        if (IS_STATIC_SHOWCASE) {
+          if (email !== 'superadmin@sashyanaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can update the Hello Bar.');
+            return;
+          }
+          const topbarEl = document.querySelector('.sn-topbar');
+          if (topbarEl) {
+            if (!payload.enabled || !payload.templateText) {
+              topbarEl.style.display = 'none';
+            } else {
+              topbarEl.style.display = '';
+              const shipSpan = document.getElementById('sn-dynamic-topbar-ship');
+              const shipClause = (helloBarTextInput && helloBarTextInput.getAttribute('data-shipping-clause-preview'))
+                || 'Complimentary India-Wide Delivery on orders above ₹799';
+              if (shipSpan) {
+                shipSpan.textContent = payload.templateText.replace(/\{\{\s*SHIPPING_POLICY\s*\}\}/gi, shipClause);
+              }
+            }
+          }
+          showToast(
+            !payload.enabled || !payload.templateText
+              ? '[Showcase Verified] Hello Bar hidden (no content / disabled)!'
+              : '[Showcase Verified] Saved Storefront Hello Bar configuration!'
+          );
+          return;
+        }
+
+        const res = await fetch('/api/admin/content/hellobar', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': email
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to save Hello Bar configuration');
+          return;
+        }
+        sessionStorage.setItem('sn_admin_active_module', 'content');
+        sessionStorage.setItem('sn_admin_active_subtab', 'content:coupons');
+        showToast(
+          !payload.enabled || !payload.templateText
+            ? 'Hello Bar hidden (disappears from storefront)!'
+            : 'Saved Storefront Hello Bar configuration!'
+        );
+        setTimeout(() => window.location.reload(), 500);
+      });
+    }
+
+    const couponForm = document.getElementById('sn-admin-coupon-form');
+    const couponHeading = document.getElementById('sn-admin-coupon-form-heading');
+    const couponCodeInput = document.getElementById('sn-coupon-code');
+    const couponDescInput = document.getElementById('sn-coupon-description');
+    const couponVisSelect = document.getElementById('sn-coupon-visibility');
+    const couponTypeSelect = document.getElementById('sn-coupon-discount-type');
+    const couponValInput = document.getElementById('sn-coupon-discount-val');
+    const couponValLabel = document.getElementById('sn-coupon-discount-val-label');
+    const couponMinInput = document.getElementById('sn-coupon-min-order');
+    const couponMaxCapInput = document.getElementById('sn-coupon-max-discount');
+    const couponUsageTypeSelect = document.getElementById('sn-coupon-usage-type');
+    const couponMaxTotalInput = document.getElementById('sn-coupon-max-total');
+    const couponMaxPerCustInput = document.getElementById('sn-coupon-max-per-customer');
+    const couponStartsInput = document.getElementById('sn-coupon-starts-ist');
+    const couponExpiresInput = document.getElementById('sn-coupon-expires-ist');
+    const couponAutoApplyCb = document.getElementById('sn-coupon-auto-apply');
+    const couponIsActiveCb = document.getElementById('sn-coupon-is-active');
+    const couponResetBtn = document.getElementById('sn-coupon-reset-btn');
+
+    function syncCouponFormLabelsAndUsagePresets(autoFillCaps = false) {
+      if (couponTypeSelect && couponValLabel) {
+        const isFlat = couponTypeSelect.value === 'FLAT_PAISE';
+        couponValLabel.textContent = isFlat ? 'Flat Discount Amount (₹) *' : 'Percentage Off (1–90%) *';
+      }
+      if (autoFillCaps && couponUsageTypeSelect) {
+        const uType = couponUsageTypeSelect.value;
+        if (uType === 'SINGLE_USE_GLOBAL') {
+          if (couponMaxTotalInput) couponMaxTotalInput.value = '1';
+          if (couponMaxPerCustInput) couponMaxPerCustInput.value = '1';
+        } else if (uType === 'ONCE_PER_CUSTOMER') {
+          if (couponMaxPerCustInput && Number(couponMaxPerCustInput.value) < 1) {
+            couponMaxPerCustInput.value = '1';
+          }
+          if (couponMaxTotalInput && Number(couponMaxTotalInput.value) === 1) {
+            couponMaxTotalInput.value = '0';
+          }
+        } else if (uType === 'UNIVERSAL') {
+          if (couponMaxPerCustInput) couponMaxPerCustInput.value = '0';
+        }
+      }
+    }
+
+    if (couponTypeSelect) {
+      couponTypeSelect.addEventListener('change', () => syncCouponFormLabelsAndUsagePresets(false));
+    }
+    if (couponUsageTypeSelect) {
+      couponUsageTypeSelect.addEventListener('change', () => syncCouponFormLabelsAndUsagePresets(true));
+    }
+
+    function resetCouponFormToDefault() {
+      if (!couponForm) return;
+      couponForm.reset();
+      if (couponHeading) couponHeading.textContent = '2. Create or Edit Coupon Code';
+      if (couponCodeInput) couponCodeInput.value = '';
+      if (couponDescInput) couponDescInput.value = '';
+      if (couponVisSelect) couponVisSelect.value = 'PUBLIC_CHIP';
+      if (couponTypeSelect) couponTypeSelect.value = 'PERCENT';
+      if (couponValInput) couponValInput.value = '10';
+      if (couponMinInput) couponMinInput.value = '499';
+      if (couponMaxCapInput) couponMaxCapInput.value = '500';
+      if (couponUsageTypeSelect) couponUsageTypeSelect.value = 'UNIVERSAL';
+      if (couponMaxTotalInput) couponMaxTotalInput.value = '0';
+      if (couponMaxPerCustInput) couponMaxPerCustInput.value = '0';
+      if (couponStartsInput) couponStartsInput.value = '';
+      if (couponExpiresInput) couponExpiresInput.value = '';
+      if (couponAutoApplyCb) couponAutoApplyCb.checked = false;
+      if (couponIsActiveCb) couponIsActiveCb.checked = true;
+      syncCouponFormLabelsAndUsagePresets(false);
+    }
+
+    if (couponResetBtn) {
+      couponResetBtn.addEventListener('click', resetCouponFormToDefault);
+    }
+
+    document.querySelectorAll('[data-edit-coupon]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        try {
+          const c = JSON.parse(btn.getAttribute('data-edit-coupon') || '{}');
+          if (!c || !c.code) return;
+          if (couponHeading) couponHeading.textContent = `2. Editing Coupon Code: ${c.code}`;
+          if (couponCodeInput) couponCodeInput.value = c.code;
+          if (couponDescInput) couponDescInput.value = c.description || '';
+          if (couponVisSelect) couponVisSelect.value = c.visibility || 'PUBLIC_CHIP';
+          if (couponTypeSelect) couponTypeSelect.value = c.discount_type || 'PERCENT';
+          if (couponValInput) {
+            couponValInput.value = c.discount_type === 'FLAT_PAISE'
+              ? String(Math.round(Number(c.discount_value || 0) / 100))
+              : String(c.discount_value || 10);
+          }
+          if (couponMinInput) couponMinInput.value = String(Math.round(Number(c.min_order_paise || 0) / 100));
+          if (couponMaxCapInput) couponMaxCapInput.value = String(Math.round(Number(c.max_discount_paise || 0) / 100));
+          if (couponUsageTypeSelect) couponUsageTypeSelect.value = c.usage_type || 'UNIVERSAL';
+          if (couponMaxTotalInput) couponMaxTotalInput.value = String(c.max_total_uses || 0);
+          if (couponMaxPerCustInput) couponMaxPerCustInput.value = String(c.max_uses_per_customer || 0);
+          if (couponStartsInput) couponStartsInput.value = c.starts_at_ist || '';
+          if (couponExpiresInput) couponExpiresInput.value = c.expires_at_ist || '';
+          if (couponAutoApplyCb) couponAutoApplyCb.checked = Number(c.is_auto_apply) === 1;
+          if (couponIsActiveCb) couponIsActiveCb.checked = Number(c.is_active) !== 0;
+          syncCouponFormLabelsAndUsagePresets(false);
+          if (couponForm) couponForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          showToast(`Loaded coupon ${c.code} into editor`);
+        } catch {
+          // ignore malformed JSON
+        }
+      });
+    });
+
+    if (couponForm) {
+      couponForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = getActiveAdminEmail();
+        const payload = {
+          code: couponCodeInput ? couponCodeInput.value.trim().toUpperCase() : '',
+          description: couponDescInput ? couponDescInput.value.trim() : '',
+          visibility: couponVisSelect ? couponVisSelect.value : 'PUBLIC_CHIP',
+          discountType: couponTypeSelect ? couponTypeSelect.value : 'PERCENT',
+          discountValueInr: couponValInput ? Number(couponValInput.value) : 10,
+          minOrderInr: couponMinInput ? Number(couponMinInput.value) : 0,
+          maxDiscountInr: couponMaxCapInput ? Number(couponMaxCapInput.value) : 500,
+          usageType: couponUsageTypeSelect ? couponUsageTypeSelect.value : 'UNIVERSAL',
+          maxTotalUses: couponMaxTotalInput ? Number(couponMaxTotalInput.value) : 0,
+          maxUsesPerCustomer: couponMaxPerCustInput ? Number(couponMaxPerCustInput.value) : 0,
+          startsAtIst: couponStartsInput ? couponStartsInput.value.trim() : '',
+          expiresAtIst: couponExpiresInput ? couponExpiresInput.value.trim() : '',
+          isAutoApply: couponAutoApplyCb && couponAutoApplyCb.checked ? 1 : 0,
+          isActive: couponIsActiveCb && couponIsActiveCb.checked ? 1 : 0
+        };
+
+        if (IS_STATIC_SHOWCASE) {
+          if (email !== 'superadmin@sashyanaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can manage promotional coupons.');
+            return;
+          }
+          showToast(`[Showcase Verified] Saved coupon ${payload.code} (${payload.usageType})!`);
+          return;
+        }
+
+        const res = await fetch('/api/admin/coupons/upsert', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': email
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to save coupon code');
+          return;
+        }
+        sessionStorage.setItem('sn_admin_active_module', 'content');
+        sessionStorage.setItem('sn_admin_active_subtab', 'content:coupons');
+        showToast(`Saved coupon code ${data.coupon.code} (${data.coupon.computed_status})!`);
+        setTimeout(() => window.location.reload(), 500);
+      });
+    }
+
+    document.querySelectorAll('[data-toggle-coupon]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const email = getActiveAdminEmail();
+        const code = btn.getAttribute('data-toggle-coupon');
+        const nextActive = Number(btn.getAttribute('data-next-active') || '0');
+        if (IS_STATIC_SHOWCASE) {
+          if (email !== 'superadmin@sashyanaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can toggle coupons.');
+            return;
+          }
+          showToast(`[Showcase Verified] ${nextActive ? 'Activated' : 'Paused'} coupon ${code}`);
+          return;
+        }
+        const res = await fetch('/api/admin/coupons/toggle', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': email
+          },
+          body: JSON.stringify({ code, isActive: nextActive })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to toggle coupon status');
+          return;
+        }
+        sessionStorage.setItem('sn_admin_active_module', 'content');
+        sessionStorage.setItem('sn_admin_active_subtab', 'content:coupons');
+        showToast(`${nextActive ? 'Activated' : 'Paused'} coupon ${code}!`);
+        setTimeout(() => window.location.reload(), 450);
+      });
+    });
+
+    document.querySelectorAll('[data-delete-coupon]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const email = getActiveAdminEmail();
+        const code = btn.getAttribute('data-delete-coupon');
+        if (IS_STATIC_SHOWCASE) {
+          if (email !== 'superadmin@sashyanaturals.com') {
+            showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can delete coupons.');
+            return;
+          }
+          const tr = btn.closest('tr');
+          if (tr) tr.remove();
+          showToast(`[Showcase Verified] Deleted coupon ${code}`);
+          return;
+        }
+        const res = await fetch('/api/admin/coupons/delete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-email': email
+          },
+          body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to delete coupon');
+          return;
+        }
+        sessionStorage.setItem('sn_admin_active_module', 'content');
+        sessionStorage.setItem('sn_admin_active_subtab', 'content:coupons');
+        showToast(`Deleted coupon ${code}!`);
+        setTimeout(() => window.location.reload(), 450);
+      });
+    });
   }
 
   function initAdminAuthForms() {

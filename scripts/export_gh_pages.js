@@ -57,7 +57,8 @@ function runExport() {
   const categories = db.prepare('SELECT * FROM categories WHERE is_active = 1 ORDER BY display_order').all();
   const products = db.prepare('SELECT * FROM products WHERE is_active = 1 ORDER BY id').all();
   const variants = db.prepare('SELECT * FROM product_variants WHERE is_active = 1 ORDER BY weight_grams').all();
-  const coupons = db.prepare('SELECT * FROM coupons WHERE is_active = 1').all();
+  const { listEnrichedCoupons } = require('../src/core/checkout/checkoutEngine');
+  const coupons = listEnrichedCoupons().filter(c => c.is_active === 1);
   const orders = db.prepare('SELECT * FROM orders ORDER BY id DESC').all();
   const payments = db.prepare('SELECT * FROM payments ORDER BY id DESC').all();
   const staffUsers = db.prepare("SELECT * FROM users WHERE role != 'CUSTOMER' ORDER BY id").all();

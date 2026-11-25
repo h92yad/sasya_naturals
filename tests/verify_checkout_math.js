@@ -307,11 +307,231 @@ function runVerifyCheckoutMath() {
   // Reset Product #2 back to unrestricted baseline
   db.prepare("UPDATE products SET pincode_restriction_mode = 'NONE', pincode_rules_json = '{}' WHERE id = 2").run();
 
-  // Clean up test order so showcase export stays canonical
-  db.prepare('DELETE FROM orders WHERE order_number = ?').run(created.orderNumber);
-  db.prepare("DELETE FROM orders WHERE customer_email = 'buyer@example.com'").run();
+  // 9. Verify v3.3.0 Promotional Coupons Engine (UNIVERSAL, IST Time-Window, ONCE_PER_CUSTOMER Zero-Burn, SINGLE_USE_GLOBAL & Hello Bar Auto-Disappear)
+  const {
+    upsertAdminCoupon,
+    toggleAdminCouponActive,
+    deleteAdminCoupon,
+    listEnrichedCoupons
+  } = require('../src/core/checkout/checkoutEngine');
+  const {
+    updateHelloBarConfig,
+    getHelloBarConfig
+  } = require('../src/core/content/contentStore');
+  const {
+    resolveHelloBarForRender,
+    renderHomePage,
+    renderCheckoutPage
+  } = require('../src/views/renderViews');
 
-  console.log('✓ [Suite 3/7: verify_checkout_math] Verified Rust WASM 4-Zone + 500g Weight-Slab Shipping, Free-Delivery Modes, Per-Product PIN Restrictions, CGST/SGST vs IGST, COD OTP & Razorpay HMAC');
+  // 9a. Time-Dependent Coupon (IST Schedule Window: SCHEDULED -> ACTIVE -> EXPIRED)
+  upsertAdminCoupon({
+    code: 'FLASH20',
+    description: '20% off harvest flash sale above Rs. 500',
+    discountType: 'PERCENT',
+    discountValueInr: 20,
+    minOrderInr: 500,
+    maxDiscountInr: 400,
+    usageType: 'UNIVERSAL',
+    startsAtIst: '2026-12-01T10:00',
+    expiresAtIst: '2026-12-05T22:00',
+    visibility: 'PUBLIC_CHIP',
+    isActive: 1
+  });
+
+  // Before window (2026-11-30T09:00 IST) -> SCHEDULED
+  const scheduledCalc = calculateCartPricing([{ variantId: 2, quantity: 1 }], 'FLASH20', 'ONLINE_UPI', 'Karnataka', '560038', {
+    nowIst: '2026-11-30T09:00'
+  });
+  assert.strictEqual(scheduledCalc.couponStatus, 'SCHEDULED');
+  assert.strictEqual(scheduledCalc.discountPaise, 0);
+
+  // Inside window (2026-12-02T14:30 IST) -> ACTIVE (20% of Rs 750 = Rs 150 = 15000 paise)
+  const activeWindowCalc = calculateCartPricing([{ variantId: 2, quantity: 1 }], 'FLASH20', 'ONLINE_UPI', 'Karnataka', '560038', {
+    nowIst: '2026-12-02T14:30'
+  });
+  assert.strictEqual(activeWindowCalc.couponStatus, 'ACTIVE');
+  assert.strictEqual(activeWindowCalc.discountPaise, 15000);
+
+  // After window (2026-12-06T00:01 IST) -> EXPIRED
+  const expiredWindowCalc = calculateCartPricing([{ variantId: 2, quantity: 1 }], 'FLASH20', 'ONLINE_UPI', 'Karnataka', '560038', {
+    nowIst: '2026-12-06T00:01'
+  });
+  assert.strictEqual(expiredWindowCalc.couponStatus, 'EXPIRED');
+  assert.strictEqual(expiredWindowCalc.discountPaise, 0);
+
+  // 9b. One-Time Per Customer Coupon (ONCE_PER_CUSTOMER: Phone + Email enforcement & Zero-Burn on PENDING_PAYMENT)
+  upsertAdminCoupon({
+    code: 'FIRSTBUY150',
+    description: 'Flat Rs. 150 off once per customer above Rs. 500',
+    discountType: 'FLAT_PAISE',
+    discountValueInr: 150,
+    minOrderInr: 500,
+    usageType: 'ONCE_PER_CUSTOMER',
+    visibility: 'PUBLIC_CHIP',
+    isActive: 1
+  });
+
+  // Unpaid PENDING_PAYMENT order must NOT burn the customer's one-time coupon if they retry checkout
+  const pendingOrd = createOrder({
+    customerName: 'Rohan Kulkarni',
+    customerEmail: 'rohan.once@example.com',
+    customerPhone: '+91 98450 55667',
+    shippingLine1: '22 Residency Road',
+    shippingCity: 'Bengaluru',
+    shippingState: 'Karnataka',
+    shippingPincode: '560025',
+    items: [{ variantId: 2, quantity: 1 }],
+    couponCode: 'FIRSTBUY150',
+    paymentMethod: 'ONLINE_UPI'
+  });
+  assert.strictEqual(pendingOrd.paymentStatus, 'PENDING_PAYMENT');
+  assert.strictEqual(pendingOrd.pricing.discountPaise, 15000);
+
+  // Customer retries while first order is still PENDING_PAYMENT -> must still be ACTIVE (Zero-Burn!)
+  const retryCalc = calculateCartPricing([{ variantId: 2, quantity: 1 }], 'FIRSTBUY150', 'ONLINE_UPI', 'Karnataka', '560025', {
+    customerEmail: 'rohan.once@example.com',
+    customerPhone: '9845055667'
+  });
+  assert.strictEqual(retryCalc.couponStatus, 'ACTIVE', 'Unpaid PENDING_PAYMENT order must not burn ONCE_PER_CUSTOMER coupon');
+  assert.strictEqual(retryCalc.discountPaise, 15000);
+
+  // Now capture the online payment -> order becomes PAID
+  verifyAndCaptureOnlinePayment({
+    orderNumber: pendingOrd.orderNumber,
+    gatewayOrderId: pendingOrd.gatewayOrderId,
+    gatewayPaymentId: `pay_rzp_${pendingOrd.orderNumber.replace(/-/g, '')}`,
+    gatewaySignature: pendingOrd.sandboxSignaturePreview
+  });
+
+  // Same customer attempts reuse with DIFFERENT email but SAME 10-digit phone (9845055667) -> CUSTOMER_LIMIT_REACHED
+  const samePhoneCalc = calculateCartPricing([{ variantId: 2, quantity: 1 }], 'FIRSTBUY150', 'ONLINE_UPI', 'Karnataka', '560025', {
+    customerEmail: 'rohan.alias2@example.com',
+    customerPhone: '098450-55667'
+  });
+  assert.strictEqual(samePhoneCalc.couponStatus, 'CUSTOMER_LIMIT_REACHED', 'Normalized 10-digit phone match must block second ONCE_PER_CUSTOMER redemption');
+  assert.strictEqual(samePhoneCalc.discountPaise, 0);
+
+  assert.throws(() => {
+    createOrder({
+      customerName: 'Rohan Alias',
+      customerEmail: 'rohan.alias2@example.com',
+      customerPhone: '9845055667',
+      shippingLine1: '22 Residency Road',
+      shippingCity: 'Bengaluru',
+      shippingState: 'Karnataka',
+      shippingPincode: '560025',
+      items: [{ variantId: 2, quantity: 1 }],
+      couponCode: 'FIRSTBUY150',
+      paymentMethod: 'ONLINE_UPI'
+    });
+  }, /already been used on a previous order/);
+
+  // Different customer (different email + different phone) CAN redeem FIRSTBUY150
+  const otherCustCalc = calculateCartPricing([{ variantId: 2, quantity: 1 }], 'FIRSTBUY150', 'ONLINE_UPI', 'Karnataka', '560025', {
+    customerEmail: 'meera.fresh@example.com',
+    customerPhone: '9845099887'
+  });
+  assert.strictEqual(otherCustCalc.couponStatus, 'ACTIVE');
+  assert.strictEqual(otherCustCalc.discountPaise, 15000);
+
+  // 9c. Single-Use Global Coupon (SINGLE_USE_GLOBAL: 1 total redemption across store + automatic restoration on Cancel/Refund)
+  upsertAdminCoupon({
+    code: 'VIPGIFT200',
+    description: 'Single-use Rs. 200 VIP voucher',
+    discountType: 'FLAT_PAISE',
+    discountValueInr: 200,
+    minOrderInr: 500,
+    usageType: 'SINGLE_USE_GLOBAL',
+    visibility: 'SECRET_CODE',
+    isActive: 1
+  });
+
+  // Secret code must NOT appear in public checkout coupon chips
+  const checkoutHtml = renderCheckoutPage({
+    coupons: listEnrichedCoupons(),
+    customer: null,
+    addresses: []
+  });
+  assert(!checkoutHtml.includes('data-apply-coupon-chip="VIPGIFT200"'), 'SECRET_CODE coupon must never leak into public checkout chips');
+
+  // First customer redeems VIPGIFT200 via COD (finalized COD_PENDING order)
+  const vipOrd = createOrder({
+    customerName: 'VIP Buyer 1',
+    customerEmail: 'vip1@example.com',
+    customerPhone: '9845011122',
+    shippingLine1: '10 Lavelle Road',
+    shippingCity: 'Bengaluru',
+    shippingState: 'Karnataka',
+    shippingPincode: '560001',
+    items: [{ variantId: 2, quantity: 1 }],
+    couponCode: 'VIPGIFT200',
+    paymentMethod: 'COD'
+  });
+  assert.strictEqual(vipOrd.pricing.discountPaise, 20000);
+
+  // Second customer tries VIPGIFT200 -> LIMIT_REACHED (1/1 used)
+  const secondVipTry = calculateCartPricing([{ variantId: 2, quantity: 1 }], 'VIPGIFT200', 'ONLINE_UPI', 'Karnataka', '560001', {
+    customerEmail: 'vip2@example.com',
+    customerPhone: '9845033344'
+  });
+  assert.strictEqual(secondVipTry.couponStatus, 'LIMIT_REACHED');
+  assert.strictEqual(secondVipTry.discountPaise, 0);
+
+  // Cancel first VIP order -> slot is automatically restored (0/1 used)!
+  updateOrderFulfilmentAndShipping({
+    orderNumber: vipOrd.orderNumber,
+    fulfilmentStatus: 'Cancelled'
+  });
+  const restoredVipTry = calculateCartPricing([{ variantId: 2, quantity: 1 }], 'VIPGIFT200', 'ONLINE_UPI', 'Karnataka', '560001', {
+    customerEmail: 'vip2@example.com',
+    customerPhone: '9845033344'
+  });
+  assert.strictEqual(restoredVipTry.couponStatus, 'ACTIVE', 'Cancelling order must restore SINGLE_USE_GLOBAL coupon slot');
+  assert.strictEqual(restoredVipTry.discountPaise, 20000);
+
+  // 9d. Hello Bar (.sn-topbar) Content Controller, Linked Coupon Circuit-Breaker & Auto-Disappear Rule
+  // Custom text + linked coupon paused -> STRIP_COUPON_CLAUSE strips the dead coupon clause
+  toggleAdminCouponActive('FLASH20', 0);
+  updateHelloBarConfig({
+    enabled: true,
+    templateText: '{{SHIPPING_POLICY}} | Use code FLASH20 for 20% off',
+    linkedCouponCode: 'FLASH20',
+    expiredCouponBehavior: 'STRIP_COUPON_CLAUSE'
+  });
+  const strippedHb = resolveHelloBarForRender(getHelloBarConfig());
+  assert.strictEqual(strippedHb.visible, true);
+  assert(!strippedHb.announcementHtml.includes('FLASH20'), 'Paused/expired linked coupon clause must be stripped from Hello Bar');
+  assert(strippedHb.announcementHtml.includes('Complimentary India-Wide Delivery'), 'Shipping policy clause must remain visible when coupon clause is stripped');
+
+  // Empty templateText -> Hello Bar disappears completely (visible: false, 0 .sn-topbar in rendered HTML)
+  updateHelloBarConfig({
+    enabled: true,
+    templateText: '   '
+  });
+  const emptyHb = resolveHelloBarForRender(getHelloBarConfig());
+  assert.strictEqual(emptyHb.visible, false, 'Hello Bar must disappear when templateText is empty');
+  const homeHtmlWithoutHelloBar = renderHomePage({
+    categories: db.prepare('SELECT * FROM categories WHERE is_active = 1').all(),
+    products: db.prepare('SELECT * FROM products WHERE is_active = 1 LIMIT 2').all(),
+    variants: db.prepare('SELECT * FROM product_variants WHERE is_active = 1').all()
+  });
+  assert(!homeHtmlWithoutHelloBar.includes('<div class="sn-topbar"'), 'SSR page must completely omit .sn-topbar when Hello Bar has no content');
+
+  // Clean up test coupons, orders, and Hello Bar settings back to canonical baseline
+  deleteAdminCoupon('FLASH20');
+  deleteAdminCoupon('FIRSTBUY150');
+  deleteAdminCoupon('VIPGIFT200');
+  updateOrderFulfilmentAndShipping({
+    orderNumber: pendingOrd.orderNumber,
+    fulfilmentStatus: 'Refunded'
+  });
+  db.prepare('DELETE FROM orders WHERE order_number IN (?, ?, ?)').run(created.orderNumber, pendingOrd.orderNumber, vipOrd.orderNumber);
+  db.prepare("DELETE FROM orders WHERE customer_email IN ('buyer@example.com', 'rohan.once@example.com', 'vip1@example.com')").run();
+  db.prepare("DELETE FROM store_settings WHERE key = 'content_hellobar_json'").run();
+  db.prepare("DELETE FROM audit_logs WHERE action IN ('COUPON_CREATED', 'COUPON_UPDATED', 'COUPON_STATUS_TOGGLED', 'COUPON_DELETED', 'HELLOBAR_CONTENT_UPDATED')").run();
+
+  console.log('✓ [Suite 3/7: verify_checkout_math] Verified Rust WASM 4-Zone + 500g Weight-Slab Shipping, Free-Delivery Modes, Per-Product PIN Restrictions, Universal/IST-Window/Once-Per-Customer/Single-Use Coupons, Hello Bar Auto-Disappear, CGST/SGST vs IGST, COD OTP & Razorpay HMAC');
 }
 
 if (require.main === module) {

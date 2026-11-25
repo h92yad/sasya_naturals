@@ -150,7 +150,16 @@ function initSchema(db) {
       discount_value INTEGER NOT NULL,
       min_order_paise INTEGER NOT NULL DEFAULT 0,
       max_discount_paise INTEGER NOT NULL DEFAULT 100000,
-      is_active INTEGER NOT NULL DEFAULT 1
+      usage_type TEXT NOT NULL DEFAULT 'UNIVERSAL',
+      max_total_uses INTEGER NOT NULL DEFAULT 0,
+      max_uses_per_customer INTEGER NOT NULL DEFAULT 0,
+      starts_at_ist TEXT NOT NULL DEFAULT '',
+      expires_at_ist TEXT NOT NULL DEFAULT '',
+      visibility TEXT NOT NULL DEFAULT 'PUBLIC_CHIP',
+      is_auto_apply INTEGER NOT NULL DEFAULT 0,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
     CREATE TABLE IF NOT EXISTS orders (
@@ -883,13 +892,13 @@ function seedDatabaseIfEmpty(db) {
 
   // 5. Seed Promotional Coupons
   const insertCoupon = db.prepare(`
-    INSERT INTO coupons (code, description, discount_type, discount_value, min_order_paise, max_discount_paise, is_active)
-    VALUES (?, ?, ?, ?, ?, ?, 1)
+    INSERT INTO coupons (code, description, discount_type, discount_value, min_order_paise, max_discount_paise, visibility, is_auto_apply, is_active)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
   `);
-  insertCoupon.run('SASHYA10', '10% off on orders above Rs. 499', 'PERCENT', 10, 49900, 50000);
-  insertCoupon.run('SASYA10', '10% off on orders above Rs. 499', 'PERCENT', 10, 49900, 50000);
-  insertCoupon.run('WELCOME15', '15% off first pantry order above Rs. 999', 'PERCENT', 15, 99900, 75000);
-  insertCoupon.run('PANTRY100', 'Flat Rs. 100 off on orders above Rs. 799', 'FLAT_PAISE', 10000, 79900, 10000);
+  insertCoupon.run('SASHYA10', '10% off on orders above Rs. 499', 'PERCENT', 10, 49900, 50000, 'PUBLIC_CHIP', 1);
+  insertCoupon.run('SASYA10', '10% off on orders above Rs. 499', 'PERCENT', 10, 49900, 50000, 'SECRET_CODE', 0);
+  insertCoupon.run('WELCOME15', '15% off first pantry order above Rs. 999', 'PERCENT', 15, 99900, 75000, 'PUBLIC_CHIP', 0);
+  insertCoupon.run('PANTRY100', 'Flat Rs. 100 off on orders above Rs. 799', 'FLAT_PAISE', 10000, 79900, 10000, 'PUBLIC_CHIP', 0);
 
   // 6. Seed 2 Realistic Sample Orders (1 Shipped Online Order with Manual Tracking + 1 Confirmed COD Order)
   const insertOrder = db.prepare(`
@@ -1351,12 +1360,37 @@ function ensureCompleteSection3CatalogAndCustomerAddresses(db) {
 }
 
 function ensureSashyaBrandingMigration(db) {
+  // 0. Ensure v3.3.0 Coupons & Promotions columns exist on existing SQLite databases
+  const couponCols = new Set(db.prepare('PRAGMA table_info(coupons)').all().map(c => c.name));
+  const couponAdditions = [
+    ["usage_type", "TEXT NOT NULL DEFAULT 'UNIVERSAL'"],
+    ["max_total_uses", "INTEGER NOT NULL DEFAULT 0"],
+    ["max_uses_per_customer", "INTEGER NOT NULL DEFAULT 0"],
+    ["starts_at_ist", "TEXT NOT NULL DEFAULT ''"],
+    ["expires_at_ist", "TEXT NOT NULL DEFAULT ''"],
+    ["visibility", "TEXT NOT NULL DEFAULT 'PUBLIC_CHIP'"],
+    ["is_auto_apply", "INTEGER NOT NULL DEFAULT 0"],
+    ["created_at", "TEXT NOT NULL DEFAULT ''"],
+    ["updated_at", "TEXT NOT NULL DEFAULT ''"]
+  ];
+  for (const [colName, colDef] of couponAdditions) {
+    if (!couponCols.has(colName)) {
+      db.exec(`ALTER TABLE coupons ADD COLUMN ${colName} ${colDef}`);
+    }
+  }
+
   // 1. Ensure both SASHYA10 (primary) and SASYA10 (backward-compatible alias) exist in coupons
   db.prepare(`
-    INSERT OR IGNORE INTO coupons (code, description, discount_type, discount_value, min_order_paise, max_discount_paise, is_active)
-    VALUES ('SASHYA10', '10% off on orders above Rs. 499', 'PERCENT', 10, 49900, 50000, 1),
-           ('SASYA10', '10% off on orders above Rs. 499', 'PERCENT', 10, 49900, 50000, 1)
+    INSERT OR IGNORE INTO coupons (code, description, discount_type, discount_value, min_order_paise, max_discount_paise, usage_type, visibility, is_auto_apply, is_active)
+    VALUES ('SASHYA10', '10% off on orders above Rs. 499', 'PERCENT', 10, 49900, 50000, 'UNIVERSAL', 'PUBLIC_CHIP', 1, 1),
+           ('SASYA10', '10% off on orders above Rs. 499', 'PERCENT', 10, 49900, 50000, 'UNIVERSAL', 'SECRET_CODE', 0, 1)
   `).run();
+  db.prepare("UPDATE coupons SET visibility = 'SECRET_CODE' WHERE code = 'SASYA10'").run();
+  const autoApplyInit = db.prepare("SELECT value FROM store_settings WHERE key = 'coupon_auto_apply_initialized'").get();
+  if (!autoApplyInit) {
+    db.prepare("UPDATE coupons SET is_auto_apply = CASE WHEN code = 'SASHYA10' THEN 1 ELSE 0 END").run();
+    db.prepare("INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES ('coupon_auto_apply_initialized', '1', datetime('now'))").run();
+  }
 
   // 2. Migrate any existing store_settings rows (including serialized content_homepage_json / content_pages_json / content_seo_json)
   const settingsRows = db.prepare('SELECT key, value FROM store_settings').all();
