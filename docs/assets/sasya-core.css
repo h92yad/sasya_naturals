@@ -1680,7 +1680,7 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
   border-left: 1px solid var(--sn-border-warm) !important;
   border-right: 1px solid var(--sn-border-warm) !important;
   border-radius: 0 !important;
-  width: 48px !important;
+  width: 60px !important;
   height: 100% !important;
   min-height: 0 !important;
   text-align: center;
@@ -2548,12 +2548,22 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
   flex: 1;
 }
 
+.sn-account-label-compact,
+.sn-mobile-nav-only {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
   .sn-admin-order-item-row {
-    grid-template-columns: 1fr 90px 40px !important;
+    grid-template-columns: 1fr auto !important;
+    gap: 8px !important;
   }
   .sn-admin-order-item-row .sn-admin-order-variant-select {
     grid-column: 1 / -1;
+  }
+  .sn-admin-order-item-row .sn-admin-remove-item-btn {
+    grid-column: 1 / -1;
+    width: 100% !important;
   }
 }
 
@@ -2651,9 +2661,257 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
   }
 }
 
+/* v3.2.0: Adversarial Mobile UI Overhaul (<= 640px) */
 @media (max-width: 640px) {
   .sn-pdp-macro-grid,
   .sn-admin-variant-price-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  /* M-04: Single-Row Sticky Global Header on Mobile (320px-640px) */
+  .sn-account-label-full {
+    display: none !important;
+  }
+  .sn-account-label-compact {
+    display: inline-block !important;
+    font-size: 0.92rem;
+    line-height: 1;
+  }
+  .sn-mobile-nav-only {
+    display: flex !important;
+  }
+  .sn-header-inner {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    gap: 6px;
+  }
+  .sn-brand {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .sn-brand-logo-img {
+    height: 28px;
+  }
+  .sn-header-actions {
+    flex: 0 0 auto;
+    gap: 5px;
+  }
+  #header-account-btn {
+    padding: 6px 8px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+  }
+  #header-cart-btn {
+    padding: 6px 10px !important;
+    min-height: 38px !important;
+    font-size: 0.74rem !important;
+  }
+  #mobile-menu-btn {
+    padding: 6px 9px !important;
+    min-width: 38px !important;
+    min-height: 38px !important;
+  }
+  .sn-admin-sidebar {
+    top: 52px;
+  }
+
+  /* M-01: Slide-Over Cart Drawer Compact Footer & 2-Row Item Cards */
+  .sn-drawer {
+    width: 100%;
+    max-width: 100vw;
+  }
+  .sn-drawer-head {
+    padding: 10px 14px;
+  }
+  .sn-drawer-head strong {
+    font-size: 1.05rem !important;
+  }
+  .sn-drawer-body {
+    padding: 8px 14px;
+  }
+  .sn-drawer-foot {
+    padding: 10px 14px;
+  }
+  .sn-cart-step-btn {
+    min-width: 34px !important;
+    min-height: 34px !important;
+    width: 34px !important;
+    height: 34px !important;
+    padding: 0 !important;
+    font-size: 0.88rem !important;
+  }
+  .sn-cart-foot-actions .sn-btn {
+    min-height: 38px !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* M-02: Add-to-Basket Toast Notification Button Overflow Guard */
+  .sn-toast.sn-show {
+    gap: 10px;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+  }
+  .sn-toast-action-btn {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    width: auto !important;
+    min-height: 34px !important;
+    padding: 5px 10px !important;
+    font-size: 0.74rem !important;
+  }
+
+  /* M-05: PDP Buy Box CTA Grid, PIN Checker Row & Equal-Width Spec Tabs */
+  .sn-pdp-cta-row {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: auto 1fr;
+    gap: 8px !important;
+  }
+  .sn-pdp-cta-row #pdp-add-to-cart-btn {
+    width: 100%;
+  }
+  .sn-pdp-cta-row #pdp-buy-now-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .sn-pdp-pin-row {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 6px !important;
+  }
+  .sn-pdp-pin-row label {
+    grid-column: 1 / -1;
+  }
+  .sn-pdp-pin-row #sn-pdp-pin-input {
+    width: 100% !important;
+    min-width: 72px !important;
+  }
+  .sn-pdp-spec-tabbar {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 6px !important;
+    padding: 6px !important;
+  }
+  .sn-pdp-spec-tabbar .sn-admin-subtab-pill {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    font-size: 0.72rem !important;
+    padding: 6px 6px !important;
+    min-height: 38px !important;
+    line-height: 1.2;
+  }
+  .sn-spec-table th {
+    width: 34%;
+    padding: 8px 10px;
+    font-size: 0.76rem;
+  }
+  .sn-spec-table td {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+  }
+
+  /* M-07: Checkout Page Promotional Coupon Chips */
+  .sn-coupon-chip {
+    width: 100%;
+    border-radius: var(--sn-radius-sm) !important;
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding: 8px 10px !important;
+    line-height: 1.3;
+  }
+
+  /* M-03: Compact Admin Modal Header & 2x2 Modal Sub-Tab Grid */
+  .sn-admin-modal-backdrop {
+    padding: 6px;
+    align-items: flex-start;
+  }
+  .sn-admin-modal-card {
+    max-height: calc(100dvh - 12px);
+    border-radius: var(--sn-radius-sm);
+  }
+  .sn-admin-modal-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .sn-admin-modal-header > div:first-child,
+  .sn-admin-modal-header > div:first-child > div {
+    min-width: 0;
+    flex: 1;
+  }
+  .sn-admin-modal-header img {
+    width: 34px !important;
+    height: 34px !important;
+    flex-shrink: 0;
+  }
+  .sn-admin-modal-header span {
+    display: block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.65rem !important;
+  }
+  .sn-admin-modal-header h3 {
+    font-size: 0.92rem !important;
+    line-height: 1.22 !important;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .sn-admin-modal-header [data-close-prod-modal],
+  .sn-admin-modal-header [data-close-cat-modal],
+  .sn-admin-modal-header [data-close-order-modal] {
+    padding: 4px 8px !important;
+    min-height: 34px !important;
+    min-width: 34px !important;
+    font-size: 0.74rem !important;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .sn-admin-modal-body {
+    padding: 10px 12px;
+  }
+  .sn-admin-modal-body .sn-admin-subnav-bar {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    padding: 6px !important;
+    margin-bottom: 10px !important;
+  }
+  .sn-admin-modal-body .sn-admin-subtab-pill {
+    width: 100%;
+    min-height: 36px !important;
+    padding: 6px 6px !important;
+    font-size: 0.71rem !important;
+    line-height: 1.2 !important;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* M-08: Admin RBAC Staff Update Form & File Upload Groups */
+  .sn-admin-staff-update-form {
+    grid-template-columns: 1fr !important;
+  }
+  .sn-admin-file-action-group {
+    flex-wrap: wrap !important;
+  }
+  .sn-admin-file-action-group input[type="file"] {
+    width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+
+  /* M-09: Constrain Sticky First Column on Wide Read-Only Tables */
+  table.sn-table:not(.sn-table-cards) th:first-child,
+  table.sn-table:not(.sn-table-cards) td:first-child {
+    max-width: 118px;
+    white-space: normal;
+    word-break: break-word;
+  }
 }
+

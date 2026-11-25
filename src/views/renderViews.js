@@ -304,13 +304,17 @@ function renderShell({
         </div>
 
         <a href="${basePath}/track-order" class="${activeNav === 'track' ? 'sn-active' : ''}" id="nav-track">Track Order</a>
+        <a href="${basePath}/account" class="sn-mobile-nav-only ${activeNav === 'account' ? 'sn-active' : ''}" id="nav-account-mobile">My Account &amp; Saved Addresses</a>
       </nav>
       <div class="sn-header-actions">
         <form action="${basePath}/shop" method="GET" class="sn-header-search" id="sn-header-search-form">
           <input type="search" name="q" placeholder="Search almonds, ragi, spices..." class="sn-header-search-input" id="sn-header-search-input" aria-label="Search products" />
           <button type="submit" class="sn-header-search-btn" aria-label="Search">🔍</button>
         </form>
-        <a href="${basePath}/account" class="sn-btn ${activeNav === 'account' ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm" id="header-account-btn">My Account</a>
+        <a href="${basePath}/account" class="sn-btn ${activeNav === 'account' ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm" id="header-account-btn" aria-label="My Account">
+          <span class="sn-account-label-full">My Account</span>
+          <span class="sn-account-label-compact" aria-hidden="true">👤</span>
+        </a>
         <button type="button" class="sn-btn sn-btn-forest sn-btn-sm sn-cart-trigger" data-open-cart id="header-cart-btn">
           <span>Basket</span>
           <span class="sn-cart-count" data-cart-count>0</span>
@@ -830,7 +834,7 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
                   <span style="font-size:0.76rem;color:var(--sn-text-muted);">Inclusive of ${product.gst_percent}% GST | ${escapeHtml(shipCopy.pdpShortText)}</span>
                 </div>
 
-                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <div class="sn-pdp-cta-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                   <div class="sn-qty-stepper" aria-label="Pack Quantity">
                     <button type="button" class="sn-qty-step-btn" data-pdp-qty-delta="-1" aria-label="Decrease quantity">&minus;</button>
                     <input type="number" id="sn-pdp-qty" value="1" min="1" max="20" class="sn-input" aria-label="Quantity" />
@@ -865,8 +869,8 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
                   </div>
                 ` : ''}
                 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <label for="sn-pdp-pin-input" style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-secondary);">📍 Delivery PIN:</label>
+                  <div class="sn-pdp-pin-row" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <label for="sn-pdp-pin-input" style="font-family:var(--sn-font-mono);font-size:0.74rem;color:var(--sn-text-secondary);white-space:nowrap;">📍 Delivery PIN:</label>
                     <input
                       type="text"
                       id="sn-pdp-pin-input"
@@ -876,9 +880,9 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
                       data-product-id="${product.id}"
                       data-product-pincode-rules="${escapeHtml(JSON.stringify(pinRules))}"
                       class="sn-input"
-                      style="width:96px;padding:5px 8px;min-height:32px;font-family:var(--sn-font-mono);font-size:0.78rem;"
+                      style="width:104px;padding:5px 8px;min-height:32px;font-family:var(--sn-font-mono);font-size:0.78rem;"
                     />
-                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-pdp-pin-check-btn" style="min-height:32px;padding:4px 10px;">Check PIN</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-pdp-pin-check-btn" style="min-height:32px;padding:4px 10px;white-space:nowrap;flex-shrink:0;">Check PIN</button>
                   </div>
                   <span id="sn-pdp-pin-result" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.73rem;">
                     ✓ Zone A (Local Bengaluru • 1-2 Days) • Prepaid &amp; COD Available
@@ -891,7 +895,7 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
               const nut = parseProductNutrition(product);
               return `
               <div class="sn-pdp-spec-card" data-pdp-spec-container>
-                <div class="sn-admin-subnav-bar" role="tablist" aria-label="Product Specifications and Nutritional Information" style="margin-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:none;">
+                <div class="sn-admin-subnav-bar sn-pdp-spec-tabbar" role="tablist" aria-label="Product Specifications and Nutritional Information" style="margin-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:none;">
                   <button type="button" class="sn-admin-subtab-pill sn-active" data-pdp-spec-tab="compliance" role="tab" aria-selected="true">📋 Origin, Batch &amp; FSSAI Compliance</button>
                   <button type="button" class="sn-admin-subtab-pill" data-pdp-spec-tab="nutrition" role="tab" aria-selected="false">🥗 Nutritional Value (Per 100 g)</button>
                 </div>
@@ -3739,7 +3743,7 @@ function renderAdminPortalPage({
                 <!-- 2. Granular Time-Series Breakdowns (Daily by Date | Weekly by ISO Week | Monthly by Month) -->
                 <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
                   <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">2. Granular Time-Series Sales Breakdown (Daily, Weekly &amp; Monthly Ledger)</h3>
-                  <div style="display:flex;gap:6px;">
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;">
                     <button type="button" class="sn-btn sn-btn-forest sn-btn-sm" data-report-period-btn="daily">Daily Breakdown (${reports.dailySales.length} Days)</button>
                     <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-report-period-btn="weekly">Weekly Breakdown (${reports.weeklySales.length} Weeks)</button>
                     <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-report-period-btn="monthly">Monthly Breakdown (${reports.monthlySales.length} Months)</button>
@@ -4709,15 +4713,15 @@ function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath
       <div class="sn-card" style="margin-top:20px;background-color:var(--sn-bg-parchment);">
         <h2 style="font-family:var(--sn-font-serif);font-size:1.3rem;margin:0 0 12px;color:var(--sn-bg-forest);">4-Zone + 500g Weight-Slab Courier Rate Card</h2>
         <div class="sn-table-wrap">
-          <table class="sn-table">
+          <table class="sn-table sn-table-cards">
             <thead>
               <tr><th>Delivery Zone</th><th>PIN Code Coverage</th><th>Base 500g Slab</th><th>Each Additional 500g</th><th>Estimated Transit</th></tr>
             </thead>
             <tbody>
-              <tr><td><strong>Zone A (Local Bengaluru)</strong></td><td style="font-family:var(--sn-font-mono);">560xxx</td><td style="font-family:var(--sn-font-mono);">₹40</td><td style="font-family:var(--sn-font-mono);">+₹15</td><td>1 to 2 Business Days</td></tr>
-              <tr><td><strong>Zone B (South India)</strong></td><td style="font-family:var(--sn-font-mono);">Karnataka, TN, Kerala, AP, Telangana</td><td style="font-family:var(--sn-font-mono);">₹55</td><td style="font-family:var(--sn-font-mono);">+₹25</td><td>2 to 4 Business Days</td></tr>
-              <tr><td><strong>Zone C (Rest of India)</strong></td><td style="font-family:var(--sn-font-mono);">MH, DL, GJ, RJ, UP, WB, MP &amp; Metros</td><td style="font-family:var(--sn-font-mono);">₹75</td><td style="font-family:var(--sn-font-mono);">+₹35</td><td>3 to 5 Business Days</td></tr>
-              <tr><td><strong>Zone D (NE / J&amp;K / Remote)</strong></td><td style="font-family:var(--sn-font-mono);">18xxxx, 19xxxx, 78xxxx, 79xxxx</td><td style="font-family:var(--sn-font-mono);">₹110</td><td style="font-family:var(--sn-font-mono);">+₹55</td><td>5 to 7 Business Days</td></tr>
+              <tr><td data-label="Delivery Zone"><strong>Zone A (Local Bengaluru)</strong></td><td data-label="PIN Coverage" style="font-family:var(--sn-font-mono);">560xxx</td><td data-label="Base 500g Slab" style="font-family:var(--sn-font-mono);">₹40</td><td data-label="Each Addl. 500g" style="font-family:var(--sn-font-mono);">+₹15</td><td data-label="Estimated Transit">1 to 2 Business Days</td></tr>
+              <tr><td data-label="Delivery Zone"><strong>Zone B (South India)</strong></td><td data-label="PIN Coverage" style="font-family:var(--sn-font-mono);">Karnataka, TN, Kerala, AP, Telangana</td><td data-label="Base 500g Slab" style="font-family:var(--sn-font-mono);">₹55</td><td data-label="Each Addl. 500g" style="font-family:var(--sn-font-mono);">+₹25</td><td data-label="Estimated Transit">2 to 4 Business Days</td></tr>
+              <tr><td data-label="Delivery Zone"><strong>Zone C (Rest of India)</strong></td><td data-label="PIN Coverage" style="font-family:var(--sn-font-mono);">MH, DL, GJ, RJ, UP, WB, MP &amp; Metros</td><td data-label="Base 500g Slab" style="font-family:var(--sn-font-mono);">₹75</td><td data-label="Each Addl. 500g" style="font-family:var(--sn-font-mono);">+₹35</td><td data-label="Estimated Transit">3 to 5 Business Days</td></tr>
+              <tr><td data-label="Delivery Zone"><strong>Zone D (NE / J&amp;K / Remote)</strong></td><td data-label="PIN Coverage" style="font-family:var(--sn-font-mono);">18xxxx, 19xxxx, 78xxxx, 79xxxx</td><td data-label="Base 500g Slab" style="font-family:var(--sn-font-mono);">₹110</td><td data-label="Each Addl. 500g" style="font-family:var(--sn-font-mono);">+₹55</td><td data-label="Estimated Transit">5 to 7 Business Days</td></tr>
             </tbody>
           </table>
         </div>

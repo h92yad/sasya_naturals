@@ -57,15 +57,16 @@
     if (!toast) return;
     toast.innerHTML = '';
     const span = document.createElement('span');
+    span.style.cssText = 'flex:1;min-width:0;line-height:1.35;';
     span.textContent = msg;
     toast.appendChild(span);
 
     if (options.showViewBasket) {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = 'sn-btn sn-btn-primary sn-btn-sm';
+      btn.className = 'sn-btn sn-btn-primary sn-btn-sm sn-toast-action-btn';
       btn.setAttribute('data-open-cart', 'true');
-      btn.style.cssText = 'padding:4px 10px;min-height:28px;font-size:0.76rem;white-space:nowrap;';
+      btn.style.cssText = 'padding:6px 12px;min-height:34px;font-size:0.76rem;white-space:nowrap;flex-shrink:0;width:auto;';
       btn.innerHTML = 'View Basket &rarr;';
       toast.appendChild(btn);
     }
@@ -445,51 +446,57 @@
       }
 
       bodyEl.innerHTML = p.lineItems.map(item => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--sn-border-warm);gap:10px;">
-          <img
-            src="${BASE_PATH}${item.imageUrl || '/images/hero-pantry.jpg'}"
-            alt="${item.productName}"
-            style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);flex-shrink:0;"
-          />
-          <div style="flex:1;min-width:0;">
-            <div style="font-weight:600;color:var(--sn-bg-forest);font-size:0.9rem;line-height:1.25;">${item.productName}</div>
-            <div style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);">Pack: ${item.packLabel} | SKU: ${item.sku}</div>
-            <div style="font-family:var(--sn-font-mono);font-size:0.83rem;font-weight:600;margin-top:3px;">${formatInr(item.unitPricePaise)} &times; ${item.quantity} = ${formatInr(item.lineTotalPaise)}</div>
-            ${item.deliverablePrepaid === false ? `
-              <div style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-status-danger);margin-top:3px;">
-                ✕ Restricted for PIN ${escapeHtmlClient(activePin)}: ${escapeHtmlClient(item.pincodeRestrictionReason)}
-              </div>
-            ` : (item.codAllowedForProduct === false ? `
-              <div style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-status-warn);margin-top:3px;">
-                ⚠️ Prepaid Only at PIN ${escapeHtmlClient(activePin)}
-              </div>
-            ` : '')}
+        <div class="sn-cart-item-card" style="padding:10px 0;border-bottom:1px solid var(--sn-border-warm);display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <img
+              src="${BASE_PATH}${item.imageUrl || '/images/hero-pantry.jpg'}"
+              alt="${item.productName}"
+              style="width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);flex-shrink:0;"
+            />
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;color:var(--sn-bg-forest);font-size:0.88rem;line-height:1.3;">${item.productName}</div>
+              <div style="font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-text-muted);margin-top:2px;">Pack: <strong>${item.packLabel}</strong> &bull; SKU: ${item.sku}</div>
+              ${item.deliverablePrepaid === false ? `
+                <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-status-danger);margin-top:3px;">
+                  ✕ Restricted for PIN ${escapeHtmlClient(activePin)}: ${escapeHtmlClient(item.pincodeRestrictionReason)}
+                </div>
+              ` : (item.codAllowedForProduct === false ? `
+                <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-status-warn);margin-top:3px;">
+                  ⚠️ Prepaid Only at PIN ${escapeHtmlClient(activePin)}
+                </div>
+              ` : '')}
+            </div>
           </div>
-          <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
-            <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-cart-qty="${item.variantId}" data-delta="-1" aria-label="Decrease quantity">-</button>
-            <span style="font-family:var(--sn-font-mono);font-size:0.84rem;min-width:18px;text-align:center;">${item.quantity}</span>
-            <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-cart-qty="${item.variantId}" data-delta="1" aria-label="Increase quantity">+</button>
-            <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-cart-remove="${item.variantId}" title="Remove item from basket" aria-label="Remove item" style="color:var(--sn-status-danger);padding:4px 7px;">&times;</button>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding-left:58px;">
+            <div style="font-family:var(--sn-font-mono);font-size:0.82rem;font-weight:700;color:var(--sn-text-primary);">
+              ${formatInr(item.unitPricePaise)} &times; ${item.quantity} = <span style="color:var(--sn-bg-forest);">${formatInr(item.lineTotalPaise)}</span>
+            </div>
+            <div class="sn-cart-item-controls" style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+              <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-cart-step-btn" data-cart-qty="${item.variantId}" data-delta="-1" aria-label="Decrease quantity">&minus;</button>
+              <span style="font-family:var(--sn-font-mono);font-size:0.82rem;font-weight:700;min-width:22px;text-align:center;">${item.quantity}</span>
+              <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-cart-step-btn" data-cart-qty="${item.variantId}" data-delta="1" aria-label="Increase quantity">+</button>
+              <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-cart-step-btn" data-cart-remove="${item.variantId}" title="Remove item from basket" aria-label="Remove item" style="color:var(--sn-status-danger);">&times;</button>
+            </div>
           </div>
         </div>
       `).join('');
 
       footEl.innerHTML = `
         ${freeDeliveryBanner}
-        <div style="padding:7px 10px;border-radius:6px;background-color:var(--sn-bg-parchment);border:1px dashed var(--sn-border-strong);font-family:var(--sn-font-mono);font-size:0.71rem;color:var(--sn-bg-forest);margin-bottom:10px;">
-          🏷️ Promo Codes at Checkout: <strong>SASHYA10</strong> (10% off) • <strong>WELCOME15</strong> (15% off &ge; ₹999)
+        <div class="sn-cart-promo-strip" style="padding:6px 10px;border-radius:6px;background-color:var(--sn-bg-parchment);border:1px dashed var(--sn-border-strong);font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-bg-forest);margin-bottom:8px;">
+          🏷️ Codes: <strong>SASHYA10</strong> (10% off) &bull; <strong>WELCOME15</strong> (15% off &ge; ₹999)
         </div>
-        <div style="font-size:0.85rem;display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
+        <div style="font-size:0.83rem;display:flex;flex-direction:column;gap:4px;margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;"><span>Subtotal (incl. GST ${formatInr(p.gstPaise)})</span><strong style="font-family:var(--sn-font-mono);">${formatInr(p.subtotalPaise)}</strong></div>
-          <div style="display:flex;justify-content:space-between;"><span>Est. Delivery (PIN ${escapeHtmlClient(activePin)} • ${grossGrams}g)</span><strong style="font-family:var(--sn-font-mono);">${p.shippingPaise === 0 ? 'FREE' : formatInr(p.shippingPaise)}</strong></div>
-          <div style="display:flex;justify-content:space-between;font-size:1.05rem;padding-top:8px;border-top:1px solid var(--sn-border-warm);color:var(--sn-bg-forest);">
+          <div style="display:flex;justify-content:space-between;"><span>Est. Delivery (PIN ${escapeHtmlClient(activePin)} &bull; ${grossGrams}g)</span><strong style="font-family:var(--sn-font-mono);">${p.shippingPaise === 0 ? 'FREE' : formatInr(p.shippingPaise)}</strong></div>
+          <div style="display:flex;justify-content:space-between;font-size:1rem;padding-top:6px;border-top:1px solid var(--sn-border-warm);color:var(--sn-bg-forest);">
             <strong>Order Total</strong>
             <strong style="font-family:var(--sn-font-mono);">${formatInr(p.totalPaise)}</strong>
           </div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button type="button" class="sn-btn sn-btn-outline" id="sn-clear-cart-btn" style="flex:1;">Clear</button>
-          <a href="${BASE_PATH}/checkout" class="sn-btn sn-btn-primary" style="flex:1.4;">Proceed to Checkout &rarr;</a>
+        <div class="sn-cart-foot-actions" style="display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;">
+          <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-clear-cart-btn" style="padding:8px 12px;">Clear</button>
+          <a href="${BASE_PATH}/checkout" class="sn-btn sn-btn-primary sn-btn-sm" style="padding:8px 14px;white-space:nowrap;">Proceed to Checkout &rarr;</a>
         </div>
       `;
     } catch (err) {
