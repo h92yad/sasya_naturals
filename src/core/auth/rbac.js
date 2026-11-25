@@ -41,7 +41,8 @@ const ROLE_PERMISSIONS_MATRIX = {
     'payments.view',
     'payments.refund',
     'reports.view',
-    'orders.view'
+    'orders.view',
+    'customers.view'
   ],
   [STAFF_ROLES.STAFF]: [
     'overview.view',
@@ -50,29 +51,32 @@ const ROLE_PERMISSIONS_MATRIX = {
   ]
 };
 
+const VALID_ADMIN_PERMISSIONS = new Set(ROLE_PERMISSIONS_MATRIX[STAFF_ROLES.SUPER_ADMIN]);
+
 function hasPermission(user, requiredPermission) {
   if (!user || !user.role || !user.is_active) return false;
   if (user.role === STAFF_ROLES.SUPER_ADMIN) return true;
 
-  let customPerms = [];
-  if (user.permissions_json) {
-    try {
-      const parsed = typeof user.permissions_json === 'string'
-        ? JSON.parse(user.permissions_json)
-        : user.permissions_json;
-      if (Array.isArray(parsed)) customPerms = parsed;
-    } catch {
-      customPerms = [];
+  // For STAFF role, strictly enforce explicitly assigned permissions in permissions_json (never staff.manage or settings.manage)
+  if (user.role === STAFF_ROLES.STAFF) {
+    let customPerms = [];
+    if (user.permissions_json) {
+      try {
+        const parsed = typeof user.permissions_json === 'string'
+          ? JSON.parse(user.permissions_json)
+          : user.permissions_json;
+        if (Array.isArray(parsed)) {
+          customPerms = parsed.filter(
+            p => VALID_ADMIN_PERMISSIONS.has(p) && p !== 'staff.manage' && p !== 'settings.manage'
+          );
+        }
+      } catch {
+        customPerms = [];
+      }
     }
-  }
-
-  if (customPerms.includes('*') || customPerms.includes(requiredPermission)) {
-    return true;
-  }
-
-  // For STAFF role, if explicit permissions are assigned in permissions_json, strictly enforce only those
-  if (user.role === STAFF_ROLES.STAFF && customPerms.length > 0) {
-    return false;
+    if (customPerms.length > 0) {
+      return customPerms.includes(requiredPermission);
+    }
   }
 
   const rolePerms = ROLE_PERMISSIONS_MATRIX[user.role] || [];
@@ -125,6 +129,7 @@ function recordAuditLog({
 
 module.exports = {
   ROLE_PERMISSIONS_MATRIX,
+  VALID_ADMIN_PERMISSIONS,
   hasPermission,
   assertAdminPermission,
   recordAuditLog

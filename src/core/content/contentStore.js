@@ -103,7 +103,7 @@ const DEFAULT_SEO_ROUTES = {
   },
   '/checkout': {
     label: 'Checkout (/checkout)',
-    metaTitle: `Secure Checkout — UPI, Cards, NetBanking & COD | ${BRAND_NAME}`,
+    metaTitle: `Secure Checkout: UPI, Cards, NetBanking & COD | ${BRAND_NAME}`,
     metaDescription:
       'Complete your Sashya Naturals order with instant UPI, credit/debit card, net banking, or Cash on Delivery across India.',
     ogImagePath: '/images/hero-pantry.jpg'
@@ -208,6 +208,9 @@ function getStorefrontContentAndSeo() {
       ? String(savedHelloBar.topbarBadge3).trim()
       : homepage.topbarBadge3
   };
+  homepage.topbarBadge1 = helloBar.topbarBadge1;
+  homepage.topbarBadge2 = helloBar.topbarBadge2;
+  homepage.topbarBadge3 = helloBar.topbarBadge3;
 
   const savedPages = safeParseJson(map.content_pages_json, {});
   const infoPages = {};
@@ -309,6 +312,18 @@ function updateHelloBarConfig(payload = {}, actor = {}) {
     "INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES ('content_hellobar_json', ?, datetime('now'))"
   ).run(JSON.stringify(next));
 
+  // Bi-directional sync of topbarBadge1..3 with content_homepage_json if present
+  const existingHomeRow = db.prepare("SELECT value FROM store_settings WHERE key = 'content_homepage_json'").get();
+  if (existingHomeRow && existingHomeRow.value) {
+    const savedHome = safeParseJson(existingHomeRow.value, {});
+    savedHome.topbarBadge1 = topbarBadge1;
+    savedHome.topbarBadge2 = topbarBadge2;
+    savedHome.topbarBadge3 = topbarBadge3;
+    db.prepare(
+      "INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES ('content_homepage_json', ?, datetime('now'))"
+    ).run(JSON.stringify(savedHome));
+  }
+
   db.prepare(`
     INSERT INTO audit_logs (actor_id, actor_email, actor_role, action, entity_type, entity_id, details_json)
     VALUES (?, ?, ?, 'HELLOBAR_CONTENT_UPDATED', 'CONTENT', 'HELLOBAR_ANNOUNCEMENT', ?)
@@ -323,12 +338,13 @@ function updateHelloBarConfig(payload = {}, actor = {}) {
 }
 
 function updateHomepageContent(payload = {}, actor = {}) {
+  const cleanDash = s => String(s ?? '').replace(/[\u2013\u2014]/g, '-').trim();
   const current = getStorefrontContentAndSeo().homepage;
   const next = { ...current };
 
   for (const key of Object.keys(DEFAULT_HOMEPAGE_CONTENT)) {
-    if (payload[key] !== undefined && String(payload[key]).trim() !== '') {
-      next[key] = String(payload[key]).trim();
+    if (payload[key] !== undefined && cleanDash(payload[key]) !== '') {
+      next[key] = cleanDash(payload[key]);
     }
   }
 
@@ -342,6 +358,18 @@ function updateHomepageContent(payload = {}, actor = {}) {
   db.prepare(
     "INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES ('content_homepage_json', ?, datetime('now'))"
   ).run(JSON.stringify(next));
+
+  // Bi-directional sync of topbarBadge1..3 with content_hellobar_json so Module 9.1 and Module 9.4 never conflict
+  const existingHbRow = db.prepare("SELECT value FROM store_settings WHERE key = 'content_hellobar_json'").get();
+  if (existingHbRow && existingHbRow.value) {
+    const savedHb = safeParseJson(existingHbRow.value, {});
+    if (payload.topbarBadge1 !== undefined) savedHb.topbarBadge1 = next.topbarBadge1;
+    if (payload.topbarBadge2 !== undefined) savedHb.topbarBadge2 = next.topbarBadge2;
+    if (payload.topbarBadge3 !== undefined) savedHb.topbarBadge3 = next.topbarBadge3;
+    db.prepare(
+      "INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES ('content_hellobar_json', ?, datetime('now'))"
+    ).run(JSON.stringify(savedHb));
+  }
 
   db.prepare(`
     INSERT INTO audit_logs (actor_id, actor_email, actor_role, action, entity_type, entity_id, details_json)
@@ -357,18 +385,19 @@ function updateHomepageContent(payload = {}, actor = {}) {
 }
 
 function updateInfoPageContent({ slug, title, subtitle, paragraphsText }, actor = {}) {
+  const cleanDash = s => String(s ?? '').replace(/[\u2013\u2014]/g, '-').trim();
   const cleanSlug = String(slug || '').trim();
   if (!DEFAULT_INFO_PAGES[cleanSlug]) {
     throw new Error(`Unsupported info page slug: ${cleanSlug}`);
   }
 
-  const cleanTitle = String(title || '').trim();
-  const cleanSubtitle = String(subtitle || '').trim();
+  const cleanTitle = cleanDash(title);
+  const cleanSubtitle = cleanDash(subtitle);
   const paragraphs = Array.isArray(paragraphsText)
-    ? paragraphsText.map(p => String(p).trim()).filter(Boolean)
+    ? paragraphsText.map(p => cleanDash(p)).filter(Boolean)
     : String(paragraphsText || '')
         .split(/\n+/)
-        .map(p => p.trim())
+        .map(p => cleanDash(p))
         .filter(Boolean);
 
   if (!cleanTitle || !cleanSubtitle || paragraphs.length === 0) {
@@ -409,15 +438,16 @@ function updateInfoPageContent({ slug, title, subtitle, paragraphsText }, actor 
 }
 
 function updateRouteSeoMeta({ routePath, metaTitle, metaDescription, ogImagePath }, actor = {}) {
+  const cleanDash = s => String(s ?? '').replace(/[\u2013\u2014]/g, '-').trim();
   const cleanRoute = String(routePath || '').trim();
   if (!DEFAULT_SEO_ROUTES[cleanRoute]) {
     throw new Error(`Unsupported SEO route path: ${cleanRoute}`);
   }
 
-  const cleanTitle = String(metaTitle || '').trim();
-  const cleanDesc = String(metaDescription || '').trim();
+  const cleanTitle = cleanDash(metaTitle);
+  const cleanDesc = cleanDash(metaDescription);
   const rawOg = String(ogImagePath || '/images/hero-pantry.jpg').trim() || '/images/hero-pantry.jpg';
-  if (/^https?:\/\//i.test(rawOg)) {
+  if (/^https?:\/\//i.test(rawOg) || rawOg.startsWith('//') || rawOg.includes('..') || /[<>"'\s]/.test(rawOg)) {
     throw new Error('OpenGraph image path must be a local storefront path starting with "/" (e.g. /images/hero-pantry.jpg).');
   }
   const cleanOgImage = rawOg.startsWith('/') ? rawOg : `/${rawOg}`;
@@ -460,8 +490,8 @@ function updateRouteSeoMeta({ routePath, metaTitle, metaDescription, ogImagePath
 }
 
 function escapeCsvCell(val) {
-  let str = String(val ?? '').replace(/\r?\n/g, ' ');
-  if (/^[=+\-@]/.test(str) && !/^-[0-9]+(\.[0-9]+)?$/.test(str)) {
+  let str = String(val ?? '').replace(/[\r\n\t]+/g, ' ').trim();
+  if (/^[=+\-@|]/.test(str) && !/^-[0-9]+(\.[0-9]+)?$/.test(str)) {
     str = `'${str}`;
   }
   if (str.includes(',') || str.includes('"')) {
@@ -477,6 +507,13 @@ function buildUsersAndPurchasesExportCsv({
   orderItems = [],
   exportType = 'users_summary'
 }) {
+  const itemsByOrderId = new Map();
+  for (const it of orderItems) {
+    const oid = Number(it.order_id);
+    if (!itemsByOrderId.has(oid)) itemsByOrderId.set(oid, []);
+    itemsByOrderId.get(oid).push(it);
+  }
+
   if (exportType === 'user_purchases') {
     const header = [
       'User ID',
@@ -511,7 +548,7 @@ function buildUsersAndPurchasesExportCsv({
         userByEmail.get(String(ord.customer_email || '').toLowerCase());
       const userIdLabel = matchedUser ? `USR-${matchedUser.id}` : 'GUEST';
       const accountType = matchedUser ? 'Signed-Up User' : 'Guest Checkout';
-      const items = orderItems.filter(it => Number(it.order_id) === Number(ord.id));
+      const items = itemsByOrderId.get(Number(ord.id)) || [];
 
       if (items.length === 0) {
         rows.push(
@@ -600,11 +637,14 @@ function buildUsersAndPurchasesExportCsv({
   ];
   const rows = [header.join(',')];
   const profilesMap = new Map();
+  const profileKeyByUserId = new Map();
 
   for (const cu of customerUsers) {
     const addrs = customerAddresses.filter(a => Number(a.user_id) === Number(cu.id));
     const defAddr = addrs.find(a => Number(a.is_default) === 1) || addrs[0] || null;
-    profilesMap.set(String(cu.email || '').toLowerCase(), {
+    const emKey = String(cu.email || '').toLowerCase();
+    profileKeyByUserId.set(Number(cu.id), emKey);
+    profilesMap.set(emKey, {
       userIdLabel: `USR-${cu.id}`,
       accountType: 'Signed-Up User',
       fullName: cu.full_name,
@@ -612,9 +652,9 @@ function buildUsersAndPurchasesExportCsv({
       phone: cu.phone,
       joinedDate: (cu.created_at || '2026-11-20').slice(0, 10),
       addressCount: addrs.length,
-      city: defAddr ? defAddr.city : 'Bengaluru',
-      state: defAddr ? defAddr.state : 'Karnataka',
-      pincode: defAddr ? defAddr.pincode : '560038',
+      city: defAddr ? defAddr.city : 'Not Provided',
+      state: defAddr ? defAddr.state : 'Not Provided',
+      pincode: defAddr ? defAddr.pincode : 'N/A',
       totalOrders: 0,
       totalPacks: 0,
       settledPaise: 0,
@@ -626,8 +666,11 @@ function buildUsersAndPurchasesExportCsv({
   }
 
   for (const ord of orders) {
-    const em = String(ord.customer_email || '').toLowerCase();
-    const existing = profilesMap.get(em) || {
+    const rawEm = String(ord.customer_email || '').toLowerCase();
+    const mappedKey = (ord.user_id && profileKeyByUserId.has(Number(ord.user_id)))
+      ? profileKeyByUserId.get(Number(ord.user_id))
+      : rawEm;
+    const existing = profilesMap.get(mappedKey) || {
       userIdLabel: ord.user_id ? `USR-${ord.user_id}` : 'GUEST',
       accountType: ord.user_id ? 'Signed-Up User' : 'Guest Checkout',
       fullName: ord.customer_name,
@@ -635,9 +678,9 @@ function buildUsersAndPurchasesExportCsv({
       phone: ord.customer_phone,
       joinedDate: (ord.created_at || '2026-11-20').slice(0, 10),
       addressCount: 1,
-      city: ord.shipping_city,
-      state: ord.shipping_state,
-      pincode: ord.shipping_pincode,
+      city: ord.shipping_city || 'Not Provided',
+      state: ord.shipping_state || 'Not Provided',
+      pincode: ord.shipping_pincode || 'N/A',
       totalOrders: 0,
       totalPacks: 0,
       settledPaise: 0,
@@ -647,24 +690,36 @@ function buildUsersAndPurchasesExportCsv({
       orderNumbers: []
     };
 
-    const items = orderItems.filter(it => Number(it.order_id) === Number(ord.id));
-    const packs = items.reduce((acc, it) => acc + Number(it.quantity || 0), 0);
-    existing.totalOrders += 1;
-    existing.totalPacks += packs;
-    if (ord.payment_status === 'PAID' || ord.payment_status === 'COD_COLLECTED') {
-      existing.settledPaise += Number(ord.total_paise || 0);
-    } else if (ord.payment_status === 'COD_PENDING') {
-      existing.codPendingPaise += Number(ord.total_paise || 0);
+    if (existing.city === 'Not Provided' && ord.shipping_city) {
+      existing.city = ord.shipping_city;
+      existing.state = ord.shipping_state || existing.state;
+      existing.pincode = ord.shipping_pincode || existing.pincode;
     }
-    if (ord.payment_status !== 'REFUNDED' && ord.payment_status !== 'FAILED') {
+
+    const items = itemsByOrderId.get(Number(ord.id)) || [];
+    const packs = items.reduce((acc, it) => acc + Number(it.quantity || 0), 0);
+    const isCancelledOrReversed =
+      ord.payment_status === 'REFUNDED' ||
+      ord.payment_status === 'FAILED' ||
+      ord.fulfilment_status === 'Cancelled' ||
+      ord.fulfilment_status === 'Refunded';
+
+    existing.totalOrders += 1;
+    if (!isCancelledOrReversed) {
+      existing.totalPacks += packs;
       existing.lifetimePaise += Number(ord.total_paise || 0);
+    }
+    if ((ord.payment_status === 'PAID' || ord.payment_status === 'COD_COLLECTED') && !isCancelledOrReversed) {
+      existing.settledPaise += Number(ord.total_paise || 0);
+    } else if (ord.payment_status === 'COD_PENDING' && !isCancelledOrReversed) {
+      existing.codPendingPaise += Number(ord.total_paise || 0);
     }
     const ordDate = (ord.created_at || '').slice(0, 10);
     if (existing.lastOrderDate === 'None' || ordDate > existing.lastOrderDate) {
       existing.lastOrderDate = ordDate;
     }
     existing.orderNumbers.push(ord.order_number);
-    profilesMap.set(em, existing);
+    profilesMap.set(mappedKey, existing);
   }
 
   for (const p of profilesMap.values()) {

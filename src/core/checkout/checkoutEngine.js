@@ -168,21 +168,21 @@ function resolveShippingZone(pincode = '560001', policy = getShippingPolicyFromD
 
 function updateShippingPolicySettings(updates = {}, actorEmail = 'superadmin@sashyanaturals.com', actorRole = 'SUPER_ADMIN') {
   const db = getDb();
-  const allowedKeys = [
-    'shipping_free_mode',
-    'free_shipping_threshold_inr',
-    'free_shipping_max_weight_grams',
-    'shipping_packaging_tare_grams',
-    'shipping_cod_fee_inr',
-    'zone_a_base_inr',
-    'zone_a_extra_inr',
-    'zone_b_base_inr',
-    'zone_b_extra_inr',
-    'zone_c_base_inr',
-    'zone_c_extra_inr',
-    'zone_d_base_inr',
-    'zone_d_extra_inr'
-  ];
+  const keyBounds = {
+    free_shipping_threshold_inr: { min: 0, max: 100000 },
+    free_shipping_max_weight_grams: { min: 100, max: 50000 },
+    shipping_packaging_tare_grams: { min: 0, max: 5000 },
+    shipping_cod_fee_inr: { min: 0, max: 500 },
+    zone_a_base_inr: { min: 0, max: 5000 },
+    zone_a_extra_inr: { min: 0, max: 5000 },
+    zone_b_base_inr: { min: 0, max: 5000 },
+    zone_b_extra_inr: { min: 0, max: 5000 },
+    zone_c_base_inr: { min: 0, max: 5000 },
+    zone_c_extra_inr: { min: 0, max: 5000 },
+    zone_d_base_inr: { min: 0, max: 5000 },
+    zone_d_extra_inr: { min: 0, max: 5000 }
+  };
+  const allowedKeys = ['shipping_free_mode', ...Object.keys(keyBounds)];
 
   if (updates.shipping_free_mode && !['DISABLED', 'THRESHOLD_WITH_WEIGHT_CAP', 'UNCONDITIONAL_THRESHOLD'].includes(updates.shipping_free_mode)) {
     throw new Error(`Invalid shipping_free_mode: ${updates.shipping_free_mode}`);
@@ -195,8 +195,9 @@ function updateShippingPolicySettings(updates = {}, actorEmail = 'superadmin@sas
       const val = String(updates[key]).trim();
       if (key !== 'shipping_free_mode') {
         const numVal = Number(val);
-        if (!Number.isFinite(numVal) || numVal < 0) {
-          throw new Error(`Invalid numeric value for ${key}: "${val}" (must be a non-negative number).`);
+        const bounds = keyBounds[key];
+        if (!Number.isFinite(numVal) || numVal < bounds.min || numVal > bounds.max) {
+          throw new Error(`Invalid numeric value for ${key}: "${val}" (must be between ${bounds.min} and ${bounds.max}).`);
         }
       }
       stmt.run(key, val);
@@ -287,13 +288,31 @@ function normalizeIstDateTimeInput(val, isEndOfDayFallback = false) {
   const raw = String(val || '').trim();
   if (!raw) return '';
   const normalized = raw.replace(' ', 'T');
-  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
-    return `${normalized}T${isEndOfDayFallback ? '23:59' : '00:00'}`;
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?Z?)?$/);
+  if (!match) {
+    throw new Error('Invalid IST date-time format. Use YYYY-MM-DDTHH:mm (for example 2026-11-25T09:00).');
   }
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z?$/.test(normalized)) {
-    return normalized.slice(0, 16);
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = match[4] !== undefined ? Number(match[4]) : (isEndOfDayFallback ? 23 : 0);
+  const minute = match[5] !== undefined ? Number(match[5]) : (isEndOfDayFallback ? 59 : 0);
+
+  if (month < 1 || month > 12 || day < 1 || day > 31 || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
+    throw new Error('Invalid IST date-time: calendar month, day, hour, or minute is out of range.');
   }
-  throw new Error('Invalid IST date-time format. Use YYYY-MM-DDTHH:mm (for example 2026-11-25T09:00).');
+  const testDate = new Date(Date.UTC(year, month - 1, day));
+  if (
+    testDate.getUTCFullYear() !== year ||
+    testDate.getUTCMonth() !== month - 1 ||
+    testDate.getUTCDate() !== day
+  ) {
+    throw new Error(`Invalid calendar date "${match[1]}-${match[2]}-${match[3]}".`);
+  }
+
+  const hh = String(hour).padStart(2, '0');
+  const mm = String(minute).padStart(2, '0');
+  return `${match[1]}-${match[2]}-${match[3]}T${hh}:${mm}`;
 }
 
 /**
@@ -495,14 +514,14 @@ function listEnrichedCoupons(nowIst = null) {
  */
 function upsertAdminCoupon(payload = {}, actor = {}) {
   const db = getDb();
-  const cleanCode = String(payload.code || '')
+  const rawCode = String(payload.code || '')
     .trim()
-    .toUpperCase()
-    .replace(/[^A-Z0-9_-]/g, '');
+    .toUpperCase();
 
-  if (cleanCode.length < 3 || cleanCode.length > 24) {
-    throw new Error('Coupon code must be 3 to 24 alphanumeric characters (A-Z, 0-9, hyphen, or underscore).');
+  if (!/^[A-Z0-9_-]{3,24}$/.test(rawCode)) {
+    throw new Error('Coupon code must be 3 to 24 alphanumeric characters (A-Z, 0-9, hyphen, or underscore) without spaces or special symbols.');
   }
+  const cleanCode = rawCode;
 
   const rawDesc = String(payload.description || '')
     .replace(/[\u2013\u2014]/g, '-')
@@ -551,6 +570,9 @@ function upsertAdminCoupon(payload = {}, actor = {}) {
     : Math.max(0, Math.round(Number(payload.minOrderPaise ?? payload.min_order_paise ?? 0)));
   if (!Number.isFinite(minOrderPaise) || minOrderPaise < 0) {
     throw new Error('Minimum order subtotal must be a non-negative amount.');
+  }
+  if (discountType === 'FLAT_PAISE' && minOrderPaise < discountValue) {
+    throw new Error('Minimum order subtotal for a flat discount coupon must be at least equal to the flat discount amount.');
   }
 
   let maxDiscountPaise = payload.maxDiscountInr !== undefined
@@ -730,6 +752,23 @@ function deleteAdminCoupon(code, actor = {}) {
     throw new Error(`Coupon "${cleanCode}" not found.`);
   }
   db.prepare('DELETE FROM coupons WHERE code = ?').run(cleanCode);
+
+  // Unlink deleted coupon from content_hellobar_json if it was linked
+  const hbRow = db.prepare("SELECT value FROM store_settings WHERE key = 'content_hellobar_json'").get();
+  if (hbRow && hbRow.value) {
+    try {
+      const hbObj = JSON.parse(hbRow.value);
+      if (hbObj && String(hbObj.linkedCouponCode || '').toUpperCase() === cleanCode) {
+        hbObj.linkedCouponCode = '';
+        db.prepare(
+          "INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES ('content_hellobar_json', ?, datetime('now'))"
+        ).run(JSON.stringify(hbObj));
+      }
+    } catch {
+      // ignore malformed JSON
+    }
+  }
+
   db.prepare(`
     INSERT INTO audit_logs (actor_id, actor_email, actor_role, action, entity_type, entity_id, details_json)
     VALUES (?, ?, ?, 'COUPON_DELETED', 'COUPON', ?, ?)
@@ -758,6 +797,11 @@ function calculateCartPricing(
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error('Cart is empty. Please add at least one product pack.');
   }
+  const cleanShipPin = String(shippingPincode || '560001').trim();
+  if (!/^[1-8]\d{5}$/.test(cleanShipPin)) {
+    throw new Error(`PIN code "${cleanShipPin}" is not a valid 6-digit Indian PIN code.`);
+  }
+  shippingPincode = cleanShipPin;
 
   // Consolidate duplicate variantId rows so combined quantity is validated against available stock (EC-001 / EC-002)
   const consolidatedMap = new Map();
@@ -1304,6 +1348,10 @@ function createAdminOrder({
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
     throw new Error('Please provide a valid customer email address.');
   }
+  const adminOrdPhoneDigits = cleanPhone.replace(/\D/g, '');
+  if (adminOrdPhoneDigits.length < 10 || adminOrdPhoneDigits.length > 15 || !/^[6-9]\d{9}$/.test(adminOrdPhoneDigits.slice(-10))) {
+    throw new Error('Please provide a valid 10-digit Indian mobile phone number.');
+  }
 
   validatePincodeServiceability(cleanPincode, paymentMethod);
 
@@ -1673,10 +1721,10 @@ function verifyAndCaptureOnlinePayment({
 function updateOrderFulfilmentAndShipping({
   orderNumber,
   fulfilmentStatus,
-  courierName = '',
-  trackingNumber = '',
-  trackingUrl = '',
-  dispatchDate = '',
+  courierName,
+  trackingNumber,
+  trackingUrl,
+  dispatchDate,
   manualShippingChargePaise = null,
   actorEmail = 'admin@sashyanaturals.com',
   actorRole = 'ORDER_MANAGER'
@@ -1693,12 +1741,36 @@ function updateOrderFulfilmentAndShipping({
   const cleanTrackingUrl = String(trackingUrl || '').trim();
   const cleanDispatchDate = String(dispatchDate || '').trim();
 
-  if (cleanTrackingUrl && !/^https?:\/\//i.test(cleanTrackingUrl)) {
-    throw new Error('Tracking URL must begin with https:// or http://.');
+  if (cleanTrackingUrl && !/^https?:\/\/[^\s"'<>]+$/i.test(cleanTrackingUrl)) {
+    throw new Error('Tracking URL must begin with https:// or http:// and contain no spaces or HTML characters.');
   }
 
-  if (fulfilmentStatus === 'Shipped' && (!cleanCourier || !cleanTracking)) {
+  if (cleanDispatchDate) {
+    const dm = cleanDispatchDate.match(/^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/);
+    if (!dm) {
+      throw new Error('Dispatch date must be a valid YYYY-MM-DD calendar date.');
+    }
+    const dy = Number(dm[1]), dmo = Number(dm[2]), dd = Number(dm[3]);
+    const dt = new Date(Date.UTC(dy, dmo - 1, dd));
+    if (dt.getUTCFullYear() !== dy || dt.getUTCMonth() !== dmo - 1 || dt.getUTCDate() !== dd) {
+      throw new Error('Dispatch date must be a valid YYYY-MM-DD calendar date.');
+    }
+  }
+
+  const nextCourier = courierName !== undefined ? cleanCourier : (order.courier_name || '');
+  const nextTracking = trackingNumber !== undefined ? cleanTracking : (order.tracking_number || '');
+  const nextTrackingUrl = trackingUrl !== undefined ? cleanTrackingUrl : (order.tracking_url || '');
+  const nextDispatchDate = dispatchDate !== undefined ? cleanDispatchDate : (order.dispatch_date || '');
+
+  if (fulfilmentStatus === 'Shipped' && (!nextCourier || !nextTracking)) {
     throw new Error('Dispatched orders require Courier Name and Tracking Number (Manual Shipping Workflow Section 7).');
+  }
+
+  if (
+    order.fulfilment_status === 'Delivered' &&
+    ['Pending Payment', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'Cancelled'].includes(fulfilmentStatus)
+  ) {
+    throw new Error(`Order ${orderNumber} has already been Delivered and cannot be transitioned backwards to ${fulfilmentStatus}.`);
   }
 
   if (order.payment_status === 'REFUNDED' && fulfilmentStatus !== 'Refunded') {
@@ -1779,36 +1851,54 @@ function updateOrderFulfilmentAndShipping({
       nextPaymentStatus = 'COD_COLLECTED';
     } else if (fulfilmentStatus === 'Refunded') {
       nextPaymentStatus = 'REFUNDED';
+    } else if (fulfilmentStatus === 'Cancelled' && ['PAID', 'COD_COLLECTED'].includes(order.payment_status)) {
+      nextPaymentStatus = 'REFUNDED';
+    } else if (fulfilmentStatus === 'Refund Initiated' && ['PAID', 'COD_COLLECTED'].includes(order.payment_status)) {
+      nextPaymentStatus = 'REFUND_INITIATED';
     }
 
     const hasExplicitShipCharge = manualShippingChargePaise !== null && manualShippingChargePaise !== undefined;
     const nextManualShippingChargePaise = hasExplicitShipCharge
       ? Math.max(0, Math.round(Number(manualShippingChargePaise) || 0))
       : order.manual_shipping_charge_paise;
+    const nextShippingPaise = hasExplicitShipCharge ? nextManualShippingChargePaise : order.shipping_paise;
+    const nextTotalPaise = hasExplicitShipCharge
+      ? wasmOrderTotalPaise(order.subtotal_paise, order.discount_paise, nextShippingPaise)
+      : order.total_paise;
 
     db.prepare(`
       UPDATE orders
       SET fulfilment_status = ?,
           payment_status = ?,
-          courier_name = COALESCE(NULLIF(?, ''), courier_name),
-          tracking_number = COALESCE(NULLIF(?, ''), tracking_number),
-          tracking_url = COALESCE(NULLIF(?, ''), tracking_url),
-          dispatch_date = COALESCE(NULLIF(?, ''), dispatch_date),
+          courier_name = ?,
+          tracking_number = ?,
+          tracking_url = ?,
+          dispatch_date = ?,
           manual_shipping_charge_paise = ?,
+          shipping_paise = ?,
+          total_paise = ?,
           stock_deducted = ?,
           updated_at = datetime('now')
       WHERE id = ?
     `).run(
       fulfilmentStatus,
       nextPaymentStatus,
-      cleanCourier,
-      cleanTracking,
-      cleanTrackingUrl,
-      cleanDispatchDate,
+      nextCourier,
+      nextTracking,
+      nextTrackingUrl,
+      nextDispatchDate,
       nextManualShippingChargePaise,
+      nextShippingPaise,
+      nextTotalPaise,
       nextStockDeducted,
       order.id
     );
+
+    if (hasExplicitShipCharge) {
+      db.prepare(`
+        UPDATE payments SET amount_paise = ?, updated_at = datetime('now') WHERE order_id = ?
+      `).run(nextTotalPaise, order.id);
+    }
 
     if (nextPaymentStatus === 'COD_COLLECTED' && order.payment_status !== 'COD_COLLECTED') {
       db.prepare(`
@@ -1832,8 +1922,8 @@ function updateOrderFulfilmentAndShipping({
       JSON.stringify({
         previousFulfilment: order.fulfilment_status,
         newFulfilment: fulfilmentStatus,
-        courierName: cleanCourier,
-        trackingNumber: cleanTracking,
+        courierName: nextCourier,
+        trackingNumber: nextTracking,
         stockRestored: shouldRestoreStock,
         stockRededucted: shouldRedeductStock
       })
@@ -1848,13 +1938,13 @@ function updateOrderFulfilmentAndShipping({
     };
     const tplKey = templateKeyMap[fulfilmentStatus];
     const tplRow = tplKey ? db.prepare('SELECT value FROM store_settings WHERE key = ?').get(tplKey) : null;
-    let bodyPreview = cleanCourier ? `Courier: ${cleanCourier}, Tracking: ${cleanTracking}` : `Status: ${fulfilmentStatus}`;
+    let bodyPreview = nextCourier ? `Courier: ${nextCourier}, Tracking: ${nextTracking}` : `Status: ${fulfilmentStatus}`;
     if (tplRow && tplRow.value) {
       bodyPreview = String(tplRow.value)
         .replace(/\{\{order_number\}\}/g, orderNumber)
         .replace(/\{\{customer_name\}\}/g, order.customer_name)
-        .replace(/\{\{courier_name\}\}/g, cleanCourier || order.courier_name || 'Courier Partner')
-        .replace(/\{\{tracking_number\}\}/g, cleanTracking || order.tracking_number || 'AWB Pending');
+        .replace(/\{\{courier_name\}\}/g, nextCourier || 'Courier Partner')
+        .replace(/\{\{tracking_number\}\}/g, nextTracking || 'AWB Pending');
     }
 
     db.prepare(`
@@ -1894,8 +1984,11 @@ function recordPaymentAdminAction({
     if (order.payment_status === 'COD_COLLECTED') {
       throw new Error(`Order ${order.order_number} COD payment has already been marked collected.`);
     }
-    if (order.payment_status !== 'COD_PENDING' || ['Cancelled', 'Refunded'].includes(order.fulfilment_status)) {
-      throw new Error(`Order ${order.order_number} cannot be marked COD collected (current status: ${order.payment_status} / ${order.fulfilment_status}).`);
+    if (
+      order.payment_status !== 'COD_PENDING' ||
+      !['Shipped', 'Delivered'].includes(order.fulfilment_status)
+    ) {
+      throw new Error(`Order ${order.order_number} cannot be marked COD collected before dispatch (current status: ${order.payment_status} / ${order.fulfilment_status}).`);
     }
 
     db.exec('BEGIN IMMEDIATE TRANSACTION;');
@@ -1932,21 +2025,40 @@ function recordPaymentAdminAction({
     if (order.payment_status === 'REFUNDED') {
       throw new Error(`Order ${order.order_number} has already been refunded.`);
     }
-    if (!['PAID', 'COD_COLLECTED'].includes(order.payment_status)) {
+    if (!['PAID', 'COD_COLLECTED', 'REFUND_INITIATED'].includes(order.payment_status)) {
       throw new Error(`Cannot record a refund on order ${order.order_number} because payment was never collected (status: ${order.payment_status}).`);
     }
+    if (refundAmountPaise !== null && refundAmountPaise !== undefined) {
+      const numRef = Number(refundAmountPaise);
+      if (!Number.isFinite(numRef) || numRef <= 0) {
+        throw new Error('Refund amount must be a positive amount greater than zero.');
+      }
+    }
 
-    const finalRefundPaise = refundAmountPaise !== null && Number(refundAmountPaise) > 0
+    const finalRefundPaise = refundAmountPaise !== null && refundAmountPaise !== undefined && Number(refundAmountPaise) > 0
       ? Math.min(order.total_paise, Math.round(Number(refundAmountPaise)))
       : order.total_paise;
+    const isFullRefund = finalRefundPaise >= order.total_paise;
 
-    // Delegate full order status & atomic stock restoration
-    const updatedOrder = updateOrderFulfilmentAndShipping({
-      orderNumber: order.order_number,
-      fulfilmentStatus: 'Refunded',
-      actorEmail,
-      actorRole
-    });
+    let updatedOrder;
+    if (isFullRefund) {
+      // Full refund: transition order to Refunded and atomically restore stock
+      updatedOrder = updateOrderFulfilmentAndShipping({
+        orderNumber: order.order_number,
+        fulfilmentStatus: 'Refunded',
+        actorEmail,
+        actorRole
+      });
+    } else {
+      // Partial refund: keep stock_deducted intact, mark payment_status as REFUNDED with partial refund_amount_paise
+      db.prepare(`
+        UPDATE orders
+        SET payment_status = 'REFUNDED',
+            updated_at = datetime('now')
+        WHERE id = ?
+      `).run(order.id);
+      updatedOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
+    }
 
     db.prepare(`
       UPDATE payments
@@ -1965,7 +2077,7 @@ function recordPaymentAdminAction({
       actorEmail,
       actorRole,
       order.order_number,
-      JSON.stringify({ refundAmountPaise: finalRefundPaise, refundReason })
+      JSON.stringify({ refundAmountPaise: finalRefundPaise, isFullRefund, refundReason })
     );
 
     return updatedOrder;
@@ -2011,11 +2123,15 @@ function updateOrderDeliveryAddress({
   if (!trimmedName || !trimmedPhone || !nextLine1 || !nextCity || !nextState || !/^\d{6}$/.test(nextPin)) {
     throw new Error('Recipient name, phone, street address, city, state, and a valid 6-digit Indian PIN code are required.');
   }
+  const addrPhoneDigits = nextPhone.replace(/\D/g, '');
+  if (addrPhoneDigits.length < 10 || addrPhoneDigits.length > 15 || !/^[6-9]\d{9}$/.test(addrPhoneDigits.slice(-10))) {
+    throw new Error('Please provide a valid 10-digit Indian mobile phone number.');
+  }
 
   validatePincodeServiceability(nextPin, order.payment_method);
 
   const ordItems = db.prepare(`
-    SELECT oi.product_id, oi.product_name, p.pincode_restriction_mode, p.pincode_rules_json
+    SELECT oi.product_id, oi.product_name, oi.weight_grams, oi.quantity, p.pincode_restriction_mode, p.pincode_rules_json
     FROM order_items oi
     JOIN products p ON p.id = oi.product_id
     WHERE oi.order_id = ?
@@ -2033,6 +2149,35 @@ function updateOrderDeliveryAddress({
 
   const gstSplit = computeStateGstSplit(order.gst_paise || 0, nextState, nextPin);
 
+  let nextShippingPaise = order.shipping_paise;
+  let nextTotalPaise = order.total_paise;
+  if (nextPin !== order.shipping_pincode && !(Number(order.manual_shipping_charge_paise) > 0)) {
+    const totalProductGrams = ordItems.reduce(
+      (acc, it) => acc + ((Number(it.weight_grams) || 250) * (Number(it.quantity) || 1)),
+      0
+    );
+    const discountedSubtotalPaise = Math.max(
+      0,
+      (Number(order.subtotal_paise) || 0) - (Number(order.discount_paise) || 0)
+    );
+    const shipPolicy = getShippingPolicyFromDb();
+    const zoneInfo = resolveShippingZone(nextPin, shipPolicy);
+    const isCod = order.payment_method === 'COD';
+    nextShippingPaise = wasmZoneWeightShippingPaise({
+      discountedSubtotalPaise,
+      totalProductGrams,
+      packagingTareGrams: shipPolicy.packagingTareGrams,
+      base500gPaise: zoneInfo.base500gPaise,
+      extra500gPaise: zoneInfo.extra500gPaise,
+      freeModeCode: shipPolicy.freeModeCode,
+      freeThresholdPaise: shipPolicy.freeThresholdPaise,
+      freeMaxWeightGrams: shipPolicy.freeMaxWeightGrams,
+      isCod,
+      codFeePaise: shipPolicy.codFeePaise
+    });
+    nextTotalPaise = wasmOrderTotalPaise(order.subtotal_paise, order.discount_paise, nextShippingPaise);
+  }
+
   db.prepare(`
     UPDATE orders
     SET customer_name = ?,
@@ -2047,6 +2192,8 @@ function updateOrderDeliveryAddress({
         cgst_paise = ?,
         sgst_paise = ?,
         igst_paise = ?,
+        shipping_paise = ?,
+        total_paise = ?,
         updated_at = datetime('now')
     WHERE id = ?
   `).run(
@@ -2062,8 +2209,16 @@ function updateOrderDeliveryAddress({
     gstSplit.cgstPaise,
     gstSplit.sgstPaise,
     gstSplit.igstPaise,
+    nextShippingPaise,
+    nextTotalPaise,
     order.id
   );
+
+  if (nextTotalPaise !== order.total_paise) {
+    db.prepare(`
+      UPDATE payments SET amount_paise = ?, updated_at = datetime('now') WHERE order_id = ?
+    `).run(nextTotalPaise, order.id);
+  }
 
   db.prepare(`
     INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, details_json)
@@ -2077,7 +2232,9 @@ function updateOrderDeliveryAddress({
       shippingCity: nextCity,
       shippingState: nextState,
       shippingPincode: nextPin,
-      taxSupplyType: gstSplit.taxSupplyType
+      taxSupplyType: gstSplit.taxSupplyType,
+      shippingPaise: nextShippingPaise,
+      totalPaise: nextTotalPaise
     })
   );
 

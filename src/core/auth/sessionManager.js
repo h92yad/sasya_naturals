@@ -14,6 +14,18 @@ const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const MAX_FAILED_ATTEMPTS = 5;
 
 const loginAttemptsMap = new Map();
+const MAX_RATE_LIMIT_ENTRIES = 2000;
+const revokedSessionTokens = new Set();
+const MAX_REVOKED_TOKENS = 5000;
+
+function revokeSessionToken(token) {
+  if (!token || typeof token !== 'string') return;
+  if (revokedSessionTokens.size >= MAX_REVOKED_TOKENS) {
+    const oldest = revokedSessionTokens.values().next().value;
+    if (oldest) revokedSessionTokens.delete(oldest);
+  }
+  revokedSessionTokens.add(token);
+}
 
 function signSessionToken(payloadObj) {
   const payloadB64 = Buffer.from(JSON.stringify(payloadObj), 'utf8').toString('base64url');
@@ -26,6 +38,7 @@ function signSessionToken(payloadObj) {
 
 function verifySessionToken(token) {
   if (!token || typeof token !== 'string' || !token.includes('.')) return null;
+  if (revokedSessionTokens.has(token)) return null;
   const [payloadB64, sig] = token.split('.');
   const expectedSig = crypto
     .createHmac('sha256', SESSION_SECRET)
@@ -51,6 +64,18 @@ function generateCsrfToken(sessionToken) {
     .slice(0, 32);
 }
 
+function verifyCsrfToken(sessionToken, providedCsrf) {
+  if (!providedCsrf) return false;
+  if (!sessionToken) return false;
+  const expected = generateCsrfToken(sessionToken);
+  if (String(providedCsrf).length !== expected.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(String(providedCsrf), 'utf8'), Buffer.from(expected, 'utf8'));
+  } catch {
+    return false;
+  }
+}
+
 function checkLoginRateLimit(key) {
   const now = Date.now();
   const record = loginAttemptsMap.get(key);
@@ -70,6 +95,10 @@ function recordFailedAttempt(key) {
   const now = Date.now();
   const record = loginAttemptsMap.get(key);
   if (!record || now - record.firstAttemptAt > RATE_LIMIT_WINDOW_MS) {
+    if (loginAttemptsMap.size >= MAX_RATE_LIMIT_ENTRIES) {
+      const oldestKey = loginAttemptsMap.keys().next().value;
+      if (oldestKey) loginAttemptsMap.delete(oldestKey);
+    }
     loginAttemptsMap.set(key, { count: 1, firstAttemptAt: now });
   } else {
     record.count += 1;
@@ -92,24 +121,30 @@ function normalizeStaffOrCustomerEmail(rawEmail) {
   return clean;
 }
 
-function checkPasswordWithTrimFallback(rawPassword, passwordHash) {
-  const str = String(rawPassword || '');
-  if (verifyPassword(str, passwordHash)) return true;
-  if (str.trim() !== str && verifyPassword(str.trim(), passwordHash)) return true;
-  return false;
+function checkPasswordWithTrimFallback(rawPassword, passwordHash, requireSymbol = false) {
+  const str = String(rawPassword || '').trim();
+  if (str.length < 8 || str.length > 128) return false;
+  if (requireSymbol && !/[!@#$%^&*]/.test(str)) return false;
+  return verifyPassword(str, passwordHash);
 }
 
 function loginAdminWithPassword(email, password, clientIp = '127.0.0.1') {
   const cleanEmail = normalizeStaffOrCustomerEmail(email);
   const altEmail = cleanEmail.replace(/@sashyanaturals\.com$/, '@sasynaturals.com');
   const rateKey = `${clientIp}:${cleanEmail}`;
-  checkLoginRateLimit(rateKey);
+  const isSharedLoopbackProxy = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1';
+  if (!isSharedLoopbackProxy) {
+    checkLoginRateLimit(rateKey);
+  }
 
   const db = getDb();
   const user = db
     .prepare("SELECT * FROM users WHERE lower(email) IN (?, ?) AND role != 'CUSTOMER' AND is_active = 1")
     .get(cleanEmail, altEmail);
-  if (!user || !checkPasswordWithTrimFallback(password, user.password_hash)) {
+  if (!user || !checkPasswordWithTrimFallback(password, user.password_hash, true)) {
+    if (isSharedLoopbackProxy) {
+      checkLoginRateLimit(rateKey);
+    }
     recordFailedAttempt(rateKey);
     const err = new Error('Invalid staff email or password.');
     err.statusCode = 401;
@@ -290,6 +325,11 @@ function requestPasswordResetOtp(email) {
   if (!user) {
     throw new Error('No active account found with that email address.');
   }
+  if (user.role !== 'CUSTOMER') {
+    const err = new Error('Staff and administrator passwords cannot be reset via public OTP. Contact a Super Administrator.');
+    err.statusCode = 403;
+    throw err;
+  }
 
   const otpCode = String(crypto.randomInt(100000, 999999));
   const otpHash = crypto.createHash('sha256').update(otpCode).digest('hex');
@@ -316,7 +356,7 @@ function requestPasswordResetOtp(email) {
     sent: true,
     email: cleanEmail,
     expiresInSeconds: 600,
-    sandboxOtpPreview: otpCode
+    sandboxOtpPreview: !IS_PROD ? otpCode : undefined
   };
 }
 
@@ -334,6 +374,11 @@ function resetPasswordWithOtp({ email, otpCode, newPassword }) {
   const user = db.prepare('SELECT * FROM users WHERE lower(email) IN (?, ?) AND is_active = 1').get(cleanEmail, altEmail);
   if (!user) {
     throw new Error('No active account found with that email address.');
+  }
+  if (user.role !== 'CUSTOMER') {
+    const err = new Error('Staff and administrator passwords cannot be reset via public OTP.');
+    err.statusCode = 403;
+    throw err;
   }
 
   const resetKey = `pwd_reset:${cleanEmail}`;
@@ -428,7 +473,9 @@ module.exports = {
   normalizeStaffOrCustomerEmail,
   signSessionToken,
   verifySessionToken,
+  revokeSessionToken,
   generateCsrfToken,
+  verifyCsrfToken,
   loginAdminWithPassword,
   loginCustomerWithPassword,
   registerCustomerAccount,

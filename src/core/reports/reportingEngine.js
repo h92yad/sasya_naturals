@@ -76,32 +76,37 @@ function createEmptyBucket(key, label) {
   };
 }
 
-function accumulateOrderIntoBucket(bucket, order, orderUnitsCount = 0) {
-  const isCancelledOrRefunded =
-    order.fulfilment_status === 'Cancelled' ||
-    order.fulfilment_status === 'Refunded' ||
-    order.payment_status === 'REFUNDED' ||
-    order.payment_status === 'FAILED';
+function accumulateOrderIntoBucket(bucket, order, orderUnitsCount = 0, explicitRefundPaise = null) {
+  const ordTotal = Number(order.total_paise || 0);
+  const refundAmt = explicitRefundPaise !== null && explicitRefundPaise > 0
+    ? Math.min(ordTotal, Number(explicitRefundPaise))
+    : ((order.payment_status === 'REFUNDED' || order.fulfilment_status === 'Refunded') ? ordTotal : 0);
+  const isPartialRefund = refundAmt > 0 && refundAmt < ordTotal && order.fulfilment_status !== 'Cancelled';
+
+  const isFullyCancelledOrRefunded =
+    !isPartialRefund && (
+      order.fulfilment_status === 'Cancelled' ||
+      order.fulfilment_status === 'Refunded' ||
+      order.payment_status === 'REFUNDED' ||
+      order.payment_status === 'FAILED'
+    );
 
   const isSettled =
-    (order.payment_status === 'PAID' || order.payment_status === 'COD_COLLECTED') &&
-    !isCancelledOrRefunded;
+    (order.payment_status === 'PAID' || order.payment_status === 'COD_COLLECTED' || isPartialRefund) &&
+    !isFullyCancelledOrRefunded;
 
   const isCodPending =
     order.payment_status === 'COD_PENDING' &&
-    !isCancelledOrRefunded;
-
-  const isRefunded =
-    order.payment_status === 'REFUNDED' ||
-    order.fulfilment_status === 'Refunded';
+    !isFullyCancelledOrRefunded;
 
   bucket.ordersCount += 1;
 
-  if (isRefunded) {
-    bucket.refundedPaise += Number(order.total_paise || 0);
+  if (refundAmt > 0) {
+    bucket.refundedPaise += refundAmt;
   }
 
-  if (!isCancelledOrRefunded) {
+  if (!isFullyCancelledOrRefunded) {
+    const netOrderPaise = Math.max(0, ordTotal - refundAmt);
     bucket.validOrdersCount += 1;
     bucket.unitsSold += Number(orderUnitsCount || 0);
     bucket.grossSubtotalPaise += Number(order.subtotal_paise || 0);
@@ -111,14 +116,14 @@ function accumulateOrderIntoBucket(bucket, order, orderUnitsCount = 0) {
     bucket.sgstPaise += Number(order.sgst_paise || 0);
     bucket.igstPaise += Number(order.igst_paise || 0);
     bucket.totalGstPaise += Number(order.gst_paise || 0);
-    bucket.netOrderValuePaise += Number(order.total_paise || 0);
+    bucket.netOrderValuePaise += netOrderPaise;
   }
 
   if (isSettled) {
-    bucket.settledRevenuePaise += Number(order.total_paise || 0);
+    bucket.settledRevenuePaise += Math.max(0, ordTotal - refundAmt);
   }
   if (isCodPending) {
-    bucket.codPendingPaise += Number(order.total_paise || 0);
+    bucket.codPendingPaise += ordTotal;
   }
 
   bucket.aovPaise = bucket.validOrdersCount > 0
@@ -148,12 +153,18 @@ function buildComprehensiveReports({
   const refMonth = refDate.slice(0, 7);
   const refWeek = getIsoWeekInfo(refDate);
 
-  // Map order_id -> total units & items list
+  // Map order_id -> total units, items list & explicit refund amount
   const unitsByOrderId = new Map();
   const orderById = new Map();
+  const refundByOrderId = new Map();
   for (const o of orders) {
     orderById.set(Number(o.id), o);
     unitsByOrderId.set(Number(o.id), 0);
+  }
+  for (const pay of payments) {
+    if (Number(pay.refund_amount_paise) > 0) {
+      refundByOrderId.set(Number(pay.order_id), Number(pay.refund_amount_paise));
+    }
   }
   for (const it of orderItems) {
     const oid = Number(it.order_id);
@@ -176,37 +187,38 @@ function buildComprehensiveReports({
     const mStr = dStr.slice(0, 7);
     const wInfo = getIsoWeekInfo(dStr);
     const units = unitsByOrderId.get(Number(ord.id)) || 0;
+    const explicitRefund = refundByOrderId.has(Number(ord.id)) ? refundByOrderId.get(Number(ord.id)) : null;
     const ageDays = diffDays(refDate, dStr);
 
     // Period Windows
     if (dStr === refDate) {
-      accumulateOrderIntoBucket(todayBucket, ord, units);
+      accumulateOrderIntoBucket(todayBucket, ord, units, explicitRefund);
     }
     if (ageDays >= 0 && ageDays <= 6) {
-      accumulateOrderIntoBucket(weeklyBucket, ord, units);
+      accumulateOrderIntoBucket(weeklyBucket, ord, units, explicitRefund);
     }
     if (mStr === refMonth) {
-      accumulateOrderIntoBucket(monthlyBucket, ord, units);
+      accumulateOrderIntoBucket(monthlyBucket, ord, units, explicitRefund);
     }
-    accumulateOrderIntoBucket(allTimeBucket, ord, units);
+    accumulateOrderIntoBucket(allTimeBucket, ord, units, explicitRefund);
 
     // Granular Daily Time-Series
     if (!dayMap.has(dStr)) {
       dayMap.set(dStr, createEmptyBucket(dStr, dStr));
     }
-    accumulateOrderIntoBucket(dayMap.get(dStr), ord, units);
+    accumulateOrderIntoBucket(dayMap.get(dStr), ord, units, explicitRefund);
 
     // Granular Weekly Time-Series
     if (!weekMap.has(wInfo.weekCode)) {
       weekMap.set(wInfo.weekCode, createEmptyBucket(wInfo.weekCode, wInfo.label));
     }
-    accumulateOrderIntoBucket(weekMap.get(wInfo.weekCode), ord, units);
+    accumulateOrderIntoBucket(weekMap.get(wInfo.weekCode), ord, units, explicitRefund);
 
     // Granular Monthly Time-Series
     if (!monthMap.has(mStr)) {
       monthMap.set(mStr, createEmptyBucket(mStr, mStr));
     }
-    accumulateOrderIntoBucket(monthMap.get(mStr), ord, units);
+    accumulateOrderIntoBucket(monthMap.get(mStr), ord, units, explicitRefund);
   }
 
   const dailySales = Array.from(dayMap.values()).sort((a, b) => b.key.localeCompare(a.key));
@@ -471,15 +483,23 @@ function toInrDecimal(paise) {
 }
 
 function escapeCsvCell(val) {
-  const s = String(val ?? '');
+  let s = String(val ?? '').replace(/[\r\n\t]+/g, ' ').trim();
+  if (/^[=+\-@|]/.test(s) && !/^-[0-9]+(\.[0-9]+)?$/.test(s)) {
+    s = `'${s}`;
+  }
   if (s.includes(',') || s.includes('"') || s.includes('\n')) {
     return `"${s.replace(/"/g, '""')}"`;
   }
   return s;
 }
 
+const VALID_REPORT_EXPORT_TYPES = ['daily', 'weekly', 'monthly', 'products', 'orders', 'payments'];
+
 function exportReportToCsv(reports, reportType = 'daily') {
-  const type = String(reportType || 'daily').toLowerCase();
+  const type = String(reportType || 'daily').trim().toLowerCase();
+  if (!VALID_REPORT_EXPORT_TYPES.includes(type)) {
+    throw new Error(`Invalid report export type "${reportType}". Expected one of: ${VALID_REPORT_EXPORT_TYPES.join(', ')}.`);
+  }
   const rows = [];
 
   if (type === 'daily' || type === 'weekly' || type === 'monthly') {

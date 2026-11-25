@@ -8,6 +8,10 @@ const { DB_PATH } = require('../config/appConfig');
 
 let dbInstance = null;
 
+const EPHEMERAL_PWD_CACHE_KEY = crypto.randomBytes(32);
+const pwdVerifyCache = new Map();
+const MAX_PWD_CACHE_ENTRIES = 500;
+
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
   const derived = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
   return `pbkdf2_sha512$100000$${salt}$${derived}`;
@@ -15,6 +19,17 @@ function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
 
 function verifyPassword(password, storedHash) {
   if (!storedHash || !storedHash.startsWith('pbkdf2_sha512$')) return false;
+  const rawPass = String(password || '');
+  if (!rawPass || rawPass.length > 128) return false;
+
+  const cacheKey = crypto
+    .createHmac('sha256', EPHEMERAL_PWD_CACHE_KEY)
+    .update(`${storedHash}|${rawPass}`)
+    .digest('hex');
+  if (pwdVerifyCache.has(cacheKey)) {
+    return pwdVerifyCache.get(cacheKey);
+  }
+
   const parts = storedHash.split('$');
   if (parts.length !== 4) return false;
   const iterations = Number(parts[1]);
@@ -24,10 +39,21 @@ function verifyPassword(password, storedHash) {
     const actual = crypto.pbkdf2Sync(String(cand || ''), salt, iterations, 64, 'sha512');
     return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
   };
-  if (checkCandidate(password)) return true;
-  if (password === 'Sashya@2026') return checkCandidate('Sasya@2026');
-  if (password === 'Sasya@2026') return checkCandidate('Sashya@2026');
-  return false;
+  let result = false;
+  if (checkCandidate(rawPass)) {
+    result = true;
+  } else if (rawPass === 'Sashya@2026') {
+    result = checkCandidate('Sasya@2026');
+  } else if (rawPass === 'Sasya@2026') {
+    result = checkCandidate('Sashya@2026');
+  }
+
+  if (pwdVerifyCache.size >= MAX_PWD_CACHE_ENTRIES) {
+    const oldest = pwdVerifyCache.keys().next().value;
+    if (oldest) pwdVerifyCache.delete(oldest);
+  }
+  pwdVerifyCache.set(cacheKey, result);
+  return result;
 }
 
 function getDb() {
@@ -1782,26 +1808,62 @@ function getDefaultNutritionForProduct(skuBase = '', categoryId = 1) {
   return { ...IFCT_NUTRITION_BY_SKU['SN-SP-TUR'] };
 }
 
-function normalizeNutritionPayload(raw = {}, fallback = {}) {
-  const numOr = (val, defVal) => {
+function normalizeNutritionPayload(raw = {}, fallback = {}, { strict = false } = {}) {
+  const numOr = (val, defVal, fieldLabel = 'Nutrient', maxAllowed = 100) => {
     if (val === undefined || val === null || String(val).trim() === '') return Number(defVal || 0);
     const parsed = Number(val);
-    return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) / 100 : Number(defVal || 0);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      if (strict) throw new Error(`Invalid ${fieldLabel} value: must be a non-negative number.`);
+      return Number(defVal || 0);
+    }
+    if (strict && parsed > maxAllowed) {
+      throw new Error(`FSSAI Nutritional Physics Violation: ${fieldLabel} (${parsed}) cannot exceed ${maxAllowed} per 100 g.`);
+    }
+    return Math.round(parsed * 100) / 100;
   };
   const cleanDash = (str) => String(str || '').replace(/[—–]/g, '-').trim();
 
+  const energy_kcal = numOr(raw.energy_kcal ?? raw.energyKcal, fallback.energy_kcal ?? 340, 'Energy (kcal)', 950);
+  const protein_g = numOr(raw.protein_g ?? raw.proteinG, fallback.protein_g ?? 9.5, 'Protein (g)', 100);
+  const carbs_g = numOr(raw.carbs_g ?? raw.carbsG, fallback.carbs_g ?? 62.0, 'Total Carbohydrates (g)', 100);
+  const dietary_fiber_g = numOr(raw.dietary_fiber_g ?? raw.dietaryFiberG, fallback.dietary_fiber_g ?? 8.5, 'Dietary Fiber (g)', 100);
+  const total_sugars_g = numOr(raw.total_sugars_g ?? raw.totalSugarsG, fallback.total_sugars_g ?? 1.2, 'Total Sugars (g)', 100);
+  const added_sugars_g = numOr(raw.added_sugars_g ?? raw.addedSugarsG, fallback.added_sugars_g ?? 0, 'Added Sugars (g)', 100);
+  const total_fat_g = numOr(raw.total_fat_g ?? raw.totalFatG, fallback.total_fat_g ?? 4.2, 'Total Fat (g)', 100);
+  const saturated_fat_g = numOr(raw.saturated_fat_g ?? raw.saturatedFatG, fallback.saturated_fat_g ?? 0.8, 'Saturated Fat (g)', 100);
+  const trans_fat_g = numOr(raw.trans_fat_g ?? raw.transFatG, fallback.trans_fat_g ?? 0, 'Trans Fat (g)', 100);
+  const sodium_mg = numOr(raw.sodium_mg ?? raw.sodiumMg, fallback.sodium_mg ?? 8, 'Sodium (mg)', 100000);
+
+  if (strict) {
+    if (protein_g + carbs_g + total_fat_g > 105) {
+      throw new Error(
+        `FSSAI Nutritional Physics Violation: Combined Protein (${protein_g}g), Carbs (${carbs_g}g), and Total Fat (${total_fat_g}g) cannot exceed 100 g per 100 g edible portion.`
+      );
+    }
+    if (saturated_fat_g + trans_fat_g > total_fat_g + 0.5) {
+      throw new Error(
+        `FSSAI Nutritional Physics Violation: Saturated Fat (${saturated_fat_g}g) + Trans Fat (${trans_fat_g}g) cannot exceed Total Fat (${total_fat_g}g).`
+      );
+    }
+    if (added_sugars_g > total_sugars_g + 0.5) {
+      throw new Error(
+        `FSSAI Nutritional Physics Violation: Added Sugars (${added_sugars_g}g) cannot exceed Total Sugars (${total_sugars_g}g).`
+      );
+    }
+  }
+
   return {
     serving_basis: 'Per 100 g',
-    energy_kcal: numOr(raw.energy_kcal ?? raw.energyKcal, fallback.energy_kcal ?? 340),
-    protein_g: numOr(raw.protein_g ?? raw.proteinG, fallback.protein_g ?? 9.5),
-    carbs_g: numOr(raw.carbs_g ?? raw.carbsG, fallback.carbs_g ?? 62.0),
-    dietary_fiber_g: numOr(raw.dietary_fiber_g ?? raw.dietaryFiberG, fallback.dietary_fiber_g ?? 8.5),
-    total_sugars_g: numOr(raw.total_sugars_g ?? raw.totalSugarsG, fallback.total_sugars_g ?? 1.2),
-    added_sugars_g: numOr(raw.added_sugars_g ?? raw.addedSugarsG, fallback.added_sugars_g ?? 0),
-    total_fat_g: numOr(raw.total_fat_g ?? raw.totalFatG, fallback.total_fat_g ?? 4.2),
-    saturated_fat_g: numOr(raw.saturated_fat_g ?? raw.saturatedFatG, fallback.saturated_fat_g ?? 0.8),
-    trans_fat_g: numOr(raw.trans_fat_g ?? raw.transFatG, fallback.trans_fat_g ?? 0),
-    sodium_mg: numOr(raw.sodium_mg ?? raw.sodiumMg, fallback.sodium_mg ?? 8),
+    energy_kcal,
+    protein_g,
+    carbs_g,
+    dietary_fiber_g,
+    total_sugars_g,
+    added_sugars_g,
+    total_fat_g,
+    saturated_fat_g,
+    trans_fat_g,
+    sodium_mg,
     bioactive_label: cleanDash(raw.bioactive_label ?? raw.bioactiveLabel ?? fallback.bioactive_label ?? 'Key Phytonutrient Highlight') || 'Key Phytonutrient Highlight',
     bioactive_value: cleanDash(raw.bioactive_value ?? raw.bioactiveValue ?? fallback.bioactive_value ?? '100% Unpolished Natural Staple') || '100% Unpolished Natural Staple'
   };

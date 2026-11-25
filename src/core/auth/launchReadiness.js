@@ -43,9 +43,10 @@ function evaluateLaunchReadiness() {
   const rzpKeySecret = String(getVaultSecret('RAZORPAY_KEY_SECRET', '') || '').trim();
   const rzpWebhookSecret = String(getVaultSecret('RAZORPAY_WEBHOOK_SECRET', '') || '').trim();
 
-  const isRzpKeyLive = rzpKeyId.startsWith('rzp_live_') && rzpKeyId.length >= 16;
-  const isRzpSecretLive = rzpKeySecret.length >= 12 && !rzpKeySecret.includes('sandbox');
-  const isRzpWebhookLive = rzpWebhookSecret.length >= 8 && !rzpWebhookSecret.includes('sandbox');
+  const hasPlaceholderToken = (val) => /sandbox|test|fake|placeholder|dummy|example/i.test(String(val || ''));
+  const isRzpKeyLive = rzpKeyId.startsWith('rzp_live_') && rzpKeyId.length >= 16 && !hasPlaceholderToken(rzpKeyId);
+  const isRzpSecretLive = rzpKeySecret.length >= 12 && !hasPlaceholderToken(rzpKeySecret);
+  const isRzpWebhookLive = rzpWebhookSecret.length >= 8 && !hasPlaceholderToken(rzpWebhookSecret);
 
   if (!rzpKeyId) {
     blockers.push('Payment Gateway: RAZORPAY_KEY_ID is not sealed in the Credential Vault.');
@@ -65,7 +66,7 @@ function evaluateLaunchReadiness() {
 
   // 2. Check Email Notification & Customer Email Verification Readiness
   const smtpApiKey = String(getVaultSecret('SMTP_API_KEY', '') || '').trim();
-  const isSmtpKeySealed = smtpApiKey.length >= 10 && !smtpApiKey.includes('sandbox') && !smtpApiKey.includes('test');
+  const isSmtpKeySealed = smtpApiKey.length >= 10 && !hasPlaceholderToken(smtpApiKey);
 
   const emailVerifyRow = db.prepare("SELECT value FROM store_settings WHERE key = 'email_verification_live'").get();
   const isEmailVerificationVerified = Boolean(emailVerifyRow && emailVerifyRow.value === '1');

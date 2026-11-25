@@ -2083,17 +2083,33 @@ function renderAdminPortalPage({
     breadcrumbs: [{ name: 'Home', url: '/' }, { name: 'Admin Portal', url: '/admin' }]
   });
 
+  const itemsByOrderId = new Map();
+  for (const it of orderItems) {
+    const oid = Number(it.order_id);
+    if (!itemsByOrderId.has(oid)) itemsByOrderId.set(oid, []);
+    itemsByOrderId.get(oid).push(it);
+  }
+  const refundByOrderId = new Map();
+  for (const p of payments) {
+    if (p.order_id && Number(p.refund_amount_paise) > 0) {
+      refundByOrderId.set(Number(p.order_id), Number(p.refund_amount_paise));
+    }
+  }
+
   const totalRevenuePaise = orders
-    .filter(o => o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED')
-    .reduce((acc, o) => acc + o.total_paise, 0);
+    .filter(o => (o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED') && o.fulfilment_status !== 'Cancelled' && o.fulfilment_status !== 'Refunded')
+    .reduce((acc, o) => acc + Number(o.total_paise || 0), 0);
   const codPendingPaise = orders
     .filter(o => o.payment_status === 'COD_PENDING' && o.fulfilment_status !== 'Cancelled')
     .reduce((acc, o) => acc + o.total_paise, 0);
   const refundedPaise = orders
     .filter(o => o.payment_status === 'REFUNDED')
-    .reduce((acc, o) => acc + o.total_paise, 0);
+    .reduce((acc, o) => {
+      const explicitRef = refundByOrderId.get(Number(o.id));
+      return acc + (explicitRef > 0 ? Math.min(o.total_paise, explicitRef) : o.total_paise);
+    }, 0);
   const totalGstPaise = orders
-    .filter(o => o.payment_status !== 'REFUNDED' && o.payment_status !== 'FAILED')
+    .filter(o => o.payment_status !== 'REFUNDED' && o.payment_status !== 'FAILED' && o.fulfilment_status !== 'Cancelled')
     .reduce((acc, o) => acc + (o.gst_paise || 0), 0);
   const lowStockVariants = variants.filter(v => v.stock_qty <= v.low_stock_threshold);
   const configuredVaultCount = vaultStatus.filter(v => v.is_configured).length;
@@ -2124,9 +2140,9 @@ function renderAdminPortalPage({
       accountType: 'Registered Customer',
       isRegistered: true,
       addressCount: userAddrs.length,
-      defaultCity: defAddr ? defAddr.city : 'Bengaluru',
-      defaultState: defAddr ? defAddr.state : 'Karnataka',
-      defaultPincode: defAddr ? defAddr.pincode : '560038',
+      defaultCity: defAddr ? defAddr.city : 'Not Provided',
+      defaultState: defAddr ? defAddr.state : 'Not Provided',
+      defaultPincode: defAddr ? defAddr.pincode : 'Not Provided',
       orderNumbers: [],
       totalPacksBought: 0,
       settledSpendPaise: 0,
@@ -2149,9 +2165,9 @@ function renderAdminPortalPage({
       accountType: ord.user_id ? 'Registered Customer' : 'Guest Checkout',
       isRegistered: Boolean(ord.user_id),
       addressCount: 1,
-      defaultCity: ord.shipping_city || 'Bengaluru',
-      defaultState: ord.shipping_state || 'Karnataka',
-      defaultPincode: ord.shipping_pincode || '560038',
+      defaultCity: ord.shipping_city || 'Not Provided',
+      defaultState: ord.shipping_state || 'Not Provided',
+      defaultPincode: ord.shipping_pincode || 'Not Provided',
       orderNumbers: [],
       totalPacksBought: 0,
       settledSpendPaise: 0,
@@ -2161,18 +2177,23 @@ function renderAdminPortalPage({
       purchasedItemsList: [],
       detailedOrders: []
     };
-    const oItems = orderItems.filter(it => Number(it.order_id) === Number(ord.id));
+    if (existing.defaultCity === 'Not Provided' && ord.shipping_city) {
+      existing.defaultCity = ord.shipping_city;
+      existing.defaultState = ord.shipping_state || 'Not Provided';
+      existing.defaultPincode = ord.shipping_pincode || 'Not Provided';
+    }
+    const oItems = itemsByOrderId.get(Number(ord.id)) || [];
     const ordPacks = oItems.reduce((acc, it) => acc + Number(it.quantity || 0), 0);
     existing.orderNumbers.push(ord.order_number);
-    const isCancelledOrReversed = ord.payment_status === 'REFUNDED' || ord.payment_status === 'FAILED' || ord.fulfilment_status === 'Cancelled';
+    const isCancelledOrReversed = ord.payment_status === 'REFUNDED' || ord.payment_status === 'FAILED' || ord.fulfilment_status === 'Cancelled' || ord.fulfilment_status === 'Refunded';
     if (!isCancelledOrReversed) {
       existing.totalPacksBought += ordPacks;
       existing.totalSpendPaise += Number(ord.total_paise || 0);
-    }
-    if (ord.payment_status === 'PAID' || ord.payment_status === 'COD_COLLECTED') {
-      existing.settledSpendPaise += Number(ord.total_paise || 0);
-    } else if (ord.payment_status === 'COD_PENDING' && ord.fulfilment_status !== 'Cancelled') {
-      existing.codPendingPaise += Number(ord.total_paise || 0);
+      if (ord.payment_status === 'PAID' || ord.payment_status === 'COD_COLLECTED') {
+        existing.settledSpendPaise += Number(ord.total_paise || 0);
+      } else if (ord.payment_status === 'COD_PENDING') {
+        existing.codPendingPaise += Number(ord.total_paise || 0);
+      }
     }
     const ordDate = (ord.created_at || '').slice(0, 10);
     if (existing.lastOrderDate === 'No orders yet' || ordDate > existing.lastOrderDate) {
@@ -2461,7 +2482,7 @@ function renderAdminPortalPage({
 
               <div id="sn-admin-orders-cards-container">
               ${orders.map(o => {
-                const oItems = orderItems.filter(it => Number(it.order_id) === Number(o.id));
+                const oItems = itemsByOrderId.get(Number(o.id)) || [];
                 const netGrams = oItems.reduce((acc, it) => acc + Number(it.weight_grams || 0) * Number(it.quantity || 0), 0);
                 const grossGrams = netGrams > 0 ? netGrams + 150 : 650;
                 const fullAddressSingleLine = `${o.customer_name} (${o.customer_phone}) | ${o.shipping_line1}${o.shipping_line2 ? ', ' + o.shipping_line2 : ''}, ${o.shipping_city}, ${o.shipping_state} - ${o.shipping_pincode} | Order: ${o.order_number} (${o.payment_method}: ${formatInr(o.total_paise)})`;
@@ -3209,8 +3230,11 @@ function renderAdminPortalPage({
                           <div>
                             <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">GST Slab (%)</label>
                             <select name="gstPercent" id="sn-edit-prod-gst" class="sn-select">
+                              <option value="0">0% GST (Exempt / Unbranded Primary Produce)</option>
                               <option value="5">5% GST (Natural Staples)</option>
                               <option value="12">12% GST (Processed / Blended)</option>
+                              <option value="18">18% GST (Standard Processed)</option>
+                              <option value="28">28% GST (Premium / Luxury Slab)</option>
                             </select>
                           </div>
                           <div>
@@ -4527,7 +4551,7 @@ function renderAdminPortalPage({
                           <textarea name="email_template_order_shipped" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_shipped || '')}</textarea>
                         </div>
                       </div>
-                      <div class="sn-form-row-2-action" style="gap:12px;">
+                      <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
                         <div>
                           <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Order Delivered Notification Template</label>
                           <textarea name="email_template_order_delivered" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_delivered || '')}</textarea>
@@ -4536,7 +4560,14 @@ function renderAdminPortalPage({
                           <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Cancellation / Refund Notification Template</label>
                           <textarea name="email_template_order_cancelled" rows="2" class="sn-textarea">${escapeHtml(sMap.email_template_order_cancelled || '')}</textarea>
                         </div>
-                        <button type="submit" class="sn-btn sn-btn-forest">Save Compliance &amp; Templates</button>
+                        <div>
+                          <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Live Email &amp; OTP Verification Status (Go-Live Gate)</label>
+                          <select name="email_verification_live" class="sn-select" style="margin-bottom:8px;">
+                            <option value="0" ${sMap.email_verification_live === '1' || sMap.email_verification_live === 'true' ? '' : 'selected'}>Sandbox / Pending Domain Verification (0)</option>
+                            <option value="1" ${sMap.email_verification_live === '1' || sMap.email_verification_live === 'true' ? 'selected' : ''}>✓ Verified Live SMTP &amp; OTP Delivery Active (1)</option>
+                          </select>
+                          <button type="submit" class="sn-btn sn-btn-forest" style="width:100%;">Save Compliance &amp; Templates</button>
+                        </div>
                       </div>
                     </form>
                   </div>

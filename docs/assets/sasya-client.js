@@ -1958,6 +1958,7 @@
       return items;
     }
 
+    let adminOrderPreviewAbortCtrl = null;
     async function recalculateAdminManualOrderPreview() {
       if (!createOrderLivePreview) return;
       const items = collectAdminOrderLineItems();
@@ -1970,11 +1971,16 @@
       const payMethod = document.getElementById('sn-admin-ord-payment-method')?.value || 'ONLINE_UPI';
       const couponVal = (document.getElementById('sn-admin-ord-coupon')?.value || '').trim();
 
-      if (!IS_STATIC_SHOWCASE) {
+      if (!IS_STATIC_SHOWCASE && /^[1-8]\d{5}$/.test(pinVal)) {
         try {
+          if (adminOrderPreviewAbortCtrl) {
+            adminOrderPreviewAbortCtrl.abort();
+          }
+          adminOrderPreviewAbortCtrl = new AbortController();
           const res = await fetch('/api/cart/calculate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: adminOrderPreviewAbortCtrl.signal,
             body: JSON.stringify({
               items: items.map(it => ({ variantId: it.variantId, quantity: it.quantity })),
               couponCode: couponVal,
@@ -2012,7 +2018,8 @@
             `;
             return;
           }
-        } catch {
+        } catch (err) {
+          if (err && err.name === 'AbortError') return;
           // Fallback to local calculation below
         }
       }
@@ -2164,6 +2171,8 @@
     if (createOrderForm) {
       createOrderForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitBtn = document.getElementById('sn-admin-create-order-submit-btn');
+        if (submitBtn && submitBtn.disabled) return;
         const email = getActiveAdminEmail();
         const items = collectAdminOrderLineItems();
         if (items.length === 0) {
@@ -2205,15 +2214,22 @@
           return;
         }
 
-        const res = await fetch('/api/admin/orders/create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-admin-email': email
-          },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
+        if (submitBtn) submitBtn.disabled = true;
+        let res;
+        let data;
+        try {
+          res = await fetch('/api/admin/orders/create', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-admin-email': email
+            },
+            body: JSON.stringify(payload)
+          });
+          data = await res.json();
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
         if (!res.ok) {
           showToast(data.error || 'Failed to create order');
           return;
@@ -2918,7 +2934,7 @@
       const ranges = [];
       if (rawTokens) {
         for (const part of rawTokens.split(/[\n,;]+/).map(s => s.trim()).filter(Boolean)) {
-          const tok = part.replace(/\s+/g, '');
+          const tok = part.replace(/\s*-\s*/g, '-');
           if (/^[1-8]\d{5}$/.test(tok)) {
             pincodes.push(tok);
           } else {

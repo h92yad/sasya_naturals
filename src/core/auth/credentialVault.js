@@ -25,6 +25,9 @@ function deriveVaultKey() {
 function buildMaskedHint(rawSecret) {
   const clean = String(rawSecret || '').trim();
   if (clean.length <= 6) return '•••••• (Hidden)';
+  if (clean.length < 12) {
+    return `${clean.slice(0, 2)}•••••••• (Hidden)`;
+  }
   const prefix = clean.slice(0, 4);
   const suffix = clean.slice(-4);
   return `${prefix}••••••••${suffix} (Hidden)`;
@@ -35,9 +38,9 @@ function saveVaultCredential({ keyName, secretValue, actorEmail = 'superadmin@sa
   if (!ALLOWED_VAULT_KEYS.includes(cleanKey)) {
     throw new Error(`Unsupported vault credential key: ${cleanKey}`);
   }
-  const cleanVal = String(secretValue || '').trim();
-  if (!cleanVal || cleanVal.length < 6) {
-    throw new Error(`Credential value for ${cleanKey} must be at least 6 characters.`);
+  const cleanVal = String(secretValue || '').replace(/[\u0000-\u001F\u007F\u200B-\u200D\uFEFF]/g, '').trim();
+  if (!cleanVal || cleanVal.length < 6 || cleanVal.length > 512) {
+    throw new Error(`Credential value for ${cleanKey} must be between 6 and 512 characters.`);
   }
 
   const key = deriveVaultKey();

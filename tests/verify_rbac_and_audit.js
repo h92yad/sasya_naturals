@@ -482,7 +482,27 @@ function runVerifyRbacAndAudit() {
   db.prepare("DELETE FROM audit_logs WHERE action = 'VAULT_CREDENTIAL_SEALED'").run();
   assert.strictEqual(evaluateLaunchReadiness().isReady, false, 'Baseline vault reset must re-lock production launch guardrail');
 
-  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Fail-Closed Production Go-Live Guardrail, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager, v2.5.0 Adversarial Edge-Case Guards, v2.7.0 FSSAI Nutrition + Per-Weight Discounts & immutable audit_logs');
+  // 14. Verify v3.4.0 4,500-Adversarial-Attack Remediations across all 9 Admin Modules
+  assert.strictEqual(assertAdminPermission(accountsMgr, 'customers.view'), true, 'ACCOUNTS_MANAGER must be granted customers.view for Module 6 CSV exports');
+  assert.throws(
+    () => requestPasswordResetOtp('superadmin@sashyanaturals.com'),
+    /Staff and administrator passwords cannot be reset via public OTP/,
+    'requestPasswordResetOtp must reject Staff/SuperAdmin accounts'
+  );
+  assert.throws(
+    () => normalizeNutritionPayload({ protein_g: 450, carbs_g: 600, total_fat_g: 10, saturated_fat_g: 85 }, ragiNut, { strict: true }),
+    /FSSAI Nutritional Physics Violation/,
+    'normalizeNutritionPayload with strict:true must reject impossible per-100g macros'
+  );
+  const { updateHelloBarConfig } = require('../src/core/content/contentStore');
+  updateHelloBarConfig({ topbarBadge1: 'Bi-Directional Sync Test A' });
+  assert.strictEqual(getStorefrontContentAndSeo().homepage.topbarBadge1, 'Bi-Directional Sync Test A');
+  updateHomepageContent({ topbarBadge1: 'Bi-Directional Sync Test B' });
+  assert.strictEqual(getStorefrontContentAndSeo().helloBar.topbarBadge1, 'Bi-Directional Sync Test B');
+  db.prepare("DELETE FROM store_settings WHERE key IN ('content_homepage_json', 'content_hellobar_json')").run();
+  db.prepare("DELETE FROM audit_logs WHERE action IN ('HOMEPAGE_CONTENT_UPDATED', 'HELLOBAR_CONTENT_UPDATED')").run();
+
+  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Fail-Closed Production Go-Live Guardrail, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager, v2.5.0 Adversarial Edge-Case Guards, v2.7.0 FSSAI Nutrition + Per-Weight Discounts, v3.4.0 4,500-Attack Hardening & immutable audit_logs');
 }
 
 if (require.main === module) {

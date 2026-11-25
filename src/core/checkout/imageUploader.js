@@ -14,12 +14,19 @@ const { recordAuditLog } = require('../auth/rbac');
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 function detectImageFormatFromMagicBytes(buf) {
-  if (!Buffer.isBuffer(buf) || buf.length < 12) return null;
-  // JPEG: FF D8 FF
+  if (!Buffer.isBuffer(buf) || buf.length < 24) return null;
+  // Reject polyglot files embedding executable HTML / JS / PHP / SVG script payloads
+  const asciiSample = buf.slice(0, Math.min(buf.length, 16384)).toString('latin1');
+  if (/<\s*script|<\?php|<\s*html|<!doctype\s+html|javascript:|onerror\s*=|onload\s*=/i.test(asciiSample)) {
+    return null;
+  }
+  // JPEG: FF D8 FF and must end with EOI marker FF D9 (or have valid JFIF/Exif/quantization structure)
   if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+    const hasEoi = buf[buf.length - 2] === 0xff && buf[buf.length - 1] === 0xd9;
+    if (!hasEoi && buf.length < 128) return null;
     return { ext: '.jpg', mime: 'image/jpeg' };
   }
-  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  // PNG: 89 50 4E 47 0D 0A 1A 0A + IHDR chunk header at bytes 12..16
   if (
     buf[0] === 0x89 &&
     buf[1] === 0x50 &&
@@ -28,14 +35,16 @@ function detectImageFormatFromMagicBytes(buf) {
     buf[4] === 0x0d &&
     buf[5] === 0x0a &&
     buf[6] === 0x1a &&
-    buf[7] === 0x0a
+    buf[7] === 0x0a &&
+    buf.slice(12, 16).toString('ascii') === 'IHDR'
   ) {
     return { ext: '.png', mime: 'image/png' };
   }
-  // WebP: "RIFF" .... "WEBP"
+  // WebP: "RIFF" .... "WEBP" + "VP8" chunk at bytes 12..15
   if (
     buf.slice(0, 4).toString('ascii') === 'RIFF' &&
-    buf.slice(8, 12).toString('ascii') === 'WEBP'
+    buf.slice(8, 12).toString('ascii') === 'WEBP' &&
+    buf.slice(12, 15).toString('ascii') === 'VP8'
   ) {
     return { ext: '.webp', mime: 'image/webp' };
   }
@@ -97,12 +106,16 @@ function uploadProductImage({
   } catch {
     gallery = [];
   }
+  gallery = gallery.filter(g => g && g.url !== saved.publicUrl);
   gallery.push({
     url: saved.publicUrl,
-    caption: String(caption || '').trim(),
+    caption: String(caption || '').trim().slice(0, 140),
     mime: saved.mime,
     isPrimary: Boolean(setAsPrimary)
   });
+  if (gallery.length > 12) {
+    gallery = gallery.slice(-12);
+  }
 
   if (setAsPrimary) {
     db.prepare('UPDATE products SET image_url = ?, image_caption = ?, gallery_json = ? WHERE id = ?').run(

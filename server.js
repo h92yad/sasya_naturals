@@ -49,7 +49,9 @@ const {
 } = require('./src/core/checkout/imageUploader');
 const {
   assertAdminPermission,
-  recordAuditLog
+  recordAuditLog,
+  ROLE_PERMISSIONS_MATRIX,
+  VALID_ADMIN_PERMISSIONS
 } = require('./src/core/auth/rbac');
 const {
   saveVaultCredential,
@@ -65,6 +67,8 @@ const {
   SESSION_COOKIE_NAME,
   CUSTOMER_COOKIE_NAME,
   verifySessionToken,
+  revokeSessionToken,
+  verifyCsrfToken,
   loginAdminWithPassword,
   loginCustomerWithPassword,
   registerCustomerAccount,
@@ -209,6 +213,13 @@ function sendHtml(res, statusCode, html, canonicalPath = '/') {
 function resolveAdminUser(req) {
   const db = getDb();
   const cookies = parseCookies(req.headers.cookie || '');
+  if (req.headers['x-csrf-token'] !== undefined) {
+    if (!verifyCsrfToken(cookies[SESSION_COOKIE_NAME] || '', String(req.headers['x-csrf-token']))) {
+      const err = new Error('CSRF token validation failed.');
+      err.statusCode = 403;
+      throw err;
+    }
+  }
   if (cookies[SESSION_COOKIE_NAME]) {
     const verified = verifySessionToken(cookies[SESSION_COOKIE_NAME]);
     if (verified && verified.email) {
@@ -317,12 +328,13 @@ function createServerHandler() {
       }
 
       // 2.5 Fail-Closed Production Go-Live Guardrail:
-      // If a request arrives for the live public domain (sashyanaturals.com / www.sashyanaturals.com / sashyanaturals.com)
+      // If a request arrives for the live public domain (sashyanaturals.com / www.sashyanaturals.com)
       // OR when NODE_ENV=production, verify that Live Razorpay Payment Gateway AND Live Email Notification/Verification
-      // are sealed and active. If not ready, lock the response to "Launching Soon" (and Disallow: / in robots.txt).
+      // are sealed and active. Exempt /admin and /api/admin/* so Super Admin can sign in and seal keys on the live domain.
       const reqHost = String(req.headers.host || '').toLowerCase();
       const isLiveDomainRequest = isLiveProductionHost(reqHost) || IS_PROD;
-      if (isLiveDomainRequest) {
+      const isAdminControlRoute = pathname === '/admin' || pathname.startsWith('/api/admin/');
+      if (isLiveDomainRequest && !isAdminControlRoute) {
         const launchReadiness = evaluateLaunchReadiness();
         if (!launchReadiness.isReady) {
           if (pathname === '/robots.txt') {
@@ -495,6 +507,10 @@ function createServerHandler() {
       }
 
       if (pathname === '/api/admin/auth/logout' && req.method === 'POST') {
+        const cookies = parseCookies(req.headers.cookie || '');
+        if (cookies[SESSION_COOKIE_NAME]) {
+          revokeSessionToken(cookies[SESSION_COOKIE_NAME]);
+        }
         return sendJson(
           res,
           200,
@@ -528,6 +544,10 @@ function createServerHandler() {
       }
 
       if (pathname === '/api/account/logout' && req.method === 'POST') {
+        const cookies = parseCookies(req.headers.cookie || '');
+        if (cookies[CUSTOMER_COOKIE_NAME]) {
+          revokeSessionToken(cookies[CUSTOMER_COOKIE_NAME]);
+        }
         return sendJson(
           res,
           200,
@@ -675,6 +695,7 @@ function createServerHandler() {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'settings.manage');
         const body = await readJsonBody(req);
+        const cleanDash = s => String(s ?? '').replace(/[\u2013\u2014]/g, '-').trim();
         const allowedKeys = [
           'business_legal_name',
           'gstin',
@@ -688,14 +709,47 @@ function createServerHandler() {
           'email_template_order_cancelled',
           'email_verification_live'
         ];
-        const upsert = db.prepare("INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))");
-        const updated = {};
+        const requiredNonEmptyKeys = [
+          'business_legal_name',
+          'gstin',
+          'fssai_license',
+          'support_email',
+          'support_phone',
+          'registered_address'
+        ];
+        const candidateValues = {};
         for (const k of allowedKeys) {
           if (body[k] !== undefined) {
-            const val = String(body[k]).trim();
-            upsert.run(k, val);
-            updated[k] = val;
+            const val = cleanDash(body[k]);
+            if (requiredNonEmptyKeys.includes(k) && !val) {
+              return sendJson(res, 400, { error: `Compliance field "${k}" cannot be empty.` });
+            }
+            if (k === 'gstin' && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i.test(val)) {
+              return sendJson(res, 400, { error: 'Invalid GSTIN format. Must be a valid 15-character Indian GSTIN (e.g. 29AABCS1429B1Z5).' });
+            }
+            if (k === 'fssai_license' && !/^\d{14}$/.test(val)) {
+              return sendJson(res, 400, { error: 'Invalid FSSAI license number. Must be an exact 14-digit numeric FSSAI license.' });
+            }
+            if (k === 'support_email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+              return sendJson(res, 400, { error: 'Invalid support email address.' });
+            }
+            if (k === 'support_phone' && val.replace(/\D/g, '').length < 10) {
+              return sendJson(res, 400, { error: 'Invalid support phone number (must contain at least 10 digits).' });
+            }
+            candidateValues[k] = k === 'gstin' ? val.toUpperCase() : val;
           }
+        }
+        const combinedComplianceText = Object.values(candidateValues).join(' ');
+        const lintCheck = lintContentText(combinedComplianceText, 'compliance_and_templates');
+        if (!lintCheck.valid) {
+          return sendJson(res, 400, { error: lintCheck.issues.join(' ') });
+        }
+
+        const upsert = db.prepare("INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))");
+        const updated = {};
+        for (const [k, val] of Object.entries(candidateValues)) {
+          upsert.run(k, val);
+          updated[k] = val;
         }
         recordAuditLog({
           actorId: adminUser.id,
@@ -747,7 +801,11 @@ function createServerHandler() {
       if (pathname === '/api/admin/users/export.csv' && req.method === 'GET') {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'customers.view');
-        const exportType = parsedUrl.searchParams.get('type') === 'user_purchases' ? 'user_purchases' : 'users_summary';
+        const rawExportType = parsedUrl.searchParams.get('type');
+        if (rawExportType && !['users_summary', 'user_purchases'].includes(rawExportType)) {
+          return sendJson(res, 400, { error: `Invalid user export type "${rawExportType}". Must be users_summary or user_purchases.` });
+        }
+        const exportType = rawExportType === 'user_purchases' ? 'user_purchases' : 'users_summary';
         const csvContent = buildUsersAndPurchasesExportCsv({
           customerUsers: db.prepare("SELECT * FROM users WHERE role = 'CUSTOMER' ORDER BY id").all(),
           customerAddresses: db.prepare('SELECT * FROM customer_addresses ORDER BY id').all(),
@@ -930,7 +988,7 @@ function createServerHandler() {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'shipping.update');
         const body = await readJsonBody(req);
-        if (body.fulfilmentStatus === 'Refunded') {
+        if (body.fulfilmentStatus === 'Refunded' || body.fulfilmentStatus === 'Refund Initiated') {
           assertAdminPermission(adminUser, 'payments.refund');
         }
         const manualShippingChargePaise = body.manualShippingChargePaise !== undefined
@@ -963,11 +1021,12 @@ function createServerHandler() {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'payments.refund');
         const body = await readJsonBody(req);
+        const hasRefundInr = body.refundAmountInr !== undefined && body.refundAmountInr !== null && String(body.refundAmountInr).trim() !== '';
         const updatedOrder = recordPaymentAdminAction({
           orderNumber: body.orderNumber,
           actionType: body.actionType,
           refundReason: body.refundReason,
-          refundAmountPaise: body.refundAmountInr ? Math.round(Number(body.refundAmountInr) * 100) : null,
+          refundAmountPaise: hasRefundInr ? Math.round(Number(body.refundAmountInr) * 100) : null,
           actorEmail: adminUser.email,
           actorRole: adminUser.role
         });
@@ -979,16 +1038,36 @@ function createServerHandler() {
         assertAdminPermission(adminUser, 'inventory.write');
         const body = await readJsonBody(req);
         const variantId = Number(body.variantId);
-        if (!Number.isFinite(Number(body.newStockQty))) {
-          return sendJson(res, 400, { error: 'Valid numeric stock quantity is required.' });
+        const rawStock = body.newStockQty;
+        if (
+          rawStock === undefined ||
+          rawStock === null ||
+          typeof rawStock === 'boolean' ||
+          typeof rawStock === 'object' ||
+          String(rawStock).trim() === '' ||
+          !/^\d+$/.test(String(rawStock).trim())
+        ) {
+          return sendJson(res, 400, { error: 'Valid non-negative integer stock quantity (0 to 100,000) is required.' });
         }
-        const newStockQty = Math.max(0, Math.floor(Number(body.newStockQty)));
+        const newStockQty = Number(String(rawStock).trim());
+        if (!Number.isSafeInteger(newStockQty) || newStockQty < 0 || newStockQty > 100000) {
+          return sendJson(res, 400, { error: 'Stock quantity must be an integer between 0 and 100,000 units.' });
+        }
         const variant = db.prepare('SELECT * FROM product_variants WHERE id = ?').get(variantId);
         if (!variant) return sendJson(res, 404, { error: 'Variant not found' });
 
-        const lowStockThreshold = body.lowStockThreshold !== undefined && Number.isFinite(Number(body.lowStockThreshold))
-          ? Math.max(1, Math.floor(Number(body.lowStockThreshold)))
-          : variant.low_stock_threshold;
+        let lowStockThreshold = variant.low_stock_threshold;
+        if (body.lowStockThreshold !== undefined && body.lowStockThreshold !== null) {
+          const rawThresh = String(body.lowStockThreshold).trim();
+          if (rawThresh === '' || !/^\d+$/.test(rawThresh)) {
+            return sendJson(res, 400, { error: 'Low stock alert threshold must be a positive integer between 1 and 10,000.' });
+          }
+          const parsedThresh = Number(rawThresh);
+          if (parsedThresh < 1 || parsedThresh > 10000) {
+            return sendJson(res, 400, { error: 'Low stock alert threshold must be between 1 and 10,000 units.' });
+          }
+          lowStockThreshold = parsedThresh;
+        }
 
         const delta = newStockQty - variant.stock_qty;
         db.prepare('UPDATE product_variants SET stock_qty = ?, low_stock_threshold = ? WHERE id = ?').run(newStockQty, lowStockThreshold, variantId);
@@ -997,15 +1076,19 @@ function createServerHandler() {
           db.prepare(`
             INSERT INTO inventory_movements (variant_id, delta_qty, previous_qty, new_qty, reason, reference_id, actor_name)
             VALUES (?, ?, ?, ?, ?, 'ADMIN_PORTAL', ?)
-          `).run(variantId, delta, variant.stock_qty, newStockQty, body.reason || 'ADMIN_STOCK_UPDATE', adminUser.email);
+          `).run(variantId, delta, variant.stock_qty, newStockQty, String(body.reason || 'ADMIN_STOCK_UPDATE').slice(0, 120), adminUser.email);
         }
 
-        if (newStockQty <= lowStockThreshold && variant.stock_qty > lowStockThreshold) {
+        const crossedLowThreshold = newStockQty <= lowStockThreshold && variant.stock_qty > lowStockThreshold;
+        const droppedToZeroOutOfStock = newStockQty === 0 && variant.stock_qty > 0;
+        if (crossedLowThreshold || droppedToZeroOutOfStock) {
           db.prepare(`
             INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
             VALUES ('ADMIN_PORTAL', 'ADMIN_ALERT', 'catalog@sashyanaturals.com', 'LOW_STOCK_ALERT', ?, ?)
           `).run(
-            `Low Stock Alert: ${variant.sku} (${newStockQty} remaining)`,
+            newStockQty === 0
+              ? `Out of Stock Alert: ${variant.sku} (0 remaining)`
+              : `Low Stock Alert: ${variant.sku} (${newStockQty} remaining)`,
             `Variant ${variant.sku} (${variant.pack_label}) adjusted to ${newStockQty} units (threshold: ${lowStockThreshold}).`
           );
         }
@@ -1033,10 +1116,11 @@ function createServerHandler() {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'products.write');
         const body = await readJsonBody(req);
+        const cleanDash = (s) => String(s || '').replace(/[\u2013\u2014]/g, '-').trim();
 
-        const name = String(body.name || '').trim();
-        const subtitle = String(body.subtitle || '').trim();
-        const description = String(body.description || '').trim();
+        const name = cleanDash(body.name);
+        const subtitle = cleanDash(body.subtitle);
+        const description = cleanDash(body.description);
         if (!name || !subtitle || !description) {
           return sendJson(res, 400, { error: 'Category name, subtitle, and description are required.' });
         }
@@ -1090,6 +1174,7 @@ function createServerHandler() {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'products.write');
         const body = await readJsonBody(req);
+        const cleanDash = (s) => String(s || '').replace(/[\u2013\u2014]/g, '-').trim();
 
         const catId = Number(body.categoryId);
         const cat = db.prepare('SELECT * FROM categories WHERE id = ?').get(catId);
@@ -1097,14 +1182,28 @@ function createServerHandler() {
           return sendJson(res, 404, { error: 'Category not found' });
         }
 
-        const nextName = body.name && String(body.name).trim() ? String(body.name).trim() : cat.name;
-        const nextSubtitle = body.subtitle && String(body.subtitle).trim() ? String(body.subtitle).trim() : cat.subtitle;
-        const nextDescription = body.description && String(body.description).trim()
-          ? String(body.description).trim()
+        const nextName = body.name && cleanDash(body.name) ? cleanDash(body.name) : cat.name;
+        const nextSubtitle = body.subtitle && cleanDash(body.subtitle) ? cleanDash(body.subtitle) : cat.subtitle;
+        const nextDescription = body.description && cleanDash(body.description)
+          ? cleanDash(body.description)
           : cat.description;
         const nextActive = body.isActive !== undefined && body.isActive !== ''
           ? (Number(body.isActive) ? 1 : 0)
           : cat.is_active;
+
+        const duplicateCat = db.prepare('SELECT id, name FROM categories WHERE lower(name) = lower(?) AND id != ?').get(nextName, catId);
+        if (duplicateCat) {
+          return sendJson(res, 400, { error: `Another category with the name "${nextName}" already exists.` });
+        }
+
+        if (!nextActive && cat.is_active) {
+          const activeProds = db.prepare('SELECT COUNT(*) AS cnt FROM products WHERE category_id = ? AND is_active = 1').get(catId);
+          if (activeProds && Number(activeProds.cnt) > 0) {
+            return sendJson(res, 400, {
+              error: `Cannot deactivate category "${nextName}" while it contains ${activeProds.cnt} active published products. Deactivate or reassign its products first.`
+            });
+          }
+        }
 
         const lintCheck = lintContentText(`${nextName} ${nextSubtitle} ${nextDescription}`, 'edit_category');
         if (!lintCheck.valid) {
@@ -1158,6 +1257,14 @@ function createServerHandler() {
         const cat = db.prepare('SELECT * FROM categories WHERE id = ?').get(catId);
         if (!cat) return sendJson(res, 404, { error: 'Category not found' });
         const nextActive = body.isActive !== undefined ? (Number(body.isActive) ? 1 : 0) : (cat.is_active ? 0 : 1);
+        if (!nextActive && cat.is_active) {
+          const activeProds = db.prepare('SELECT COUNT(*) AS cnt FROM products WHERE category_id = ? AND is_active = 1').get(catId);
+          if (activeProds && Number(activeProds.cnt) > 0) {
+            return sendJson(res, 400, {
+              error: `Cannot deactivate category "${cat.name}" while it contains ${activeProds.cnt} active published products. Deactivate or reassign its products first.`
+            });
+          }
+        }
         db.prepare('UPDATE categories SET is_active = ? WHERE id = ?').run(nextActive, catId);
         recordAuditLog({
           actorId: adminUser.id,
@@ -1204,9 +1311,10 @@ function createServerHandler() {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'products.write');
         const body = await readJsonBody(req);
+        const cleanDash = (s) => String(s || '').replace(/[\u2013\u2014]/g, '-').trim();
 
-        const rawName = String(body.name || '').trim();
-        const rawShortDesc = String(body.shortDescription || '').trim();
+        const rawName = cleanDash(body.name);
+        const rawShortDesc = cleanDash(body.shortDescription);
         if (!rawName || !rawShortDesc) {
           return sendJson(res, 400, { error: 'Product name and short description are required.' });
         }
@@ -1234,14 +1342,24 @@ function createServerHandler() {
           return sendJson(res, 400, { error: `A product with SKU Base "${skuBase}" or slug "${slug}" already exists.` });
         }
 
-        const cleanDash = (s) => String(s || '').replace(/[—–]/g, '-').trim();
         const rawFullDesc = cleanDash(body.description) || rawShortDesc;
         const ingredients = cleanDash(body.ingredients) || `100% Pure ${rawName}`;
         const allergenInfo = cleanDash(body.allergenInfo) || 'Packed in a facility handling tree nuts.';
         const fssaiNotes = cleanDash(body.fssaiNotes) || 'Store in a cool, dry container.';
         const harvestBatch = cleanDash(body.harvestBatch) || 'SN-BATCH-2611';
         const shelfLifeMonths = Math.max(1, Math.min(36, Math.round(Number(body.shelfLifeMonths || 12))));
-        const nutritionObj = normalizeNutritionPayload(body.nutrition || body, getDefaultNutritionForProduct(skuBase, catId));
+        const hasNutritionInput = Boolean(
+          body.nutrition ||
+          body.energy_kcal !== undefined ||
+          body.protein_g !== undefined ||
+          body.carbs_g !== undefined ||
+          body.total_fat_g !== undefined
+        );
+        const nutritionObj = normalizeNutritionPayload(
+          body.nutrition || body,
+          getDefaultNutritionForProduct(skuBase, catId),
+          { strict: hasNutritionInput }
+        );
 
         let pincodeRules;
         try {
@@ -1302,7 +1420,7 @@ function createServerHandler() {
             if (arrMatch.sellingPriceInr !== undefined) sellInr = Number(arrMatch.sellingPriceInr);
             if (arrMatch.mrpInr !== undefined) mrpInr = Number(arrMatch.mrpInr);
             if (arrMatch.stockQty !== undefined && Number.isFinite(Number(arrMatch.stockQty))) {
-              stockQty = Math.max(0, Math.round(Number(arrMatch.stockQty)));
+              stockQty = Math.max(0, Math.min(100000, Math.round(Number(arrMatch.stockQty))));
             }
           } else {
             const rawSell = body[`variant_sell_${pm.grams}`];
@@ -1312,7 +1430,7 @@ function createServerHandler() {
           }
           const rawStock = body[`variant_stock_${pm.grams}`];
           if (rawStock !== undefined && String(rawStock).trim() !== '' && Number.isFinite(Number(rawStock))) {
-            stockQty = Math.max(0, Math.round(Number(rawStock)));
+            stockQty = Math.max(0, Math.min(100000, Math.round(Number(rawStock))));
           }
 
           if (!Number.isFinite(sellInr) || sellInr < 10) {
@@ -1345,58 +1463,68 @@ function createServerHandler() {
           imageUrl = savedImg.publicUrl;
         }
 
-        const prodRes = db.prepare(`
-          INSERT INTO products (
-            sku_base, slug, name, category_id, short_description, description,
-            origin_region, harvest_batch, shelf_life_months, fssai_notes,
-            ingredients, allergen_info, gst_percent, hsn_code, image_url, image_caption,
-            nutrition_json, pincode_restriction_mode, pincode_rules_json,
-            is_featured, is_new_arrival, is_bestseller, is_active
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-          skuBase,
-          slug,
-          rawName,
-          catId,
-          rawShortDesc,
-          rawFullDesc,
-          String(body.originRegion || 'India').trim() || 'India',
-          harvestBatch,
-          shelfLifeMonths,
-          fssaiNotes,
-          ingredients,
-          allergenInfo,
-          gstPercent,
-          hsnCode,
-          imageUrl,
-          rawName,
-          JSON.stringify(nutritionObj),
-          pincodeRules.mode,
-          JSON.stringify(pincodeRules),
-          isFeatured,
-          isNewArrival,
-          isBestseller,
-          isActive
-        );
+        let newProdId;
+        let createdVariants;
+        db.exec('BEGIN IMMEDIATE TRANSACTION;');
+        try {
+          const prodRes = db.prepare(`
+            INSERT INTO products (
+              sku_base, slug, name, category_id, short_description, description,
+              origin_region, harvest_batch, shelf_life_months, fssai_notes,
+              ingredients, allergen_info, gst_percent, hsn_code, image_url, image_caption,
+              nutrition_json, pincode_restriction_mode, pincode_rules_json,
+              is_featured, is_new_arrival, is_bestseller, is_active
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            skuBase,
+            slug,
+            rawName,
+            catId,
+            rawShortDesc,
+            rawFullDesc,
+            cleanDash(body.originRegion || 'India') || 'India',
+            harvestBatch,
+            shelfLifeMonths,
+            fssaiNotes,
+            ingredients,
+            allergenInfo,
+            gstPercent,
+            hsnCode,
+            imageUrl,
+            rawName,
+            JSON.stringify(nutritionObj),
+            pincodeRules.mode,
+            JSON.stringify(pincodeRules),
+            isFeatured,
+            isNewArrival,
+            isBestseller,
+            isActive
+          );
 
-        const newProdId = Number(prodRes.lastInsertRowid);
-        for (const pv of preparedVariants) {
-          db.prepare(`
-            INSERT INTO product_variants (product_id, sku, pack_label, weight_grams, mrp_paise, selling_price_paise, promo_price_paise, stock_qty)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          `).run(newProdId, pv.sku, pv.label, pv.grams, pv.mrpPaise, pv.sellPaise, pv.sellPaise, pv.stockQty);
+          newProdId = Number(prodRes.lastInsertRowid);
+          for (const pv of preparedVariants) {
+            db.prepare(`
+              INSERT INTO product_variants (product_id, sku, pack_label, weight_grams, mrp_paise, selling_price_paise, promo_price_paise, stock_qty)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(newProdId, pv.sku, pv.label, pv.grams, pv.mrpPaise, pv.sellPaise, pv.sellPaise, pv.stockQty);
+          }
+          createdVariants = db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY weight_grams ASC').all(newProdId);
+
+          recordAuditLog({
+            actorId: adminUser.id,
+            actorEmail: adminUser.email,
+            actorRole: adminUser.role,
+            action: 'PRODUCT_CREATED',
+            entityType: 'PRODUCT',
+            entityId: skuBase,
+            details: { name: rawName, slug, imageUrl, hsnCode, isFeatured, isBestseller, isNewArrival, isActive, nutrition: nutritionObj, pincodeRules }
+          });
+
+          db.exec('COMMIT;');
+        } catch (txErr) {
+          db.exec('ROLLBACK;');
+          throw txErr;
         }
-        const createdVariants = db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY weight_grams ASC').all(newProdId);
-
-        recordAuditLog({
-          actorId: adminUser.id,
-          actorEmail: adminUser.email,
-          actorRole: adminUser.role,
-          action: 'PRODUCT_CREATED',
-          entityType: 'PRODUCT',
-          entityId: skuBase,
-          details: { name: rawName, slug, imageUrl, hsnCode, isFeatured, isBestseller, isNewArrival, isActive, nutrition: nutritionObj, pincodeRules }
-        });
 
         return sendJson(res, 201, {
           product: { id: newProdId, skuBase, name: rawName, slug, imageUrl, hsnCode, nutrition: nutritionObj, pincodeRules },
@@ -1412,17 +1540,17 @@ function createServerHandler() {
         const prod = db.prepare('SELECT * FROM products WHERE id = ?').get(productId);
         if (!prod) return sendJson(res, 404, { error: 'Product not found' });
 
-        const cleanDash = (s) => String(s || '').replace(/[—–]/g, '-').trim();
+        const cleanDash = (s) => String(s || '').replace(/[\u2013\u2014]/g, '-').trim();
 
-        const nextName = body.name && String(body.name).trim() ? String(body.name).trim() : prod.name;
-        const nextShortDesc = body.shortDescription && String(body.shortDescription).trim()
-          ? String(body.shortDescription).trim()
+        const nextName = body.name && cleanDash(body.name) ? cleanDash(body.name) : prod.name;
+        const nextShortDesc = body.shortDescription && cleanDash(body.shortDescription)
+          ? cleanDash(body.shortDescription)
           : prod.short_description;
-        const nextDesc = body.description && String(body.description).trim()
-          ? String(body.description).trim()
-          : (body.shortDescription && String(body.shortDescription).trim() ? nextShortDesc : prod.description);
-        const nextOrigin = body.originRegion && String(body.originRegion).trim()
-          ? String(body.originRegion).trim()
+        const nextDesc = body.description && cleanDash(body.description)
+          ? cleanDash(body.description)
+          : (body.shortDescription && cleanDash(body.shortDescription) ? nextShortDesc : prod.description);
+        const nextOrigin = body.originRegion && cleanDash(body.originRegion)
+          ? cleanDash(body.originRegion)
           : prod.origin_region;
         const nextBatch = body.harvestBatch && cleanDash(body.harvestBatch)
           ? cleanDash(body.harvestBatch)
@@ -1441,8 +1569,19 @@ function createServerHandler() {
           : prod.fssai_notes;
 
         const currentNutrition = parseProductNutrition(prod);
+        const hasNutritionInput = Boolean(
+          body.nutrition ||
+          body.energy_kcal !== undefined ||
+          body.protein_g !== undefined ||
+          body.carbs_g !== undefined ||
+          body.total_fat_g !== undefined ||
+          body.saturated_fat_g !== undefined ||
+          body.trans_fat_g !== undefined ||
+          body.total_sugars_g !== undefined ||
+          body.added_sugars_g !== undefined
+        );
         const rawNutritionInput = (body.nutrition && typeof body.nutrition === 'object') ? body.nutrition : body;
-        const nextNutrition = normalizeNutritionPayload(rawNutritionInput, currentNutrition);
+        const nextNutrition = normalizeNutritionPayload(rawNutritionInput, currentNutrition, { strict: hasNutritionInput });
 
         const currentPincodeRules = parseProductPincodeRules(prod);
         const hasPincodeInput = Boolean(
@@ -1579,111 +1718,143 @@ function createServerHandler() {
           nextImageUrl = savedImg.publicUrl;
         }
 
-        db.prepare(`
-          UPDATE products
-          SET name = ?,
-              category_id = ?,
-              origin_region = ?,
-              harvest_batch = ?,
-              shelf_life_months = ?,
-              short_description = ?,
-              description = ?,
-              ingredients = ?,
-              allergen_info = ?,
-              fssai_notes = ?,
-              nutrition_json = ?,
-              pincode_restriction_mode = ?,
-              pincode_rules_json = ?,
-              gst_percent = ?,
-              hsn_code = ?,
-              image_url = ?,
-              is_featured = ?,
-              is_bestseller = ?,
-              is_new_arrival = ?,
-              is_active = ?
-          WHERE id = ?
-        `).run(
-          nextName,
-          nextCatId,
-          nextOrigin,
-          nextBatch,
-          nextShelfLife,
-          nextShortDesc,
-          nextDesc,
-          nextIngredients,
-          nextAllergen,
-          nextFssai,
-          JSON.stringify(nextNutrition),
-          nextPincodeRules.mode,
-          JSON.stringify(nextPincodeRules),
-          nextGst,
-          nextHsn,
-          nextImageUrl,
-          nextFeatured,
-          nextBestseller,
-          nextNewArrival,
-          nextActive,
-          productId
-        );
-
-        const updateVarStmt = db.prepare('UPDATE product_variants SET selling_price_paise = ?, promo_price_paise = ?, mrp_paise = ? WHERE id = ?');
-        for (const vu of explicitVariantUpdates) {
-          updateVarStmt.run(vu.sellPaise, vu.sellPaise, vu.mrpPaise, vu.variantId);
-        }
-
-        const updateVarStockStmt = db.prepare('UPDATE product_variants SET stock_qty = ? WHERE id = ?');
-        for (const v of pVars) {
-          let nextStock = null;
-          if (Array.isArray(body.variantsPricing)) {
-            const match = body.variantsPricing.find(vp =>
-              (vp.variantId !== undefined && Number(vp.variantId) === Number(v.id)) ||
-              (vp.weightGrams !== undefined && Number(vp.weightGrams) === Number(v.weight_grams))
-            );
-            if (match && match.stockQty !== undefined && Number.isFinite(Number(match.stockQty))) {
-              nextStock = Math.max(0, Math.round(Number(match.stockQty)));
-            }
-          }
-          const rawStock = body[`variant_stock_${v.weight_grams}`];
-          if (rawStock !== undefined && String(rawStock).trim() !== '' && Number.isFinite(Number(rawStock))) {
-            nextStock = Math.max(0, Math.round(Number(rawStock)));
-          }
-          if (nextStock !== null) {
-            updateVarStockStmt.run(nextStock, v.id);
-          }
-        }
-
-        const updatedVariants = db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY weight_grams ASC').all(productId);
+        let updatedVariants;
         const pincodeRulesChanged = JSON.stringify(currentPincodeRules) !== JSON.stringify(nextPincodeRules);
 
-        recordAuditLog({
-          actorId: adminUser.id,
-          actorEmail: adminUser.email,
-          actorRole: adminUser.role,
-          action: pincodeRulesChanged && hasPincodeInput && !body.name ? 'PRODUCT_PINCODE_RULES_UPDATED' : 'PRODUCT_UPDATED',
-          entityType: 'PRODUCT',
-          entityId: prod.sku_base,
-          details: {
-            productId,
-            name: nextName,
-            categoryId: nextCatId,
-            originRegion: nextOrigin,
-            harvestBatch: nextBatch,
-            shelfLifeMonths: nextShelfLife,
-            isActive: nextActive,
-            isFeatured: nextFeatured,
-            isBestseller: nextBestseller,
-            nutrition: nextNutrition,
-            pincodeRules: nextPincodeRules,
-            pincodeRulesChanged,
-            variantPricesUpdated: explicitVariantUpdates.map(vu => ({
-              sku: vu.sku,
-              packLabel: vu.packLabel,
-              mrpInr: vu.mrpPaise / 100,
-              sellingInr: vu.sellPaise / 100,
-              discountPct: vu.mrpPaise > vu.sellPaise ? Math.round(((vu.mrpPaise - vu.sellPaise) / vu.mrpPaise) * 1000) / 10 : 0
-            }))
+        db.exec('BEGIN IMMEDIATE TRANSACTION;');
+        try {
+          db.prepare(`
+            UPDATE products
+            SET name = ?,
+                category_id = ?,
+                origin_region = ?,
+                harvest_batch = ?,
+                shelf_life_months = ?,
+                short_description = ?,
+                description = ?,
+                ingredients = ?,
+                allergen_info = ?,
+                fssai_notes = ?,
+                nutrition_json = ?,
+                pincode_restriction_mode = ?,
+                pincode_rules_json = ?,
+                gst_percent = ?,
+                hsn_code = ?,
+                image_url = ?,
+                is_featured = ?,
+                is_bestseller = ?,
+                is_new_arrival = ?,
+                is_active = ?
+            WHERE id = ?
+          `).run(
+            nextName,
+            nextCatId,
+            nextOrigin,
+            nextBatch,
+            nextShelfLife,
+            nextShortDesc,
+            nextDesc,
+            nextIngredients,
+            nextAllergen,
+            nextFssai,
+            JSON.stringify(nextNutrition),
+            nextPincodeRules.mode,
+            JSON.stringify(nextPincodeRules),
+            nextGst,
+            nextHsn,
+            nextImageUrl,
+            nextFeatured,
+            nextBestseller,
+            nextNewArrival,
+            nextActive,
+            productId
+          );
+
+          const updateVarStmt = db.prepare('UPDATE product_variants SET selling_price_paise = ?, promo_price_paise = ?, mrp_paise = ? WHERE id = ?');
+          for (const vu of explicitVariantUpdates) {
+            updateVarStmt.run(vu.sellPaise, vu.sellPaise, vu.mrpPaise, vu.variantId);
           }
-        });
+
+          const updateVarStockStmt = db.prepare('UPDATE product_variants SET stock_qty = ? WHERE id = ?');
+          const insertMoveStmt = db.prepare(`
+            INSERT INTO inventory_movements (variant_id, delta_qty, previous_qty, new_qty, reason, reference_id, actor_name)
+            VALUES (?, ?, ?, ?, 'PRODUCT_MODAL_STOCK_EDIT', 'ADMIN_PORTAL', ?)
+          `);
+          const insertAlertStmt = db.prepare(`
+            INSERT INTO notification_logs (order_number, channel, recipient, event_type, subject, body_preview)
+            VALUES ('ADMIN_PORTAL', 'ADMIN_ALERT', 'catalog@sashyanaturals.com', 'LOW_STOCK_ALERT', ?, ?)
+          `);
+
+          for (const v of pVars) {
+            let nextStock = null;
+            if (Array.isArray(body.variantsPricing)) {
+              const match = body.variantsPricing.find(vp =>
+                (vp.variantId !== undefined && Number(vp.variantId) === Number(v.id)) ||
+                (vp.weightGrams !== undefined && Number(vp.weightGrams) === Number(v.weight_grams))
+              );
+              if (match && match.stockQty !== undefined && Number.isFinite(Number(match.stockQty))) {
+                nextStock = Math.max(0, Math.min(100000, Math.round(Number(match.stockQty))));
+              }
+            }
+            const rawStock = body[`variant_stock_${v.weight_grams}`];
+            if (rawStock !== undefined && String(rawStock).trim() !== '' && Number.isFinite(Number(rawStock))) {
+              nextStock = Math.max(0, Math.min(100000, Math.round(Number(rawStock))));
+            }
+            if (nextStock !== null) {
+              updateVarStockStmt.run(nextStock, v.id);
+              const delta = nextStock - v.stock_qty;
+              if (delta !== 0) {
+                insertMoveStmt.run(v.id, delta, v.stock_qty, nextStock, adminUser.email);
+                const threshold = v.low_stock_threshold || 10;
+                if ((nextStock <= threshold && v.stock_qty > threshold) || (nextStock === 0 && v.stock_qty > 0)) {
+                  insertAlertStmt.run(
+                    nextStock === 0
+                      ? `Out of Stock Alert: ${v.sku} (0 remaining)`
+                      : `Low Stock Alert: ${v.sku} (${nextStock} remaining)`,
+                    `${nextName} (${v.pack_label}) adjusted via Product Modal to ${nextStock} units.`
+                  );
+                }
+              }
+            }
+          }
+
+          updatedVariants = db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY weight_grams ASC').all(productId);
+
+          recordAuditLog({
+            actorId: adminUser.id,
+            actorEmail: adminUser.email,
+            actorRole: adminUser.role,
+            action: pincodeRulesChanged && hasPincodeInput && !body.name ? 'PRODUCT_PINCODE_RULES_UPDATED' : 'PRODUCT_UPDATED',
+            entityType: 'PRODUCT',
+            entityId: prod.sku_base,
+            details: {
+              productId,
+              name: nextName,
+              categoryId: nextCatId,
+              originRegion: nextOrigin,
+              harvestBatch: nextBatch,
+              shelfLifeMonths: nextShelfLife,
+              isActive: nextActive,
+              isFeatured: nextFeatured,
+              isBestseller: nextBestseller,
+              nutrition: nextNutrition,
+              pincodeRules: nextPincodeRules,
+              pincodeRulesChanged,
+              variantPricesUpdated: explicitVariantUpdates.map(vu => ({
+                sku: vu.sku,
+                packLabel: vu.packLabel,
+                mrpInr: vu.mrpPaise / 100,
+                sellingInr: vu.sellPaise / 100,
+                discountPct: vu.mrpPaise > vu.sellPaise ? Math.round(((vu.mrpPaise - vu.sellPaise) / vu.mrpPaise) * 1000) / 10 : 0
+              }))
+            }
+          });
+
+          db.exec('COMMIT;');
+        } catch (txErr) {
+          db.exec('ROLLBACK;');
+          throw txErr;
+        }
 
         return sendJson(res, 200, {
           productId,
@@ -1725,12 +1896,16 @@ function createServerHandler() {
         if (existingUser) {
           return sendJson(res, 400, { error: `A user account with email "${email}" already exists.` });
         }
-        let permsArray = String(body.permissionsCsv || 'orders.view, shipping.update')
-          .split(',')
-          .map(s => s.trim())
-          .filter(Boolean);
-        if (role !== 'SUPER_ADMIN') {
-          permsArray = permsArray.filter(p => p !== '*' && p !== 'staff.manage' && p !== 'settings.manage');
+        let permsArray;
+        if (role === 'SUPER_ADMIN') {
+          permsArray = ['*'];
+        } else if (role !== 'STAFF') {
+          permsArray = [...(ROLE_PERMISSIONS_MATRIX[role] || [])];
+        } else {
+          permsArray = String(body.permissionsCsv || 'orders.view, shipping.update')
+            .split(',')
+            .map(s => s.trim())
+            .filter(p => p && VALID_ADMIN_PERMISSIONS.has(p) && p !== 'staff.manage' && p !== 'settings.manage');
         }
         const passHash = hashPassword(password);
         const resStaff = db.prepare(`
@@ -1791,7 +1966,11 @@ function createServerHandler() {
         }
 
         let nextPermsJson = targetUser.permissions_json;
-        if (body.permissionsJson !== undefined) {
+        if (nextRole === 'SUPER_ADMIN') {
+          nextPermsJson = JSON.stringify(['*']);
+        } else if (nextRole !== 'STAFF') {
+          nextPermsJson = JSON.stringify(ROLE_PERMISSIONS_MATRIX[nextRole] || []);
+        } else if (body.permissionsJson !== undefined) {
           const raw = String(body.permissionsJson).trim();
           let arr = [];
           try {
@@ -1800,9 +1979,7 @@ function createServerHandler() {
           } catch {
             arr = raw.split(',').map(s => s.trim()).filter(Boolean);
           }
-          if (nextRole !== 'SUPER_ADMIN') {
-            arr = arr.filter(p => p !== '*' && p !== 'staff.manage' && p !== 'settings.manage');
-          }
+          arr = arr.filter(p => p && VALID_ADMIN_PERMISSIONS.has(p) && p !== 'staff.manage' && p !== 'settings.manage');
           nextPermsJson = JSON.stringify(arr);
         }
 
