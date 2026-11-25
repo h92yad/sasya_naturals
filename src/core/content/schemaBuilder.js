@@ -85,6 +85,19 @@ function buildBreadcrumbNode(canonicalUrl, breadcrumbs = []) {
   };
 }
 
+function buildHasPartNodes(canonicalUrl, sectionBookmarks = []) {
+  if (!Array.isArray(sectionBookmarks) || sectionBookmarks.length === 0) return undefined;
+  return sectionBookmarks
+    .filter(s => s && s.id && s.name)
+    .map(s => ({
+      '@type': 'WebPageElement',
+      '@id': `${canonicalUrl}#${s.id}`,
+      name: s.name,
+      url: `${canonicalUrl}#${s.id}`,
+      cssSelector: `#${s.id}`
+    }));
+}
+
 /**
  * Builds master JSON-LD @graph for a given page type.
  * Enforces Google Merchant Center rule: Product + Offer + AggregateRating ONLY on single product pages (pageType === 'product').
@@ -97,7 +110,9 @@ function buildMasterSchemaGraph({
   breadcrumbs = [{ name: 'Home', url: '/' }],
   product = null,
   variants = [],
-  categoryProducts = []
+  categoryProducts = [],
+  sectionBookmarks = [],
+  faqItems = []
 }) {
   const canonicalUrl = `${CANONICAL_ORIGIN}${canonicalPath === '/' ? '/' : canonicalPath}`;
   const graph = [
@@ -105,6 +120,7 @@ function buildMasterSchemaGraph({
     buildWebSiteNode(),
     buildBreadcrumbNode(canonicalUrl, breadcrumbs)
   ];
+  const hasPartNodes = buildHasPartNodes(canonicalUrl, sectionBookmarks);
 
   if (pageType === 'product' && product) {
     const activeVariants = variants.filter(v => v.is_active);
@@ -130,6 +146,19 @@ function buildMasterSchemaGraph({
     });
 
     const nut = parseProductNutrition(product);
+
+    const itemPageNode = {
+      '@type': 'ItemPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: title,
+      description,
+      isPartOf: { '@id': `${CANONICAL_ORIGIN}/#website` },
+      breadcrumb: { '@id': `${canonicalUrl}#breadcrumb` },
+      mainEntity: { '@id': `${canonicalUrl}#product` }
+    };
+    if (hasPartNodes) itemPageNode.hasPart = hasPartNodes;
+    graph.push(itemPageNode);
 
     const productNode = {
       '@type': 'Product',
@@ -192,7 +221,7 @@ function buildMasterSchemaGraph({
     };
     graph.push(productNode);
   } else if (pageType === 'collection') {
-    graph.push({
+    const colNode = {
       '@type': 'CollectionPage',
       '@id': `${canonicalUrl}#webpage`,
       url: canonicalUrl,
@@ -210,9 +239,33 @@ function buildMasterSchemaGraph({
           name: p.name
         }))
       }
-    });
+    };
+    if (hasPartNodes) colNode.hasPart = hasPartNodes;
+    graph.push(colNode);
+  } else if (pageType === 'faq' && Array.isArray(faqItems) && faqItems.length > 0) {
+    const faqNode = {
+      '@type': 'FAQPage',
+      '@id': `${canonicalUrl}#webpage`,
+      url: canonicalUrl,
+      name: title,
+      description,
+      isPartOf: { '@id': `${CANONICAL_ORIGIN}/#website` },
+      breadcrumb: { '@id': `${canonicalUrl}#breadcrumb` },
+      mainEntity: faqItems.map(fq => ({
+        '@type': 'Question',
+        '@id': `${canonicalUrl}#${fq.id}`,
+        name: fq.question,
+        url: `${canonicalUrl}#${fq.id}`,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: fq.answer
+        }
+      }))
+    };
+    if (hasPartNodes) faqNode.hasPart = hasPartNodes;
+    graph.push(faqNode);
   } else {
-    graph.push({
+    const webPageNode = {
       '@type': 'WebPage',
       '@id': `${canonicalUrl}#webpage`,
       url: canonicalUrl,
@@ -220,7 +273,9 @@ function buildMasterSchemaGraph({
       description,
       isPartOf: { '@id': `${CANONICAL_ORIGIN}/#website` },
       breadcrumb: { '@id': `${canonicalUrl}#breadcrumb` }
-    });
+    };
+    if (hasPartNodes) webPageNode.hasPart = hasPartNodes;
+    graph.push(webPageNode);
   }
 
   const payload = {

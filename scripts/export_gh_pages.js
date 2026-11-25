@@ -53,6 +53,31 @@ function runExport() {
   copyDirRecursive(path.join(ROOT_DIR, 'public/assets'), path.join(DOCS_DIR, 'assets'));
   copyDirRecursive(path.join(ROOT_DIR, 'public/images'), path.join(DOCS_DIR, 'images'));
   fs.writeFileSync(path.join(DOCS_DIR, '.nojekyll'), '', 'utf8');
+  const { APP_VERSION, BRAND_NAME, BRAND_TAGLINE } = require('../src/config/appConfig');
+  fs.writeFileSync(
+    path.join(DOCS_DIR, 'site.webmanifest'),
+    JSON.stringify({
+      name: `${BRAND_NAME} - ${BRAND_TAGLINE}`,
+      short_name: BRAND_NAME,
+      description: 'Farm-direct Kashmiri almonds, Goan W240 cashews, unpolished native millets, and single-origin Indian spices.',
+      start_url: `${BASE_PATH}/`,
+      scope: `${BASE_PATH}/`,
+      display: 'standalone',
+      background_color: '#FAF5E4',
+      theme_color: '#212C64',
+      icons: [
+        { src: `${BASE_PATH}/images/favicon-32.png?v=${APP_VERSION}`, sizes: '32x32', type: 'image/png' },
+        { src: `${BASE_PATH}/images/apple-touch-icon.png?v=${APP_VERSION}`, sizes: '180x180', type: 'image/png' },
+        { src: `${BASE_PATH}/images/favicon.webp?v=${APP_VERSION}`, sizes: '192x192', type: 'image/webp' }
+      ],
+      shortcuts: [
+        { name: 'Shop All Catalogue', short_name: 'Catalogue', url: `${BASE_PATH}/shop` },
+        { name: 'Track Order Status', short_name: 'Track Order', url: `${BASE_PATH}/track-order` },
+        { name: 'Frequently Asked Questions', short_name: 'FAQs', url: `${BASE_PATH}/faq` }
+      ]
+    }, null, 2),
+    'utf8'
+  );
 
   const categories = db.prepare('SELECT * FROM categories WHERE is_active = 1 ORDER BY display_order').all();
   const products = db.prepare('SELECT * FROM products WHERE is_active = 1 ORDER BY id').all();

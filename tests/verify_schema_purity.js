@@ -39,8 +39,15 @@ function runVerifySchemaPurity() {
       title: prod.name,
       description: prod.short_description,
       product: prod,
-      variants: pVars
+      variants: pVars,
+      sectionBookmarks: [
+        { id: 'origin-compliance', name: 'Origin, Batch & FSSAI Compliance' },
+        { id: 'nutrition-facts', name: 'Nutritional Value (Per 100 g)' }
+      ]
     });
+    const itemPageNode = pdpSchema['@graph'].find(n => n['@type'] === 'ItemPage');
+    assert(itemPageNode && itemPageNode['@id'].endsWith('#webpage'), `Missing ItemPage #webpage node on /product/${prod.slug}`);
+    assert(Array.isArray(itemPageNode.hasPart) && itemPageNode.hasPart.length === 2, `Missing WebPageElement hasPart bookmark nodes on /product/${prod.slug}`);
     const prodNode = pdpSchema['@graph'].find(n => n['@type'] === 'Product');
     assert(prodNode, `Missing Product schema on /product/${prod.slug}`);
     assert(prodNode.offers, `Missing Offer node on /product/${prod.slug}`);
@@ -50,7 +57,25 @@ function runVerifySchemaPurity() {
     assert(Array.isArray(prodNode.additionalProperty) && prodNode.additionalProperty.length >= 1, `Missing bioactive additionalProperty on /product/${prod.slug}`);
   }
 
-  console.log(`✓ [Suite 6/7: verify_schema_purity] Verified 0 Wikidata groundings, CollectionPage isolation, and Product + NutritionInformation JSON-LD on ${products.length} PDPs`);
+  // 4. Verify FAQPage schema on /faq with deep-linked Question @id and url bookmarks
+  const faqSchema = buildMasterSchemaGraph({
+    pageType: 'faq',
+    canonicalPath: '/faq',
+    title: 'Frequently Asked Questions',
+    description: 'FAQs',
+    faqItems: [
+      { id: 'faq-what-pack-sizes-do-you-offer', question: 'What pack sizes do you offer?', answer: '100 g, 250 g, 500 g, and 1 kg.' }
+    ],
+    sectionBookmarks: [
+      { id: 'faq-what-pack-sizes-do-you-offer', name: 'What pack sizes do you offer?' }
+    ]
+  });
+  const faqNode = faqSchema['@graph'].find(n => n['@type'] === 'FAQPage');
+  assert(faqNode, 'Missing FAQPage node on /faq');
+  assert(Array.isArray(faqNode.mainEntity) && faqNode.mainEntity.length === 1, 'FAQPage must contain Question mainEntity array');
+  assert(faqNode.mainEntity[0]['@id'].endsWith('#faq-what-pack-sizes-do-you-offer'), 'FAQ Question @id must include #faq-<slug> bookmark fragment');
+
+  console.log(`✓ [Suite 6/7: verify_schema_purity] Verified 0 Wikidata groundings, CollectionPage isolation, FAQPage Question bookmarks, and ItemPage + Product + NutritionInformation JSON-LD on ${products.length} PDPs`);
 }
 
 if (require.main === module) {

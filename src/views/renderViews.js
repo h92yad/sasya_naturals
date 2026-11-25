@@ -55,6 +55,65 @@ function formatInr(paise) {
   });
 }
 
+function slugifyBookmarkId(text, prefix = 'sec', usedSet = null) {
+  const base = String(text || '')
+    .toLowerCase()
+    .replace(/&[a-z0-9#]+;/gi, ' ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 56) || 'section';
+  const candidate = prefix ? `${prefix}-${base}` : base;
+  if (!usedSet) return candidate;
+  let uniqueId = candidate;
+  let counter = 2;
+  while (usedSet.has(uniqueId)) {
+    uniqueId = `${candidate}-${counter}`;
+    counter += 1;
+  }
+  usedSet.add(uniqueId);
+  return uniqueId;
+}
+
+function renderBreadcrumbNav(breadcrumbs = [], basePath = '') {
+  if (!Array.isArray(breadcrumbs) || breadcrumbs.length === 0) return '';
+  return `
+    <nav id="breadcrumb" class="sn-breadcrumb-nav" aria-label="Breadcrumb">
+      <ol class="sn-breadcrumb-list">
+        ${breadcrumbs.map((b, idx) => {
+          const isLast = idx === breadcrumbs.length - 1;
+          const href = b.url === '/' ? `${basePath}/` : `${basePath}${b.url}`;
+          return `
+            <li class="sn-breadcrumb-item">
+              ${isLast
+                ? `<span aria-current="page">${escapeHtml(b.name)}</span>`
+                : `<a href="${escapeHtml(href)}">${escapeHtml(b.name)}</a>`
+              }
+            </li>
+          `;
+        }).join('')}
+      </ol>
+    </nav>
+  `;
+}
+
+function renderSectionJumpBar(bookmarks = [], label = 'On This Page:') {
+  if (!Array.isArray(bookmarks) || bookmarks.length === 0) return '';
+  return `
+    <nav class="sn-toc-bar" aria-label="${escapeHtml(label.replace(/:$/, ''))}">
+      <span class="sn-toc-label">🔖 ${escapeHtml(label)}</span>
+      <ol class="sn-toc-list">
+        ${bookmarks.map(bm => `
+          <li><a href="#${escapeHtml(bm.id)}" class="sn-toc-pill" data-bookmark-jump="${escapeHtml(bm.id)}"># ${escapeHtml(bm.shortLabel || bm.name)}</a></li>
+        `).join('')}
+      </ol>
+    </nav>
+  `;
+}
+
+function renderHeadingAnchor(id, label = 'Section') {
+  return `<a href="#${escapeHtml(id)}" class="sn-heading-anchor" data-bookmark-anchor="${escapeHtml(id)}" aria-label="Bookmark ${escapeHtml(label)}" title="Copy bookmark link to ${escapeHtml(label)}">#</a>`;
+}
+
 function getDynamicShippingCopy() {
   try {
     const pol = getShippingPolicyFromDb();
@@ -175,7 +234,7 @@ function resolveHelloBarForRender(helloBarConfig = null, shipCopy = getDynamicSh
   };
 }
 
-function renderProductCard(p, variants = [], basePath = '') {
+function renderProductCard(p, variants = [], basePath = '', idPrefix = '') {
   const prodVariants = variants.filter(v => Number(v.product_id) === Number(p.id) && v.is_active);
   const defVar = prodVariants.find(v => v.pack_label === '250 g') || prodVariants[0] || {
     id: 0,
@@ -205,9 +264,9 @@ function renderProductCard(p, variants = [], basePath = '') {
       data-product-instock="${totalStock > 0 ? '1' : '0'}"
       data-product-min-inr="${Math.round(minSellPaise / 100)}"
       data-product-pincode-rules="${escapeHtml(JSON.stringify(pinRules))}"
-      id="prod-card-${escapeHtml(p.slug)}"
+      id="${idPrefix}prod-card-${escapeHtml(p.slug)}"
     >
-      <a href="${basePath}/product/${escapeHtml(p.slug)}" class="sn-product-media">
+      <a href="${basePath}/product/${escapeHtml(p.slug)}" rel="bookmark" class="sn-product-media">
         <img src="${basePath}${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" data-product-img-id="${p.id}" loading="lazy" />
         <div class="sn-product-badges">
           ${p.is_bestseller ? `<span class="sn-badge sn-badge-bestseller">Bestseller</span>` : ''}
@@ -222,7 +281,7 @@ function renderProductCard(p, variants = [], basePath = '') {
         </div>
         <div class="sn-product-origin-eyebrow">${escapeHtml(p.origin_region)}</div>
         <h3 class="sn-product-title">
-          <a href="${basePath}/product/${escapeHtml(p.slug)}">${escapeHtml(p.name)}</a>
+          <a href="${basePath}/product/${escapeHtml(p.slug)}" rel="bookmark">${escapeHtml(p.name)}</a>
         </h3>
         <p class="sn-product-desc">${escapeHtml(p.short_description)}</p>
         <div class="sn-pack-selector" role="group" aria-label="Select Pack Size">
@@ -252,7 +311,7 @@ function renderProductCard(p, variants = [], basePath = '') {
           <button
             type="button"
             class="sn-btn sn-btn-forest sn-btn-sm"
-            id="add-btn-${escapeHtml(p.slug)}"
+            id="${idPrefix}add-btn-${escapeHtml(p.slug)}"
             data-add-to-cart
             data-variant-id="${defVar.id}"
             data-product-name="${escapeHtml(p.name)}"
@@ -289,6 +348,7 @@ function renderShell({
   const navCategories = getActiveNavCategories();
   const hasCategoryOverflow = navCategories.length > 3;
   const isOverflowCatActive = hasCategoryOverflow && navCategories.slice(2).some(c => c.slug === activeNav);
+  const hasInlineBreadcrumbId = bodyHtml.includes('id="breadcrumb"');
 
   return `<!DOCTYPE html>
 <html lang="en-IN">
@@ -298,6 +358,9 @@ function renderShell({
   <title>${escapeHtml(finalTitle)}</title>
   <meta name="description" content="${escapeHtml(finalDescription)}" />
   <meta name="robots" content="${isNoIndex || IS_STAGING ? 'noindex, nofollow' : 'index, follow'}" />
+  <meta name="theme-color" content="#212C64" />
+  <meta name="application-name" content="${escapeHtml(BRAND_NAME)}" />
+  <meta name="apple-mobile-web-app-title" content="${escapeHtml(BRAND_NAME)}" />
   <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
   <link rel="alternate" type="text/markdown" href="${escapeHtml(CANONICAL_ORIGIN + mdTwinPath)}" title="Markdown Version" />
   <meta property="og:type" content="website" />
@@ -309,6 +372,7 @@ function renderShell({
   <link rel="icon" type="image/webp" href="${basePath}/images/favicon.webp?v=${APP_VERSION}" />
   <link rel="icon" type="image/png" sizes="32x32" href="${basePath}/images/favicon-32.png?v=${APP_VERSION}" />
   <link rel="apple-touch-icon" sizes="180x180" href="${basePath}/images/apple-touch-icon.png?v=${APP_VERSION}" />
+  <link rel="manifest" href="${basePath}/site.webmanifest?v=${APP_VERSION}" />
   <link rel="preload" href="${basePath}/assets/fonts/poppins-latin-400.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="${basePath}/assets/fonts/poppins-latin-500.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="${basePath}/assets/fonts/poppins-latin-600.woff2" as="font" type="font/woff2" crossorigin />
@@ -318,6 +382,7 @@ function renderShell({
   <script type="application/ld+json">${JSON.stringify(schemaGraph)}</script>
 </head>
 <body>
+  <a href="#app-mount" class="sn-skip-link" id="sn-skip-to-main">Skip to main content</a>
   ${helloBarRender.visible ? `
   <div class="sn-topbar" id="sn-hellobar">
     <div class="sn-container sn-topbar-inner">
@@ -331,7 +396,7 @@ function renderShell({
   </div>
   ` : ''}
 
-  <header class="sn-header">
+  <header class="sn-header" id="site-header">
     <div class="sn-container sn-header-inner">
       <a href="${basePath}/" class="sn-brand" id="nav-brand-logo" aria-label="${escapeHtml(BRAND_NAME)} — Rooted in Trust">
         <img src="${basePath}/images/logo-horizontal.webp" alt="${escapeHtml(BRAND_NAME)} — Rooted in Trust" class="sn-brand-logo-img" width="132" height="38" />
@@ -424,7 +489,10 @@ function renderShell({
   <script>(function(){try{var c=JSON.parse(localStorage.getItem('sn_cart_v1')||'[]'),n=c.reduce(function(a,i){return a+Number(i.quantity||1)},0);if(n>0)document.querySelectorAll('[data-cart-count]').forEach(function(e){e.textContent=String(n)})}catch(e){}})();</script>
 
   <main id="app-mount" data-ssr-rendered="true" data-app-version="${APP_VERSION}">
-    ${bodyHtml}
+    <div id="webpage">
+      ${hasInlineBreadcrumbId ? '' : '<nav id="breadcrumb" aria-label="Breadcrumb" style="display:none;"></nav>'}
+      ${bodyHtml}
+    </div>
   </main>
 
   <div class="sn-drawer-backdrop" id="sn-cart-backdrop" role="dialog" aria-label="Shopping Basket">
@@ -440,10 +508,10 @@ function renderShell({
 
   <div class="sn-toast" id="sn-toast" role="status" aria-live="polite"></div>
 
-  <footer class="sn-footer">
+  <footer class="sn-footer" id="site-footer">
     <div class="sn-container">
       <div class="sn-footer-grid">
-        <div>
+        <div id="footer-brand">
           <h4>Sashya Naturals</h4>
           <p style="color:#EAEFF8;margin:0 0 14px;">
             ${escapeHtml(hp.footerBlurb)}
@@ -452,7 +520,7 @@ function renderShell({
             ${escapeHtml(hp.footerSupportLine)}
           </div>
         </div>
-        <div>
+        <div id="footer-categories">
           <h4>Pantry Categories</h4>
           <ul id="sn-footer-categories-list">
             ${navCategories.slice(0, 8).map(c => `
@@ -461,7 +529,7 @@ function renderShell({
             <li><a href="${basePath}/shop">Full Product Catalogue (${navCategories.length} Categories)</a></li>
           </ul>
         </div>
-        <div>
+        <div id="footer-customer-care">
           <h4>Customer Care</h4>
           <ul>
             <li><a href="${basePath}/track-order">Order &amp; Courier Tracking</a></li>
@@ -471,7 +539,7 @@ function renderShell({
             <li><a href="${basePath}/contact">Contact Us</a></li>
           </ul>
         </div>
-        <div>
+        <div id="footer-policies">
           <h4>Policies &amp; Governance</h4>
           <ul>
             <li><a href="${basePath}/about">About Sashya Naturals</a></li>
@@ -521,12 +589,21 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
   const title = homeSeo.metaTitle || `${BRAND_NAME} | ${BRAND_TAGLINE}`;
   const description = homeSeo.metaDescription || 'Shop farm-direct Kashmiri almonds, Goan W240 cashews, unpolished native millets, and cold-milled Lakadong turmeric across India in 100 g to 1 kg packs.';
 
+  const sectionBookmarks = [
+    { id: 'hero-banner', name: 'Farm-Direct Pantry Hero', shortLabel: 'Overview' },
+    { id: 'trust-assurance', name: 'Quality & FSSAI Assurance', shortLabel: 'FSSAI Trust' },
+    { id: 'pantry-categories', name: 'Shop by Category', shortLabel: 'Categories' },
+    { id: 'featured-harvests', name: 'Featured Harvests', shortLabel: 'Featured' },
+    { id: 'bestsellers', name: 'Pantry Best Sellers', shortLabel: 'Best Sellers' }
+  ];
+
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'website',
     canonicalPath: '/',
     title,
     description,
-    breadcrumbs: [{ name: 'Home', url: '/' }]
+    breadcrumbs: [{ name: 'Home', url: '/' }],
+    sectionBookmarks
   });
 
   const catSectionEyebrow = categories.length === 3
@@ -534,7 +611,7 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
     : `${categories.length} Curated Pantry Collections`;
 
   const bodyHtml = `
-    <section class="sn-hero">
+    <section class="sn-hero" id="hero-banner">
       <div class="sn-container sn-hero-grid">
         <div>
           <span class="sn-eyebrow">${escapeHtml(hp.heroEyebrow)}</span>
@@ -549,7 +626,7 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
               : `<a href="${basePath}/shop?tag=bestseller" class="sn-btn sn-btn-outline" id="hero-track-demo-btn">Explore Bestsellers</a>`
             }
           </div>
-          <div class="sn-trust-strip">
+          <div class="sn-trust-strip" id="trust-assurance">
             <div class="sn-trust-item">
               <strong>${escapeHtml(hp.trust1Title)}</strong>
               <span>${escapeHtml(hp.trust1Sub)}</span>
@@ -574,18 +651,19 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
       </div>
     </section>
 
-    <section class="sn-section">
+    <section class="sn-section" id="pantry-categories">
       <div class="sn-container">
+        ${renderSectionJumpBar(sectionBookmarks, 'Jump to Section:')}
         <div class="sn-section-head">
           <div>
             <span class="sn-eyebrow" id="home-categories-eyebrow">${escapeHtml(catSectionEyebrow)}</span>
-            <h2>Shop by Category</h2>
+            <h2>Shop by Category${renderHeadingAnchor('pantry-categories', 'Shop by Category')}</h2>
           </div>
           <a href="${basePath}/shop" class="sn-btn sn-btn-outline sn-btn-sm">View All ${products.length} Products</a>
         </div>
         <div class="sn-category-grid" id="home-categories-grid" data-category-count="${categories.length}">
           ${categories.map(cat => `
-            <a href="${basePath}/category/${escapeHtml(cat.slug)}" class="sn-category-card" id="cat-tile-${escapeHtml(cat.slug)}">
+            <a href="${basePath}/category/${escapeHtml(cat.slug)}" rel="bookmark" class="sn-category-card" id="cat-tile-${escapeHtml(cat.slug)}">
               <div class="sn-category-img-wrap">
                 <img src="${basePath}${escapeHtml(cat.image_url)}" alt="${escapeHtml(cat.name)}" data-category-img-id="${cat.id}" loading="lazy" />
               </div>
@@ -603,12 +681,12 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
       </div>
     </section>
 
-    <section class="sn-section sn-section-alt">
+    <section class="sn-section sn-section-alt" id="featured-harvests">
       <div class="sn-container">
         <div class="sn-section-head">
           <div>
             <span class="sn-eyebrow">Select Pack Size &amp; Add Directly</span>
-            <h2>Featured Harvests</h2>
+            <h2>Featured Harvests${renderHeadingAnchor('featured-harvests', 'Featured Harvests')}</h2>
           </div>
           <a href="${basePath}/shop" class="sn-btn sn-btn-forest sn-btn-sm">Browse All Packs</a>
         </div>
@@ -618,16 +696,16 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
       </div>
     </section>
 
-    <section class="sn-section">
+    <section class="sn-section" id="bestsellers">
       <div class="sn-container">
         <div class="sn-section-head">
           <div>
             <span class="sn-eyebrow">Most Reordered Across India</span>
-            <h2>Pantry Best Sellers</h2>
+            <h2>Pantry Best Sellers${renderHeadingAnchor('bestsellers', 'Pantry Best Sellers')}</h2>
           </div>
         </div>
         <div class="sn-product-grid">
-          ${bestsellers.map(p => renderProductCard(p, variants, basePath)).join('')}
+          ${bestsellers.map(p => renderProductCard(p, variants, basePath, featuredIds.has(p.id) ? 'bestseller-' : '')).join('')}
         </div>
       </div>
     </section>
@@ -679,13 +757,21 @@ function renderCatalogPage({
     breadcrumbs.push({ name: 'Catalogue', url: '/shop' });
   }
 
+  const sectionBookmarks = [
+    { id: 'collection-overview', name: activeCategory ? activeCategory.name : 'All Sashya Naturals Products', shortLabel: 'Overview' },
+    { id: 'catalogue-filters', name: 'Category & Pack-Size Filters', shortLabel: 'Filters' },
+    { id: 'product-grid', name: 'Product Catalogue Grid', shortLabel: `Products (${products.length})` },
+    { id: 'catalogue-pagination', name: 'Catalogue Pagination', shortLabel: 'Pagination' }
+  ];
+
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'collection',
     canonicalPath,
     title,
     description,
     breadcrumbs,
-    categoryProducts: products
+    categoryProducts: products,
+    sectionBookmarks
   });
 
   const totalCount = totalMatchingCount !== null ? totalMatchingCount : products.length;
@@ -694,7 +780,9 @@ function renderCatalogPage({
   const bodyHtml = `
     <section class="sn-section">
       <div class="sn-container">
-        <div class="sn-section-head">
+        ${renderBreadcrumbNav(breadcrumbs, basePath)}
+        ${renderSectionJumpBar(sectionBookmarks, 'On This Page:')}
+        <div class="sn-section-head" id="collection-overview">
           <div>
             <span class="sn-eyebrow">${activeCategory ? escapeHtml(activeCategory.subtitle) : 'Complete D2C Pantry Catalogue'}</span>
             <h1>${activeCategory ? escapeHtml(activeCategory.name) : 'All Sashya Naturals Products'}</h1>
@@ -702,83 +790,89 @@ function renderCatalogPage({
           </div>
         </div>
 
-        <form class="sn-filter-bar" method="GET" action="${basePath}${canonicalPath}" id="catalog-filter-form" style="flex-direction:column;align-items:stretch;gap:12px;">
-          <div class="sn-catalog-top-strip">
-            <div class="sn-catalog-pill-rail" id="sn-catalog-pill-rail" role="navigation" aria-label="Category &amp; Quick Filter Pills">
-              <a href="${basePath}/shop" class="sn-btn ${!activeCategory ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">All Catalogue</a>
-              ${categories.map(c => `
-                <a href="${basePath}/category/${escapeHtml(c.slug)}" class="sn-btn ${activeCategory && activeCategory.slug === c.slug ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">${escapeHtml(c.name)}</a>
-              `).join('')}
-              <span class="sn-catalog-pill-divider" aria-hidden="true">|</span>
-              <a href="${basePath}${canonicalPath}?tag=bestseller" class="sn-btn ${tagFilter === 'bestseller' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">★ Bestsellers</a>
-              <a href="${basePath}${canonicalPath}?tag=new_arrival" class="sn-btn ${tagFilter === 'new_arrival' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">New Harvests</a>
-              <a href="${basePath}${canonicalPath}?maxPrice=250" class="sn-btn ${String(maxPriceInr) === '250' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">Under ₹250</a>
+        <div id="catalogue-filters">
+          <form class="sn-filter-bar" method="GET" action="${basePath}${canonicalPath}" id="catalog-filter-form" style="flex-direction:column;align-items:stretch;gap:12px;">
+            <div class="sn-catalog-top-strip">
+              <div class="sn-catalog-pill-rail" id="sn-catalog-pill-rail" role="navigation" aria-label="Category &amp; Quick Filter Pills">
+                <a href="${basePath}/shop" class="sn-btn ${!activeCategory ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">All Catalogue</a>
+                ${categories.map(c => `
+                  <a href="${basePath}/category/${escapeHtml(c.slug)}" class="sn-btn ${activeCategory && activeCategory.slug === c.slug ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">${escapeHtml(c.name)}</a>
+                `).join('')}
+                <span class="sn-catalog-pill-divider" aria-hidden="true">|</span>
+                <a href="${basePath}${canonicalPath}?tag=bestseller" class="sn-btn ${tagFilter === 'bestseller' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">★ Bestsellers</a>
+                <a href="${basePath}${canonicalPath}?tag=new_arrival" class="sn-btn ${tagFilter === 'new_arrival' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">New Harvests</a>
+                <a href="${basePath}${canonicalPath}?maxPrice=250" class="sn-btn ${String(maxPriceInr) === '250' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">Under ₹250</a>
+              </div>
+              <span class="sn-catalog-harvest-badge">
+                Showing ${products.length} of ${totalCount} Harvests
+              </span>
             </div>
-            <span class="sn-catalog-harvest-badge">
-              Showing ${products.length} of ${totalCount} Harvests
-            </span>
-          </div>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%;">
-            <input type="search" name="q" value="${escapeHtml(searchQuery)}" placeholder="Search almonds, ragi, cloves..." class="sn-input" style="flex:1.5 1 190px;" id="catalog-search-input" />
-            <select class="sn-select" style="flex:1 1 165px;" id="catalog-category-jump-select" aria-label="Jump to Category" data-category-jump-select>
-              <option value="${basePath}/shop" ${!activeCategory ? 'selected' : ''}>Category: All (${categories.length})</option>
-              ${categories.map(c => `
-                <option value="${basePath}/category/${escapeHtml(c.slug)}" ${activeCategory && activeCategory.slug === c.slug ? 'selected' : ''}>Category: ${escapeHtml(c.name)}</option>
-              `).join('')}
-            </select>
-            <select name="tag" class="sn-select" style="flex:1 1 145px;" id="catalog-tag-select">
-              <option value="all" ${tagFilter === 'all' ? 'selected' : ''}>Filter: All Items</option>
-              <option value="bestseller" ${tagFilter === 'bestseller' ? 'selected' : ''}>Bestsellers Only</option>
-              <option value="featured" ${tagFilter === 'featured' ? 'selected' : ''}>Featured Only</option>
-              <option value="new_arrival" ${tagFilter === 'new_arrival' ? 'selected' : ''}>New Harvests</option>
-              <option value="in_stock" ${tagFilter === 'in_stock' ? 'selected' : ''}>In Stock Only</option>
-            </select>
-            <select name="maxPrice" class="sn-select" style="flex:1 1 155px;" id="catalog-price-select">
-              <option value="all" ${maxPriceInr === 'all' ? 'selected' : ''}>Starting Price: Any</option>
-              <option value="150" ${String(maxPriceInr) === '150' ? 'selected' : ''}>Starts Under ₹150</option>
-              <option value="250" ${String(maxPriceInr) === '250' ? 'selected' : ''}>Starts Under ₹250</option>
-              <option value="500" ${String(maxPriceInr) === '500' ? 'selected' : ''}>Starts Under ₹500</option>
-            </select>
-            <select name="pack" class="sn-select" style="flex:0.9 1 130px;" id="catalog-pack-select">
-              <option value="all" ${packFilter === 'all' ? 'selected' : ''}>Pack: All Sizes</option>
-              <option value="100 g" ${packFilter === '100 g' ? 'selected' : ''}>100 g Pack</option>
-              <option value="250 g" ${packFilter === '250 g' ? 'selected' : ''}>250 g Pack</option>
-              <option value="500 g" ${packFilter === '500 g' ? 'selected' : ''}>500 g Pack</option>
-              <option value="1 kg" ${packFilter === '1 kg' ? 'selected' : ''}>1 kg Pack</option>
-            </select>
-            <select name="sort" class="sn-select" style="flex:1 1 150px;" id="catalog-sort-select">
-              <option value="featured" ${sortBy === 'featured' ? 'selected' : ''}>Sort: Featured</option>
-              <option value="price_asc" ${sortBy === 'price_asc' ? 'selected' : ''}>Price: Low to High</option>
-              <option value="price_desc" ${sortBy === 'price_desc' ? 'selected' : ''}>Price: High to Low</option>
-            </select>
-            <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm" id="catalog-search-btn">Apply Filters</button>
-            ${hasActiveFilters ? `<a href="${basePath}${canonicalPath}" class="sn-btn sn-btn-outline sn-btn-sm" id="catalog-reset-btn">Reset</a>` : ''}
-          </div>
-        </form>
-
-        <div class="sn-product-grid" id="sn-catalog-product-grid">
-          ${products.length > 0
-            ? products.map(p => renderProductCard(p, variants, basePath)).join('')
-            : `<div class="sn-card"><p>No matching products found for your active filters. <a href="${basePath}${canonicalPath}" style="color:var(--sn-accent-terracotta);font-weight:600;">Reset filters</a></p></div>`
-          }
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%;">
+              <input type="search" name="q" value="${escapeHtml(searchQuery)}" placeholder="Search almonds, ragi, cloves..." class="sn-input" style="flex:1.5 1 190px;" id="catalog-search-input" />
+              <select class="sn-select" style="flex:1 1 165px;" id="catalog-category-jump-select" aria-label="Jump to Category" data-category-jump-select>
+                <option value="${basePath}/shop" ${!activeCategory ? 'selected' : ''}>Category: All (${categories.length})</option>
+                ${categories.map(c => `
+                  <option value="${basePath}/category/${escapeHtml(c.slug)}" ${activeCategory && activeCategory.slug === c.slug ? 'selected' : ''}>Category: ${escapeHtml(c.name)}</option>
+                `).join('')}
+              </select>
+              <select name="tag" class="sn-select" style="flex:1 1 145px;" id="catalog-tag-select">
+                <option value="all" ${tagFilter === 'all' ? 'selected' : ''}>Filter: All Items</option>
+                <option value="bestseller" ${tagFilter === 'bestseller' ? 'selected' : ''}>Bestsellers Only</option>
+                <option value="featured" ${tagFilter === 'featured' ? 'selected' : ''}>Featured Only</option>
+                <option value="new_arrival" ${tagFilter === 'new_arrival' ? 'selected' : ''}>New Harvests</option>
+                <option value="in_stock" ${tagFilter === 'in_stock' ? 'selected' : ''}>In Stock Only</option>
+              </select>
+              <select name="maxPrice" class="sn-select" style="flex:1 1 155px;" id="catalog-price-select">
+                <option value="all" ${maxPriceInr === 'all' ? 'selected' : ''}>Starting Price: Any</option>
+                <option value="150" ${String(maxPriceInr) === '150' ? 'selected' : ''}>Starts Under ₹150</option>
+                <option value="250" ${String(maxPriceInr) === '250' ? 'selected' : ''}>Starts Under ₹250</option>
+                <option value="500" ${String(maxPriceInr) === '500' ? 'selected' : ''}>Starts Under ₹500</option>
+              </select>
+              <select name="pack" class="sn-select" style="flex:0.9 1 130px;" id="catalog-pack-select">
+                <option value="all" ${packFilter === 'all' ? 'selected' : ''}>Pack: All Sizes</option>
+                <option value="100 g" ${packFilter === '100 g' ? 'selected' : ''}>100 g Pack</option>
+                <option value="250 g" ${packFilter === '250 g' ? 'selected' : ''}>250 g Pack</option>
+                <option value="500 g" ${packFilter === '500 g' ? 'selected' : ''}>500 g Pack</option>
+                <option value="1 kg" ${packFilter === '1 kg' ? 'selected' : ''}>1 kg Pack</option>
+              </select>
+              <select name="sort" class="sn-select" style="flex:1 1 150px;" id="catalog-sort-select">
+                <option value="featured" ${sortBy === 'featured' ? 'selected' : ''}>Sort: Featured</option>
+                <option value="price_asc" ${sortBy === 'price_asc' ? 'selected' : ''}>Price: Low to High</option>
+                <option value="price_desc" ${sortBy === 'price_desc' ? 'selected' : ''}>Price: High to Low</option>
+              </select>
+              <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm" id="catalog-search-btn">Apply Filters</button>
+              ${hasActiveFilters ? `<a href="${basePath}${canonicalPath}" class="sn-btn sn-btn-outline sn-btn-sm" id="catalog-reset-btn">Reset</a>` : ''}
+            </div>
+          </form>
         </div>
 
-        <div class="sn-card" style="margin-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:14px 20px;" id="sn-catalog-pagination-bar">
-          <div style="font-family:var(--sn-font-mono);font-size:0.8rem;color:var(--sn-text-secondary);" id="sn-catalog-count-label">
-            Showing <strong>${products.length}</strong> of <strong>${totalCount}</strong> products${totalPages > 1 ? ` (Page ${currentPage} of ${totalPages})` : ''}
+        <div id="product-grid">
+          <div class="sn-product-grid" id="sn-catalog-product-grid">
+            ${products.length > 0
+              ? products.map(p => renderProductCard(p, variants, basePath)).join('')
+              : `<div class="sn-card"><p>No matching products found for your active filters. <a href="${basePath}${canonicalPath}" style="color:var(--sn-accent-terracotta);font-weight:600;">Reset filters</a></p></div>`
+            }
           </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            ${totalPages > 1 ? Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => `
-              <a
-                href="${basePath}${canonicalPath}?page=${pg}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${tagFilter !== 'all' ? `&tag=${encodeURIComponent(tagFilter)}` : ''}${maxPriceInr !== 'all' ? `&maxPrice=${encodeURIComponent(maxPriceInr)}` : ''}"
-                class="sn-btn ${pg === currentPage ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
-              >Page ${pg}</a>
-            `).join('') : ''}
-            ${totalPages > 1 ? `
-              <a href="${basePath}${canonicalPath}?limit=all" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-catalog-load-all-btn">View All (${totalCount})</a>
-            ` : `
-              <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);">All matching packs displayed</span>
-            `}
+        </div>
+
+        <div id="catalogue-pagination">
+          <div class="sn-card" style="margin-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;padding:14px 20px;" id="sn-catalog-pagination-bar">
+            <div style="font-family:var(--sn-font-mono);font-size:0.8rem;color:var(--sn-text-secondary);" id="sn-catalog-count-label">
+              Showing <strong>${products.length}</strong> of <strong>${totalCount}</strong> products${totalPages > 1 ? ` (Page ${currentPage} of ${totalPages})` : ''}
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              ${totalPages > 1 ? Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => `
+                <a
+                  href="${basePath}${canonicalPath}?page=${pg}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${tagFilter !== 'all' ? `&tag=${encodeURIComponent(tagFilter)}` : ''}${maxPriceInr !== 'all' ? `&maxPrice=${encodeURIComponent(maxPriceInr)}` : ''}"
+                  class="sn-btn ${pg === currentPage ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
+                >Page ${pg}</a>
+              `).join('') : ''}
+              ${totalPages > 1 ? `
+                <a href="${basePath}${canonicalPath}?limit=all" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-catalog-load-all-btn">View All (${totalCount})</a>
+              ` : `
+                <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);">All matching packs displayed</span>
+              `}
+            </div>
           </div>
         </div>
       </div>
@@ -830,18 +924,29 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
     });
   }
 
+  const breadcrumbs = [
+    { name: 'Home', url: '/' },
+    { name: category.name, url: `/category/${category.slug}` },
+    { name: product.name, url: canonicalPath }
+  ];
+
+  const sectionBookmarks = [
+    { id: 'pack-variants', name: 'Pack-Size Variants & Pricing', shortLabel: 'Pack Sizes & Price' },
+    { id: 'delivery-checker', name: 'Delivery PIN Serviceability Checker', shortLabel: 'Delivery PIN Check' },
+    { id: 'origin-compliance', name: 'Origin, Batch & FSSAI Compliance', shortLabel: 'Origin & FSSAI' },
+    { id: 'nutrition-facts', name: 'Nutritional Value (Per 100 g)', shortLabel: 'Nutrition (Per 100g)' },
+    { id: 'related-products', name: `More from ${category.name}`, shortLabel: 'Related Harvests' }
+  ];
+
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'product',
     canonicalPath,
     title,
     description,
-    breadcrumbs: [
-      { name: 'Home', url: '/' },
-      { name: category.name, url: `/category/${category.slug}` },
-      { name: product.name, url: canonicalPath }
-    ],
+    breadcrumbs,
     product: { ...product, category_name: category.name },
-    variants: activeVariants
+    variants: activeVariants,
+    sectionBookmarks
   });
 
   const pinRules = parseProductPincodeRules(product);
@@ -850,11 +955,10 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
   const bodyHtml = `
     <section class="sn-section">
       <div class="sn-container">
-        <div style="font-family:var(--sn-font-mono);font-size:0.78rem;color:var(--sn-text-muted);margin-bottom:20px;">
-          <a href="${basePath}/">Home</a> / <a href="${basePath}/category/${escapeHtml(category.slug)}">${escapeHtml(category.name)}</a> / <strong>${escapeHtml(product.name)}</strong>
-        </div>
+        ${renderBreadcrumbNav(breadcrumbs, basePath)}
+        ${renderSectionJumpBar(sectionBookmarks, 'Product Sections:')}
 
-        <div class="sn-pdp-grid sn-pdp-main-layout" data-product-container="${product.id}" data-product-pincode-rules="${escapeHtml(JSON.stringify(pinRules))}">
+        <div class="sn-pdp-grid sn-pdp-main-layout" id="product" data-product-container="${product.id}" data-product-pincode-rules="${escapeHtml(JSON.stringify(pinRules))}">
           <div class="sn-pdp-gallery">
             <img src="${basePath}${escapeHtml(product.image_url)}" alt="${escapeHtml(product.name)}" id="sn-pdp-main-img" data-product-img-id="${product.id}" />
             <div id="sn-pdp-main-caption" style="padding:12px 18px;background-color:var(--sn-bg-mortar);font-family:var(--sn-font-mono);font-size:0.76rem;color:var(--sn-text-secondary);">
@@ -892,7 +996,7 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
 
             <p style="font-size:1rem;color:var(--sn-text-primary);margin-bottom:20px;">${escapeHtml(product.description)}</p>
 
-            <div class="sn-card" style="margin-bottom:24px;">
+            <div class="sn-card" id="pack-variants" style="margin-bottom:24px;">
               <div style="font-family:var(--sn-font-mono);font-size:0.76rem;text-transform:uppercase;color:var(--sn-text-muted);margin-bottom:8px;">
                 1. Choose Pack-Size Variant (Prices Inclusive of ${product.gst_percent}% GST)
               </div>
@@ -960,7 +1064,7 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
               </div>
 
               <!-- Instant 6-Digit PIN Delivery & Zone Freight Estimator (with Per-Product PIN Restriction Gate) -->
-              <div style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--sn-border-warm);display:flex;flex-direction:column;gap:8px;">
+              <div id="delivery-checker" style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--sn-border-warm);display:flex;flex-direction:column;gap:8px;">
                 ${pinSummary.hasRestriction ? `
                   <div id="sn-pdp-pin-restriction-banner" style="padding:6px 10px;border-radius:6px;background-color:var(--sn-bg-parchment);border:1px solid var(--sn-border-strong);font-family:var(--sn-font-mono);font-size:0.73rem;color:var(--sn-bg-forest);">
                     <strong>${escapeHtml(pinSummary.shortBadge)}</strong> — ${escapeHtml(pinSummary.detailText)}
@@ -994,12 +1098,12 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
               return `
               <div class="sn-pdp-spec-card" data-pdp-spec-container>
                 <div class="sn-admin-subnav-bar sn-pdp-spec-tabbar" role="tablist" aria-label="Product Specifications and Nutritional Information" style="margin-bottom:0;border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:none;">
-                  <button type="button" class="sn-admin-subtab-pill sn-active" data-pdp-spec-tab="compliance" role="tab" aria-selected="true">📋 Origin, Batch &amp; FSSAI Compliance</button>
-                  <button type="button" class="sn-admin-subtab-pill" data-pdp-spec-tab="nutrition" role="tab" aria-selected="false">🥗 Nutritional Value (Per 100 g)</button>
+                  <button type="button" class="sn-admin-subtab-pill sn-active" id="tab-btn-origin-compliance" data-pdp-spec-tab="compliance" role="tab" aria-selected="true" aria-controls="origin-compliance">📋 Origin, Batch &amp; FSSAI Compliance</button>
+                  <button type="button" class="sn-admin-subtab-pill" id="tab-btn-nutrition-facts" data-pdp-spec-tab="nutrition" role="tab" aria-selected="false" aria-controls="nutrition-facts">🥗 Nutritional Value (Per 100 g)</button>
                 </div>
 
                 <!-- Tab 1: Origin, Harvest Batch & FSSAI Labelling -->
-                <div data-pdp-spec-pane="compliance">
+                <div id="origin-compliance" data-pdp-spec-pane="compliance" role="tabpanel" aria-labelledby="tab-btn-origin-compliance">
                   <table class="sn-spec-table" aria-label="Product Origin and FSSAI Compliance" style="margin-top:0;border-top-left-radius:0;border-top-right-radius:0;">
                     <tbody>
                       <tr><th>Growing Region / Origin</th><td>${escapeHtml(product.origin_region)}</td></tr>
@@ -1014,7 +1118,7 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
                 </div>
 
                 <!-- Tab 2: Structured FSSAI Per-100g Nutritional Profile (100% SSR Rendered for SEO & AEO) -->
-                <div data-pdp-spec-pane="nutrition" style="display:none;background-color:var(--sn-bg-surface);border:1px solid var(--sn-border-warm);border-bottom-left-radius:var(--sn-radius-sm);border-bottom-right-radius:var(--sn-radius-sm);padding:14px 16px;">
+                <div id="nutrition-facts" data-pdp-spec-pane="nutrition" role="tabpanel" aria-labelledby="tab-btn-nutrition-facts" style="display:none;background-color:var(--sn-bg-surface);border:1px solid var(--sn-border-warm);border-bottom-left-radius:var(--sn-radius-sm);border-bottom-right-radius:var(--sn-radius-sm);padding:14px 16px;">
                   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:8px 12px;margin-bottom:12px;background-color:var(--sn-status-paid-bg);border:1px solid var(--sn-bg-forest);border-radius:var(--sn-radius-sm);">
                     <span style="font-family:var(--sn-font-mono);font-size:0.75rem;font-weight:700;color:var(--sn-bg-forest);">★ ${escapeHtml(nut.bioactive_label)}</span>
                     <span style="font-family:var(--sn-font-mono);font-size:0.78rem;font-weight:700;color:var(--sn-accent-terracotta);">${escapeHtml(nut.bioactive_value)}</span>
@@ -1060,10 +1164,10 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
       </div>
     </section>
 
-    <section class="sn-section sn-section-alt">
+    <section class="sn-section sn-section-alt" id="related-products">
       <div class="sn-container">
         <div class="sn-section-head">
-          <h2>More from ${escapeHtml(category.name)}</h2>
+          <h2>More from ${escapeHtml(category.name)}${renderHeadingAnchor('related-products', `More from ${category.name}`)}</h2>
         </div>
         <div class="sn-product-grid">
           ${relatedProducts.map(rp => renderProductCard(rp, allVariants, basePath)).join('')}
@@ -1095,12 +1199,20 @@ function renderCheckoutPage({
 }) {
   const title = `Secure Checkout (Razorpay UPI, Cards, NetBanking & COD) | ${BRAND_NAME}`;
   const description = 'Complete your Sashya Naturals order with server-verified Razorpay online payment or Cash on Delivery across India.';
+  const breadcrumbs = [{ name: 'Home', url: '/' }, { name: 'Checkout', url: '/checkout' }];
+  const sectionBookmarks = [
+    { id: 'delivery-address', name: 'Contact & Indian Delivery Address', shortLabel: 'Delivery Address' },
+    { id: 'payment-modes', name: 'Payment Modes (UPI, Cards, NetBanking & COD)', shortLabel: 'Payment Modes' },
+    { id: 'promotional-coupons', name: 'Promotional Coupons', shortLabel: 'Coupons' },
+    { id: 'order-summary', name: 'Order Summary & GST Breakdown', shortLabel: 'Order Summary' }
+  ];
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'webpage',
     canonicalPath: '/checkout',
     title,
     description,
-    breadcrumbs: [{ name: 'Home', url: '/' }, { name: 'Checkout', url: '/checkout' }]
+    breadcrumbs,
+    sectionBookmarks
   });
 
   const isShowcase = Boolean(staticShowcaseScript);
@@ -1117,6 +1229,8 @@ function renderCheckoutPage({
   const bodyHtml = `
     <section class="sn-section">
       <div class="sn-container">
+        ${renderBreadcrumbNav(breadcrumbs, basePath)}
+        ${renderSectionJumpBar(sectionBookmarks, 'Checkout Steps:')}
         <div class="sn-section-head">
           <div>
             <span class="sn-eyebrow">Secure Encrypted Checkout • Instant UPI, Cards, NetBanking &amp; COD</span>
@@ -1136,7 +1250,7 @@ function renderCheckoutPage({
         <div class="sn-pdp-grid">
           <form class="sn-card" id="sn-checkout-form">
             <input type="hidden" name="userId" id="chk-user-id" value="${customer ? customer.id : ''}" />
-            <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">1. Contact &amp; Indian Delivery Address</h3>
+            <h3 id="delivery-address" style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">1. Contact &amp; Indian Delivery Address${renderHeadingAnchor('delivery-address', 'Contact & Indian Delivery Address')}</h3>
 
             ${addresses.length > 0 ? `
               <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:12px 14px;margin-bottom:16px;" id="sn-checkout-saved-addresses-bar">
@@ -1206,7 +1320,7 @@ function renderCheckoutPage({
               <input type="text" id="chk-notes" name="deliveryInstructions" placeholder="e.g. Call on arrival or leave at reception" class="sn-input" />
             </div>
 
-            <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">2. Select Payment Mode (Razorpay Gateway or COD)</h3>
+            <h3 id="payment-modes" style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">2. Select Payment Mode (Razorpay Gateway or COD)${renderHeadingAnchor('payment-modes', 'Select Payment Mode')}</h3>
             <div class="sn-grid-2" style="gap:10px;margin-bottom:22px;">
               <label class="sn-card sn-payment-option-card">
                 <input type="radio" name="paymentMethod" value="ONLINE_UPI" checked style="margin-top:3px;" />
@@ -1253,8 +1367,8 @@ function renderCheckoutPage({
               const autoApplyCoupon = activeCoupons.find(c => Number(c.is_auto_apply) === 1);
               const defaultCouponVal = autoApplyCoupon ? autoApplyCoupon.code : '';
               return `
-            <div class="sn-card" style="margin-bottom:20px;">
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">Apply Promotional Coupon</h3>
+            <div class="sn-card" id="promotional-coupons" style="margin-bottom:20px;">
+              <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">Apply Promotional Coupon${renderHeadingAnchor('promotional-coupons', 'Apply Promotional Coupon')}</h3>
               <div style="display:flex;gap:10px;margin-bottom:10px;">
                 <input type="text" id="sn-checkout-coupon" placeholder="Enter coupon code" value="${escapeHtml(defaultCouponVal)}" class="sn-input" />
                 <button type="button" class="sn-btn sn-btn-forest" id="sn-apply-coupon-btn">Apply</button>
@@ -1278,9 +1392,9 @@ function renderCheckoutPage({
               `;
             })()}
 
-            <div class="sn-card">
+            <div class="sn-card" id="order-summary">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                <h3 style="font-family:var(--sn-font-serif);margin:0;color:var(--sn-bg-forest);">Your Order Summary</h3>
+                <h3 style="font-family:var(--sn-font-serif);margin:0;color:var(--sn-bg-forest);">Your Order Summary${renderHeadingAnchor('order-summary', 'Your Order Summary')}</h3>
                 <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-open-cart>Edit Basket</button>
               </div>
               <div id="sn-checkout-summary-box">Loading basket summary...</div>
@@ -1319,12 +1433,22 @@ function renderTrackOrderPage({
   const isShowcase = Boolean(staticShowcaseScript);
   const title = `Track Order & Manual Courier Status | ${BRAND_NAME}`;
   const description = 'Track your Sashya Naturals order status, separate payment and fulfilment states, and manual courier AWB tracking reference.';
+  const breadcrumbs = [{ name: 'Home', url: '/' }, { name: 'Track Order', url: '/track-order' }];
+  const sectionBookmarks = [
+    { id: 'order-lookup', name: 'Order Status Lookup', shortLabel: 'Lookup Order' },
+    ...(order ? [
+      { id: 'order-status-timeline', name: `Order ${order.order_number} Status Timeline`, shortLabel: 'Status Timeline' },
+      { id: 'courier-tracking', name: 'Courier & Dispatch AWB Tracking', shortLabel: 'Courier & AWB' },
+      { id: 'ordered-items', name: 'Ordered Pack Items & HSN Breakdown', shortLabel: 'Ordered Items' }
+    ] : [])
+  ];
   const schemaGraph = buildMasterSchemaGraph({
     pageType: 'webpage',
     canonicalPath: '/track-order',
     title,
     description,
-    breadcrumbs: [{ name: 'Home', url: '/' }, { name: 'Track Order', url: '/track-order' }]
+    breadcrumbs,
+    sectionBookmarks
   });
 
   const steps = ['Pending Payment', 'Confirmed', 'Processing', 'Packed', 'Shipped', 'Delivered'];
@@ -1336,6 +1460,8 @@ function renderTrackOrderPage({
   const bodyHtml = `
     <section class="sn-section">
       <div class="sn-container">
+        ${renderBreadcrumbNav(breadcrumbs, basePath)}
+        ${renderSectionJumpBar(sectionBookmarks, 'Tracking Sections:')}
         <div class="sn-section-head">
           <div>
             <span class="sn-eyebrow">Dual Payment &amp; Fulfilment Status + Manual Courier Reference</span>
@@ -1364,49 +1490,51 @@ function renderTrackOrderPage({
           </div>
         ` : ''}
 
-        <form class="sn-filter-bar" method="GET" action="${basePath}/track-order" id="track-order-form">
-          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;width:100%;">
-            <input
-              type="text"
-              name="order"
-              required
-              value="${escapeHtml(queryOrderNumber || (isShowcase && order ? order.order_number : ''))}"
-              placeholder="Order Number (e.g. SN-2026-1001)"
-              class="sn-input"
-              style="flex:1 1 240px;max-width:320px;"
-              id="track-order-input"
-            />
-            ${!isShowcase && !customer ? `
+        <div id="order-lookup">
+          <form class="sn-filter-bar" method="GET" action="${basePath}/track-order" id="track-order-form">
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;width:100%;">
               <input
                 type="text"
-                name="contact"
+                name="order"
                 required
-                value="${escapeHtml(contactQuery)}"
-                placeholder="Registered Mobile No. or Email"
+                value="${escapeHtml(queryOrderNumber || (isShowcase && order ? order.order_number : ''))}"
+                placeholder="Order Number (e.g. SN-2026-1001)"
                 class="sn-input"
-                style="flex:1 1 260px;max-width:340px;"
-                id="track-order-contact-input"
+                style="flex:1 1 240px;max-width:320px;"
+                id="track-order-input"
               />
-            ` : ''}
-            <button type="submit" class="sn-btn sn-btn-forest" id="track-order-submit-btn">Lookup Order Status</button>
-            ${isShowcase ? `
-              <span style="font-family:var(--sn-font-mono);font-size:0.78rem;color:var(--sn-text-muted);">
-                Sample orders: <a href="${basePath}/track-order?order=SN-2026-1001" style="color:var(--sn-accent-terracotta);text-decoration:underline;">SN-2026-1001 (Shipped via Blue Dart)</a> or <a href="${basePath}/track-order?order=SN-2026-1002" style="color:var(--sn-accent-terracotta);text-decoration:underline;">SN-2026-1002 (COD Confirmed)</a>
-              </span>
-            ` : (!customer ? `
-              <span style="font-size:0.8rem;color:var(--sn-text-muted);">
-                Have an account? <a href="${basePath}/account" style="color:var(--sn-accent-terracotta);font-weight:600;text-decoration:underline;">Sign in</a> for 1-click order tracking.
-              </span>
-            ` : '')}
-          </div>
-        </form>
+              ${!isShowcase && !customer ? `
+                <input
+                  type="text"
+                  name="contact"
+                  required
+                  value="${escapeHtml(contactQuery)}"
+                  placeholder="Registered Mobile No. or Email"
+                  class="sn-input"
+                  style="flex:1 1 260px;max-width:340px;"
+                  id="track-order-contact-input"
+                />
+              ` : ''}
+              <button type="submit" class="sn-btn sn-btn-forest" id="track-order-submit-btn">Lookup Order Status</button>
+              ${isShowcase ? `
+                <span style="font-family:var(--sn-font-mono);font-size:0.78rem;color:var(--sn-text-muted);">
+                  Sample orders: <a href="${basePath}/track-order?order=SN-2026-1001" style="color:var(--sn-accent-terracotta);text-decoration:underline;">SN-2026-1001 (Shipped via Blue Dart)</a> or <a href="${basePath}/track-order?order=SN-2026-1002" style="color:var(--sn-accent-terracotta);text-decoration:underline;">SN-2026-1002 (COD Confirmed)</a>
+                </span>
+              ` : (!customer ? `
+                <span style="font-size:0.8rem;color:var(--sn-text-muted);">
+                  Have an account? <a href="${basePath}/account" style="color:var(--sn-accent-terracotta);font-weight:600;text-decoration:underline;">Sign in</a> for 1-click order tracking.
+                </span>
+              ` : '')}
+            </div>
+          </form>
+        </div>
 
         ${order ? `
-          <div class="sn-card" style="margin-bottom:24px;">
+          <div class="sn-card" id="order-status-timeline" style="margin-bottom:24px;">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;padding-bottom:18px;border-bottom:1px solid var(--sn-border-warm);">
               <div>
                 <span class="sn-eyebrow">Order Number</span>
-                <h2 style="font-family:var(--sn-font-serif);margin:0;color:var(--sn-bg-forest);">${escapeHtml(order.order_number)}</h2>
+                <h2 style="font-family:var(--sn-font-serif);margin:0;color:var(--sn-bg-forest);">${escapeHtml(order.order_number)}${renderHeadingAnchor('order-status-timeline', `Order ${order.order_number}`)}</h2>
                 <div style="font-size:0.86rem;color:var(--sn-text-secondary);margin-top:4px;">
                   Customer: <strong>${escapeHtml(order.customer_name)}</strong> | Destination: ${escapeHtml(order.shipping_city)}, ${escapeHtml(order.shipping_state)} - ${escapeHtml(order.shipping_pincode)}
                 </div>
@@ -1467,8 +1595,8 @@ function renderTrackOrderPage({
                 </div>
               </div>
 
-              <div class="sn-card" style="background-color:var(--sn-bg-mortar);">
-                <h3 style="font-family:var(--sn-font-serif);margin:0 0 8px;font-size:1.1rem;color:var(--sn-bg-forest);">Courier &amp; Dispatch Tracking</h3>
+              <div class="sn-card" id="courier-tracking" style="background-color:var(--sn-bg-mortar);">
+                <h3 style="font-family:var(--sn-font-serif);margin:0 0 8px;font-size:1.1rem;color:var(--sn-bg-forest);">Courier &amp; Dispatch Tracking${renderHeadingAnchor('courier-tracking', 'Courier & Dispatch Tracking')}</h3>
                 ${order.courier_name ? `
                   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;font-size:0.88rem;">
                     <div><span style="color:var(--sn-text-muted);">Courier Partner:</span><br/><strong>${escapeHtml(order.courier_name)}</strong></div>
@@ -1495,23 +1623,25 @@ function renderTrackOrderPage({
               </div>
             </div>
 
-            <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;color:var(--sn-bg-forest);">Ordered Pack Items &amp; HSN Tax Breakdown (${escapeHtml(taxRegimeLabel)})</h3>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              ${orderItems.map(item => `
-                <div class="sn-card" style="padding:12px 16px;background-color:var(--sn-bg-parchment);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-                  <div style="flex:1;min-width:220px;">
-                    <div style="font-weight:700;color:var(--sn-bg-forest);font-size:0.95rem;">
-                      ${escapeHtml(item.product_name)} <span style="font-family:var(--sn-font-mono);font-size:0.84rem;">(${escapeHtml(item.pack_label)} &times; ${item.quantity})</span>
+            <div id="ordered-items">
+              <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;font-size:1.1rem;color:var(--sn-bg-forest);">Ordered Pack Items &amp; HSN Tax Breakdown (${escapeHtml(taxRegimeLabel)})${renderHeadingAnchor('ordered-items', 'Ordered Pack Items')}</h3>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                ${orderItems.map(item => `
+                  <div class="sn-card" style="padding:12px 16px;background-color:var(--sn-bg-parchment);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                    <div style="flex:1;min-width:220px;">
+                      <div style="font-weight:700;color:var(--sn-bg-forest);font-size:0.95rem;">
+                        ${escapeHtml(item.product_name)} <span style="font-family:var(--sn-font-mono);font-size:0.84rem;">(${escapeHtml(item.pack_label)} &times; ${item.quantity})</span>
+                      </div>
+                      <div style="font-family:var(--sn-font-mono);font-size:0.76rem;color:var(--sn-text-muted);margin-top:3px;">
+                        SKU: ${escapeHtml(item.sku)} &bull; HSN: ${escapeHtml(item.hsn_code || '080290')} &bull; Unit Price: ${formatInr(item.unit_price_paise)}
+                      </div>
                     </div>
-                    <div style="font-family:var(--sn-font-mono);font-size:0.76rem;color:var(--sn-text-muted);margin-top:3px;">
-                      SKU: ${escapeHtml(item.sku)} &bull; HSN: ${escapeHtml(item.hsn_code || '080290')} &bull; Unit Price: ${formatInr(item.unit_price_paise)}
+                    <div style="font-family:var(--sn-font-mono);font-weight:700;font-size:1rem;color:var(--sn-bg-forest);white-space:nowrap;">
+                      ${formatInr(item.line_total_paise)}
                     </div>
                   </div>
-                  <div style="font-family:var(--sn-font-mono);font-weight:700;font-size:1rem;color:var(--sn-bg-forest);white-space:nowrap;">
-                    ${formatInr(item.line_total_paise)}
-                  </div>
-                </div>
-              `).join('')}
+                `).join('')}
+              </div>
             </div>
           </div>
         ` : (lookupError ? `
@@ -5139,19 +5269,96 @@ function renderAdminPortalPage({
 function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath = '', staticShowcaseScript = '', isNoIndex = false }) {
   const canonicalPath = `/${slug}`;
   const description = subtitle;
+  const breadcrumbs = [{ name: 'Home', url: '/' }, { name: title, url: canonicalPath }];
+  const usedIds = new Set();
+
+  let parsedFaqBlocks = [];
+  let faqItems = [];
+  let parsedPolicyBlocks = [];
+  let sectionBookmarks = [];
+
+  if (slug === 'faq') {
+    parsedFaqBlocks = paragraphs.map((p, idx) => {
+      if (p.includes('?')) {
+        const qIdx = p.indexOf('?');
+        const q = p.slice(0, qIdx + 1).trim();
+        const a = p.slice(qIdx + 1).trim();
+        const id = slugifyBookmarkId(q, 'faq', usedIds);
+        return {
+          isFaq: true,
+          id,
+          question: q,
+          answer: a,
+          shortLabel: q.length > 38 ? `${q.slice(0, 35)}...` : q
+        };
+      }
+      const id = slugifyBookmarkId(`note-${idx + 1}`, 'faq', usedIds);
+      return {
+        isFaq: false,
+        id,
+        text: p,
+        shortLabel: `FAQ Note ${idx + 1}`
+      };
+    });
+    faqItems = parsedFaqBlocks.filter(b => b.isFaq);
+    sectionBookmarks = [
+      ...parsedFaqBlocks.map(b => ({
+        id: b.id,
+        name: b.isFaq ? b.question : b.shortLabel,
+        shortLabel: b.shortLabel
+      })),
+      { id: 'faq-support-desk', name: 'Bengaluru Pantry Care Desk', shortLabel: 'Care Desk' }
+    ];
+  } else {
+    parsedPolicyBlocks = paragraphs.map((p, idx) => {
+      const id = `section-${idx + 1}`;
+      usedIds.add(id);
+      const firstClause = p.split('.')[0].trim();
+      const shortLabel = firstClause.length > 32
+        ? `Section ${idx + 1}: ${firstClause.slice(0, 26)}...`
+        : `Section ${idx + 1}: ${firstClause}`;
+      return {
+        id,
+        heading: `Section ${idx + 1}`,
+        text: p,
+        shortLabel
+      };
+    });
+    sectionBookmarks = parsedPolicyBlocks.map(b => ({
+      id: b.id,
+      name: `${title} - ${b.heading}`,
+      shortLabel: b.shortLabel
+    }));
+    if (slug === 'shipping-returns') {
+      sectionBookmarks.push({
+        id: 'zone-rate-card',
+        name: '4-Zone + 500g Weight-Slab Courier Rate Card',
+        shortLabel: '4-Zone Rate Card'
+      });
+    } else if (slug === 'contact') {
+      sectionBookmarks.push({
+        id: 'support-channels',
+        name: 'Direct Support Desk, Email Care & Bengaluru Dispatch Hub',
+        shortLabel: 'Support Channels'
+      });
+    }
+  }
+
   const schemaGraph = buildMasterSchemaGraph({
-    pageType: 'webpage',
+    pageType: slug === 'faq' && faqItems.length > 0 ? 'faq' : 'webpage',
     canonicalPath,
     title: `${title} | ${BRAND_NAME}`,
     description,
-    breadcrumbs: [{ name: 'Home', url: '/' }, { name: title, url: canonicalPath }]
+    breadcrumbs,
+    faqItems,
+    sectionBookmarks
   });
 
   let extraSectionHtml = '';
   if (slug === 'shipping-returns') {
     extraSectionHtml = `
-      <div class="sn-card" style="margin-top:20px;background-color:var(--sn-bg-parchment);">
-        <h2 style="font-family:var(--sn-font-serif);font-size:1.3rem;margin:0 0 12px;color:var(--sn-bg-forest);">4-Zone + 500g Weight-Slab Courier Rate Card</h2>
+      <div class="sn-card" id="zone-rate-card" style="margin-top:20px;background-color:var(--sn-bg-parchment);">
+        <h2 style="font-family:var(--sn-font-serif);font-size:1.3rem;margin:0 0 12px;color:var(--sn-bg-forest);">4-Zone + 500g Weight-Slab Courier Rate Card${renderHeadingAnchor('zone-rate-card', '4-Zone + 500g Weight-Slab Courier Rate Card')}</h2>
         <div class="sn-table-wrap">
           <table class="sn-table sn-table-cards">
             <thead>
@@ -5169,20 +5376,20 @@ function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath
     `;
   } else if (slug === 'contact') {
     extraSectionHtml = `
-      <div class="sn-category-grid" style="margin-top:20px;">
-        <div class="sn-card" style="background-color:var(--sn-bg-parchment);">
+      <div class="sn-category-grid" id="support-channels" style="margin-top:20px;">
+        <div class="sn-card" id="contact-phone-whatsapp" style="background-color:var(--sn-bg-parchment);">
           <span class="sn-eyebrow">Direct Support Desk</span>
-          <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Phone &amp; WhatsApp Care</h3>
+          <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Phone &amp; WhatsApp Care${renderHeadingAnchor('contact-phone-whatsapp', 'Phone & WhatsApp Care')}</h3>
           <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">+91 80 4568 2200<br/>Mon to Sat, 9:30 AM to 6:30 PM IST</p>
         </div>
-        <div class="sn-card" style="background-color:var(--sn-bg-parchment);">
+        <div class="sn-card" id="contact-email-care" style="background-color:var(--sn-bg-parchment);">
           <span class="sn-eyebrow">Order &amp; Bulk Enquiries</span>
-          <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Email Customer Care</h3>
+          <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Email Customer Care${renderHeadingAnchor('contact-email-care', 'Email Customer Care')}</h3>
           <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">care@sashyanaturals.com<br/>Responses within 4 business hours</p>
         </div>
-        <div class="sn-card" style="background-color:var(--sn-bg-parchment);">
+        <div class="sn-card" id="contact-dispatch-hub" style="background-color:var(--sn-bg-parchment);">
           <span class="sn-eyebrow">Bengaluru Dispatch Hub</span>
-          <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Registered Pantry Office</h3>
+          <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Registered Pantry Office${renderHeadingAnchor('contact-dispatch-hub', 'Registered Pantry Office')}</h3>
           <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">No. 48, 100 Feet Road, Indiranagar, Bengaluru, Karnataka - 560038</p>
         </div>
       </div>
@@ -5192,28 +5399,27 @@ function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath
   const bodyHtml = `
     <section class="sn-section">
       <div class="sn-container" style="max-width:920px;">
+        ${renderBreadcrumbNav(breadcrumbs, basePath)}
+        ${renderSectionJumpBar(sectionBookmarks, slug === 'faq' ? 'Jump to Question:' : 'On This Page:')}
         <span class="sn-eyebrow">${escapeHtml(subtitle)}</span>
         <h1 style="font-family:var(--sn-font-serif);font-size:2.2rem;color:var(--sn-bg-forest);margin:0 0 24px;">${escapeHtml(title)}</h1>
         ${slug === 'faq' ? `
           <div style="display:flex;flex-direction:column;gap:4px;">
-            ${paragraphs.map(p => {
-              if (p.includes('?')) {
-                const idx = p.indexOf('?');
-                const q = p.slice(0, idx + 1);
-                const a = p.slice(idx + 1).trim();
+            ${parsedFaqBlocks.map(b => {
+              if (b.isFaq) {
                 return `
-                  <details class="sn-faq-item" open>
-                    <summary>${escapeHtml(q)}</summary>
-                    <p>${escapeHtml(a)}</p>
+                  <details class="sn-faq-item" id="${escapeHtml(b.id)}" open>
+                    <summary>${escapeHtml(b.question)}${renderHeadingAnchor(b.id, b.question)}</summary>
+                    <p>${escapeHtml(b.answer)}</p>
                   </details>
                 `;
               }
-              return `<div class="sn-card"><p style="margin:0;">${escapeHtml(p)}</p></div>`;
+              return `<div class="sn-card" id="${escapeHtml(b.id)}"><p style="margin:0;">${escapeHtml(b.text)}</p></div>`;
             }).join('')}
           </div>
-          <div class="sn-card" style="margin-top:20px;background-color:var(--sn-bg-parchment);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <div class="sn-card" id="faq-support-desk" style="margin-top:20px;background-color:var(--sn-bg-parchment);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
             <div>
-              <strong style="font-family:var(--sn-font-serif);font-size:1.05rem;color:var(--sn-bg-forest);">Still have a question about a batch, bulk order, or shipment?</strong>
+              <strong style="font-family:var(--sn-font-serif);font-size:1.05rem;color:var(--sn-bg-forest);">Still have a question about a batch, bulk order, or shipment?${renderHeadingAnchor('faq-support-desk', 'Bengaluru Pantry Care Desk')}</strong>
               <div style="font-size:0.84rem;color:var(--sn-text-secondary);">Our Bengaluru pantry care desk responds within 4 business hours.</div>
             </div>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
@@ -5223,7 +5429,14 @@ function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath
           </div>
         ` : `
           <div class="sn-card" style="display:flex;flex-direction:column;gap:16px;font-size:0.98rem;">
-            ${paragraphs.map(p => `<p style="margin:0;">${escapeHtml(p)}</p>`).join('')}
+            ${parsedPolicyBlocks.map(b => `
+              <div id="${escapeHtml(b.id)}" style="border-bottom:1px dashed var(--sn-border-warm);padding-bottom:12px;">
+                <div style="font-family:var(--sn-font-mono);font-size:0.72rem;text-transform:uppercase;color:var(--sn-text-muted);margin-bottom:4px;">
+                  ${escapeHtml(b.heading)}${renderHeadingAnchor(b.id, `${title} ${b.heading}`)}
+                </div>
+                <p style="margin:0;">${escapeHtml(b.text)}</p>
+              </div>
+            `).join('')}
           </div>
         `}
         ${extraSectionHtml}

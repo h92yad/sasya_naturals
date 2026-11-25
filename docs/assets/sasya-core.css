@@ -2915,3 +2915,171 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
   }
 }
 
+/* ==========================================================================
+   v3.5.0: SEO & HTML Bookmark Architecture (BM-01 to BM-08)
+   ========================================================================== */
+
+/* BM-07: Keyboard Skip-to-Main-Content Bookmark */
+.sn-skip-link {
+  position: absolute;
+  top: -120px;
+  left: 16px;
+  z-index: 9999;
+  background-color: var(--sn-bg-forest);
+  color: #FAF5E4;
+  font-family: var(--sn-font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 10px 18px;
+  border-radius: var(--sn-radius-sm);
+  border: 2px solid var(--sn-accent-terracotta);
+  box-shadow: var(--sn-shadow-elevated);
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+
+.sn-skip-link:focus,
+.sn-skip-link:focus-visible {
+  top: 12px;
+  outline: 2px solid #FAF5E4;
+  outline-offset: 2px;
+}
+
+/* BM-01 / BM-02: Sticky Header Offset for #hash Fragment Navigation */
+section[id],
+article[id],
+details[id],
+h1[id],
+h2[id],
+h3[id],
+div[id],
+form[id],
+nav[id] {
+  scroll-margin-top: 92px;
+}
+
+/* BM-04: Visible Semantic Breadcrumb Bar (<nav id="breadcrumb">) */
+.sn-breadcrumb-nav {
+  font-family: var(--sn-font-mono);
+  font-size: 0.78rem;
+  color: var(--sn-text-muted);
+  margin-bottom: 14px;
+}
+
+.sn-breadcrumb-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.sn-breadcrumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sn-breadcrumb-item + .sn-breadcrumb-item::before {
+  content: "/";
+  color: var(--sn-border-strong);
+}
+
+.sn-breadcrumb-item a {
+  color: var(--sn-text-secondary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.sn-breadcrumb-item a:hover {
+  color: var(--sn-accent-terracotta);
+  text-decoration: underline;
+}
+
+.sn-breadcrumb-item [aria-current="page"] {
+  color: var(--sn-bg-forest);
+  font-weight: 700;
+}
+
+/* BM-01 / BM-05: In-Page Bookmark Jump Bar / Table of Contents */
+.sn-toc-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 14px;
+  margin-bottom: 20px;
+  background-color: var(--sn-bg-parchment);
+  border: 1px solid var(--sn-border-warm);
+  border-radius: var(--sn-radius-sm);
+}
+
+.sn-toc-label {
+  font-family: var(--sn-font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--sn-bg-forest);
+  margin-right: 4px;
+  white-space: nowrap;
+}
+
+.sn-toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sn-toc-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--sn-font-mono);
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--sn-bg-forest);
+  background-color: var(--sn-bg-surface);
+  border: 1px solid var(--sn-border-strong);
+  border-radius: 999px;
+  padding: 3px 10px;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.sn-toc-pill:hover {
+  background-color: var(--sn-bg-forest);
+  border-color: var(--sn-bg-forest);
+  color: #FAF5E4;
+}
+
+/* BM-01 / BM-05: Section Heading & FAQ Question '#' Permalink Anchor */
+.sn-heading-anchor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  font-family: var(--sn-font-mono);
+  font-size: 0.78em;
+  font-weight: 600;
+  color: var(--sn-text-muted);
+  opacity: 0.45;
+  text-decoration: none;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  vertical-align: middle;
+}
+
+h2:hover .sn-heading-anchor,
+h3:hover .sn-heading-anchor,
+summary:hover .sn-heading-anchor,
+.sn-heading-anchor:hover,
+.sn-heading-anchor:focus {
+  opacity: 1;
+  color: var(--sn-accent-terracotta);
+}

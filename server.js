@@ -315,7 +315,7 @@ function createServerHandler() {
         return fs.createReadStream(filePath).pipe(res);
       }
 
-      // 2. Discovery Endpoints (/favicon.ico, /robots.txt, /sitemap.xml, /llms.txt)
+      // 2. Discovery Endpoints (/favicon.ico, /site.webmanifest, /robots.txt, /sitemap.xml, /llms.txt)
       if (pathname === '/favicon.ico') {
         const favWebpPath = path.join(__dirname, 'public/images/favicon.webp');
         if (fs.existsSync(favWebpPath)) {
@@ -325,6 +325,34 @@ function createServerHandler() {
         const svgFavicon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="#212C64"/><text x="16" y="22" font-family="Georgia,serif" font-size="18" font-weight="bold" fill="#FDF6DA" text-anchor="middle">S</text></svg>';
         res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'public, max-age=86400' });
         return res.end(svgFavicon);
+      }
+
+      if (pathname === '/site.webmanifest') {
+        const manifest = {
+          name: `${BRAND_NAME} - ${BRAND_TAGLINE}`,
+          short_name: BRAND_NAME,
+          description: 'Farm-direct Kashmiri almonds, Goan W240 cashews, unpolished native millets, and single-origin Indian spices.',
+          start_url: '/',
+          scope: '/',
+          display: 'standalone',
+          background_color: '#FAF5E4',
+          theme_color: '#212C64',
+          icons: [
+            { src: `/images/favicon-32.png?v=${APP_VERSION}`, sizes: '32x32', type: 'image/png' },
+            { src: `/images/apple-touch-icon.png?v=${APP_VERSION}`, sizes: '180x180', type: 'image/png' },
+            { src: `/images/favicon.webp?v=${APP_VERSION}`, sizes: '192x192', type: 'image/webp' }
+          ],
+          shortcuts: [
+            { name: 'Shop All Catalogue', short_name: 'Catalogue', url: '/shop' },
+            { name: 'Track Order Status', short_name: 'Track Order', url: '/track-order' },
+            { name: 'Frequently Asked Questions', short_name: 'FAQs', url: '/faq' }
+          ]
+        };
+        res.writeHead(200, {
+          'Content-Type': 'application/manifest+json; charset=utf-8',
+          'Cache-Control': 'public, max-age=86400'
+        });
+        return res.end(JSON.stringify(manifest, null, 2));
       }
 
       // 2.5 Fail-Closed Production Go-Live Guardrail:

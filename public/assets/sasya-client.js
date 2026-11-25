@@ -746,8 +746,42 @@
           specContainer.querySelectorAll('[data-pdp-spec-pane]').forEach(pane => {
             pane.style.display = pane.getAttribute('data-pdp-spec-pane') === targetTab ? 'block' : 'none';
           });
+          try {
+            const nextHash = targetTab === 'nutrition' ? '#nutrition-facts' : '#origin-compliance';
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState(null, '', nextHash);
+            }
+          } catch {
+            // ignore history errors
+          }
         }
         return;
+      }
+
+      const bookmarkJumpLink = e.target.closest('[data-bookmark-jump], [data-bookmark-anchor]');
+      if (bookmarkJumpLink) {
+        const bmId = bookmarkJumpLink.getAttribute('data-bookmark-jump') || bookmarkJumpLink.getAttribute('data-bookmark-anchor') || '';
+        if (bmId === 'nutrition-facts' || bmId === 'origin-compliance') {
+          const targetTab = bmId === 'nutrition-facts' ? 'nutrition' : 'compliance';
+          const specBtn = document.querySelector(`[data-pdp-spec-tab="${targetTab}"]`);
+          if (specBtn) specBtn.click();
+        }
+        const targetEl = bmId ? document.getElementById(bmId) : null;
+        if (targetEl && targetEl.tagName === 'DETAILS') {
+          targetEl.open = true;
+        }
+        if (bookmarkJumpLink.hasAttribute('data-bookmark-anchor') && bmId) {
+          try {
+            const fullUrl = `${window.location.origin}${window.location.pathname}${window.location.search}#${bmId}`;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(fullUrl).then(() => {
+                showToast(`Bookmark link copied (#${bmId})`);
+              }).catch(() => {});
+            }
+          } catch {
+            // ignore clipboard errors
+          }
+        }
       }
 
       const addBtn = e.target.closest('[data-add-to-cart]');
@@ -5375,6 +5409,39 @@
     }
   }
 
+  function syncHashBookmarkState() {
+    const rawHash = String(window.location.hash || '').replace(/^#/, '').trim();
+    if (!rawHash) return;
+    let decodedId = rawHash;
+    try {
+      decodedId = decodeURIComponent(rawHash);
+    } catch {
+      decodedId = rawHash;
+    }
+
+    if (decodedId === 'nutrition-facts' || decodedId === 'nutrition' || decodedId === 'tab-btn-nutrition-facts') {
+      const nutBtn = document.querySelector('[data-pdp-spec-tab="nutrition"]');
+      if (nutBtn) nutBtn.click();
+    } else if (decodedId === 'origin-compliance' || decodedId === 'compliance' || decodedId === 'tab-btn-origin-compliance') {
+      const compBtn = document.querySelector('[data-pdp-spec-tab="compliance"]');
+      if (compBtn) compBtn.click();
+    }
+
+    const targetEl = document.getElementById(decodedId);
+    if (targetEl) {
+      if (targetEl.tagName === 'DETAILS') {
+        targetEl.open = true;
+      }
+      const parentDetails = targetEl.closest('details');
+      if (parentDetails) {
+        parentDetails.open = true;
+      }
+      if (typeof targetEl.scrollIntoView === 'function') {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     updateCartBadges();
     bindGlobalListeners();
@@ -5384,5 +5451,7 @@
     initCustomerAccountPage();
     initAdminAuthForms();
     initAdminPortal();
+    syncHashBookmarkState();
+    window.addEventListener('hashchange', syncHashBookmarkState);
   });
 })();

@@ -1,0 +1,44 @@
+{
+  "name": "Sashya Naturals - Heirloom Dry Fruits, Unpolished Native Millets & Single-Origin Indian Spices",
+  "short_name": "Sashya Naturals",
+  "description": "Farm-direct Kashmiri almonds, Goan W240 cashews, unpolished native millets, and single-origin Indian spices.",
+  "start_url": "/sasya_naturals/",
+  "scope": "/sasya_naturals/",
+  "display": "standalone",
+  "background_color": "#FAF5E4",
+  "theme_color": "#212C64",
+  "icons": [
+    {
+      "src": "/sasya_naturals/images/favicon-32.png?v=3.5.0",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/sasya_naturals/images/apple-touch-icon.png?v=3.5.0",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/sasya_naturals/images/favicon.webp?v=3.5.0",
+      "sizes": "192x192",
+      "type": "image/webp"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Shop All Catalogue",
+      "short_name": "Catalogue",
+      "url": "/sasya_naturals/shop"
+    },
+    {
+      "name": "Track Order Status",
+      "short_name": "Track Order",
+      "url": "/sasya_naturals/track-order"
+    },
+    {
+      "name": "Frequently Asked Questions",
+      "short_name": "FAQs",
+      "url": "/sasya_naturals/faq"
+    }
+  ]
+}
