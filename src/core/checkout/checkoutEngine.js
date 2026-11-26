@@ -1105,6 +1105,10 @@ function createOrder({
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
     throw new Error('Please provide a valid customer email address.');
   }
+  const phoneDigits = cleanPhone.replace(/\D/g, '');
+  if (phoneDigits.length < 10 || phoneDigits.length > 15 || !/^[6-9]\d{9}$/.test(phoneDigits.slice(-10))) {
+    throw new Error('Please provide a valid 10-digit Indian mobile phone number.');
+  }
 
   // Validate PIN code serviceability & high-RTO COD rules
   validatePincodeServiceability(cleanPincode, paymentMethod);
@@ -1133,8 +1137,8 @@ function createOrder({
     customerPhone: cleanPhone
   });
   const explicitCoupon = String(couponCode || '').trim();
-  if (explicitCoupon && ['EXPIRED', 'SCHEDULED', 'LIMIT_REACHED', 'CUSTOMER_LIMIT_REACHED', 'PAUSED'].includes(pricing.couponStatus)) {
-    throw new Error(pricing.couponMessage);
+  if (explicitCoupon && ['INVALID', 'MIN_SUBTOTAL_NOT_MET', 'EXPIRED', 'SCHEDULED', 'LIMIT_REACHED', 'CUSTOMER_LIMIT_REACHED', 'PAUSED'].includes(pricing.couponStatus)) {
+    throw new Error(pricing.couponMessage || `Coupon "${explicitCoupon}" cannot be applied to this order.`);
   }
   assertCartPincodeServiceability(pricing, cleanPincode, paymentMethod);
   const db = getDb();
@@ -1373,8 +1377,8 @@ function createAdminOrder({
     customerPhone: cleanPhone
   });
   const explicitCoupon = String(couponCode || '').trim();
-  if (explicitCoupon && ['EXPIRED', 'SCHEDULED', 'LIMIT_REACHED', 'CUSTOMER_LIMIT_REACHED', 'PAUSED'].includes(pricing.couponStatus)) {
-    throw new Error(pricing.couponMessage);
+  if (explicitCoupon && ['INVALID', 'MIN_SUBTOTAL_NOT_MET', 'EXPIRED', 'SCHEDULED', 'LIMIT_REACHED', 'CUSTOMER_LIMIT_REACHED', 'PAUSED'].includes(pricing.couponStatus)) {
+    throw new Error(pricing.couponMessage || `Coupon "${explicitCoupon}" cannot be applied to this order.`);
   }
   assertCartPincodeServiceability(pricing, cleanPincode, paymentMethod);
   const db = getDb();
@@ -1622,6 +1626,14 @@ function verifyAndCaptureOnlinePayment({
     };
   }
 
+  if (order.payment_method === 'COD') {
+    throw new Error(`Order ${orderNumber} is a Cash on Delivery order and cannot be captured via online gateway verification.`);
+  }
+
+  if (['Cancelled', 'Refunded', 'Refund Initiated'].includes(order.fulfilment_status) || ['REFUNDED', 'REFUND_INITIATED'].includes(order.payment_status)) {
+    throw new Error(`Order ${orderNumber} has already been ${order.fulfilment_status} and cannot be captured.`);
+  }
+
   if (order.gateway_order_id !== gatewayOrderId) {
     throw new Error('Gateway order ID mismatch.');
   }
@@ -1851,9 +1863,9 @@ function updateOrderFulfilmentAndShipping({
       nextPaymentStatus = 'COD_COLLECTED';
     } else if (fulfilmentStatus === 'Refunded') {
       nextPaymentStatus = 'REFUNDED';
-    } else if (fulfilmentStatus === 'Cancelled' && ['PAID', 'COD_COLLECTED'].includes(order.payment_status)) {
+    } else if (fulfilmentStatus === 'Cancelled' && ['PAID', 'COD_COLLECTED', 'PARTIALLY_REFUNDED'].includes(order.payment_status)) {
       nextPaymentStatus = 'REFUNDED';
-    } else if (fulfilmentStatus === 'Refund Initiated' && ['PAID', 'COD_COLLECTED'].includes(order.payment_status)) {
+    } else if (fulfilmentStatus === 'Refund Initiated' && ['PAID', 'COD_COLLECTED', 'PARTIALLY_REFUNDED'].includes(order.payment_status)) {
       nextPaymentStatus = 'REFUND_INITIATED';
     }
 
@@ -2025,7 +2037,7 @@ function recordPaymentAdminAction({
     if (order.payment_status === 'REFUNDED') {
       throw new Error(`Order ${order.order_number} has already been refunded.`);
     }
-    if (!['PAID', 'COD_COLLECTED', 'REFUND_INITIATED'].includes(order.payment_status)) {
+    if (!['PAID', 'COD_COLLECTED', 'REFUND_INITIATED', 'PARTIALLY_REFUNDED'].includes(order.payment_status)) {
       throw new Error(`Cannot record a refund on order ${order.order_number} because payment was never collected (status: ${order.payment_status}).`);
     }
     if (refundAmountPaise !== null && refundAmountPaise !== undefined) {
@@ -2039,6 +2051,7 @@ function recordPaymentAdminAction({
       ? Math.min(order.total_paise, Math.round(Number(refundAmountPaise)))
       : order.total_paise;
     const isFullRefund = finalRefundPaise >= order.total_paise;
+    const nextPaymentStatus = isFullRefund ? 'REFUNDED' : 'PARTIALLY_REFUNDED';
 
     let updatedOrder;
     if (isFullRefund) {
@@ -2050,10 +2063,10 @@ function recordPaymentAdminAction({
         actorRole
       });
     } else {
-      // Partial refund: keep stock_deducted intact, mark payment_status as REFUNDED with partial refund_amount_paise
+      // Partial refund: keep stock_deducted and fulfilment workflow active, mark payment_status as PARTIALLY_REFUNDED
       db.prepare(`
         UPDATE orders
-        SET payment_status = 'REFUNDED',
+        SET payment_status = 'PARTIALLY_REFUNDED',
             updated_at = datetime('now')
         WHERE id = ?
       `).run(order.id);
@@ -2062,13 +2075,13 @@ function recordPaymentAdminAction({
 
     db.prepare(`
       UPDATE payments
-      SET status = 'REFUNDED',
+      SET status = ?,
           refund_amount_paise = ?,
           refund_reason = ?,
           refunded_by = ?,
           updated_at = datetime('now')
       WHERE order_id = ?
-    `).run(finalRefundPaise, String(refundReason || 'Approved Refund').trim(), actorEmail, order.id);
+    `).run(nextPaymentStatus, finalRefundPaise, String(refundReason || 'Approved Refund').trim(), actorEmail, order.id);
 
     db.prepare(`
       INSERT INTO audit_logs (actor_email, actor_role, action, entity_type, entity_id, details_json)

@@ -526,19 +526,40 @@
         </div>
       `;
     } catch (err) {
-      bodyEl.innerHTML = `<p style="color:var(--sn-status-danger);">${err.message}</p>`;
+      const cart = getCart();
+      bodyEl.innerHTML = `
+        <div class="sn-card" style="border-color:var(--sn-status-danger);background-color:var(--sn-status-danger-bg);padding:12px;">
+          <p style="color:var(--sn-status-danger);margin:0 0 10px;font-size:0.86rem;font-weight:600;">${escapeHtmlClient(err.message)}</p>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
+            ${cart.map(it => `
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:0.8rem;background:#FFFFFF;padding:6px 10px;border-radius:6px;">
+                <span>Variant #${Number(it.variantId)} (&times; ${Number(it.quantity)})</span>
+                <div style="display:flex;gap:6px;">
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-cart-qty="${Number(it.variantId)}" data-delta="-${Math.max(1, Number(it.quantity) - 1)}">Set Qty 1</button>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-cart-remove="${Number(it.variantId)}">Remove</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-clear-cart="true" style="width:100%;">Reset / Clear Entire Basket</button>
+        </div>
+      `;
+      if (footEl) footEl.innerHTML = '';
     }
   }
 
   function setPdpButtonsServiceable(isDeliverable, reason = '') {
     const addBtn = document.getElementById('pdp-add-to-cart-btn');
     const buyBtn = document.getElementById('pdp-buy-now-btn');
+    const activePill = document.querySelector('#pack-variants [data-variant-pill].sn-active');
+    const activeStock = activePill ? Number(activePill.getAttribute('data-stock')) : 1;
+    const canBuy = isDeliverable && activeStock > 0;
     [addBtn, buyBtn].forEach(btn => {
       if (!btn) return;
-      btn.disabled = !isDeliverable;
-      btn.style.opacity = isDeliverable ? '1' : '0.55';
-      btn.style.cursor = isDeliverable ? '' : 'not-allowed';
-      if (!isDeliverable && reason) {
+      btn.disabled = !canBuy;
+      btn.style.opacity = canBuy ? '1' : '0.55';
+      btn.style.cursor = canBuy ? '' : 'not-allowed';
+      if (!canBuy && reason) {
         btn.setAttribute('title', reason);
       } else {
         btn.removeAttribute('title');
@@ -546,7 +567,7 @@
     });
   }
 
-  function runPdpPinCheck() {
+  async function runPdpPinCheck() {
     const pinInput = document.getElementById('sn-pdp-pin-input');
     const resEl = document.getElementById('sn-pdp-pin-result');
     const pin = String(pinInput ? pinInput.value : '').trim();
@@ -560,6 +581,41 @@
     }
 
     setActiveDeliveryPin(pin);
+
+    const prodContainer = document.querySelector('[data-product-container]');
+    const productId = prodContainer ? Number(prodContainer.getAttribute('data-product-container')) : null;
+
+    if (!IS_STATIC_SHOWCASE) {
+      try {
+        const resp = await fetch(`${BASE_PATH}/api/checkout/pincode/check`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pincode: pin, paymentMethod: 'ONLINE_UPI', productId })
+        });
+        const data = await resp.json();
+        if (!resp.ok || !data.serviceable) {
+          resEl.style.color = 'var(--sn-status-danger)';
+          resEl.style.backgroundColor = 'var(--sn-status-danger-bg)';
+          resEl.textContent = `✕ Not Deliverable to PIN ${pin} • ${data.error || data.reason || 'Unserviceable PIN Code'}`;
+          setPdpButtonsServiceable(false, data.error || 'Not Deliverable');
+          return;
+        }
+        setPdpButtonsServiceable(true);
+        const zoneDesc = `${data.zoneLabel || data.zone || 'Standard Zone'} (${data.estimatedDays || '2-5 Days'})`;
+        if (!data.codAllowed) {
+          resEl.style.color = 'var(--sn-status-warn)';
+          resEl.style.backgroundColor = 'var(--sn-bg-parchment)';
+          resEl.textContent = `✓ ${zoneDesc} • Prepaid Only (${data.codReason || 'COD Disabled'})`;
+          return;
+        }
+        resEl.style.color = 'var(--sn-status-paid)';
+        resEl.style.backgroundColor = 'var(--sn-status-paid-bg)';
+        resEl.textContent = `✓ ${zoneDesc} • Prepaid & COD Available`;
+        return;
+      } catch (_) {
+        // Fallback to local evaluation if offline
+      }
+    }
 
     const p3 = pin.slice(0, 3);
     const p2 = pin.slice(0, 2);
@@ -622,6 +678,22 @@
           catDropWrap.classList.remove('sn-popover-open');
           if (catTrig) catTrig.setAttribute('aria-expanded', 'false');
         }
+        const cartDrawer = document.getElementById('sn-cart-backdrop');
+        if (cartDrawer && cartDrawer.classList.contains('sn-open')) {
+          cartDrawer.classList.remove('sn-open');
+        }
+        const mobileNav = document.getElementById('sn-mobile-nav-drawer');
+        const mobileToggle = document.getElementById('sn-mobile-menu-btn');
+        if (mobileNav && mobileNav.classList.contains('sn-open')) {
+          mobileNav.classList.remove('sn-open');
+          if (mobileToggle) mobileToggle.setAttribute('aria-expanded', 'false');
+        }
+        ['sn-admin-product-modal-overlay', 'sn-admin-user-modal-overlay', 'sn-admin-address-modal-overlay', 'sn-admin-create-order-modal'].forEach(modId => {
+          const modEl = document.getElementById(modId);
+          if (modEl && modEl.style.display && modEl.style.display !== 'none') {
+            modEl.style.display = 'none';
+          }
+        });
       }
     });
 
@@ -721,14 +793,23 @@
         if (skuEl) skuEl.textContent = sku;
         if (stockEl) {
           stockEl.textContent = stock > 0 ? `In Stock (${stock} packs)` : 'Out of Stock';
+          stockEl.classList.toggle('sn-status-paid', stock > 0);
+          stockEl.classList.toggle('sn-status-danger', stock <= 0);
         }
         if (addBtn) {
           addBtn.setAttribute('data-variant-id', variantId);
           addBtn.setAttribute('data-pack-label', packLabel);
+          addBtn.setAttribute('data-stock', String(stock));
+          addBtn.disabled = stock <= 0;
+          const defaultLabel = addBtn.id === 'pdp-add-to-cart-btn' ? 'Add Pack to Basket' : 'Add to Basket';
+          addBtn.textContent = stock > 0 ? defaultLabel : 'Out of Stock';
+          addBtn.setAttribute('data-orig-label', stock > 0 ? defaultLabel : 'Out of Stock');
         }
         if (buyNowBtn) {
           buyNowBtn.setAttribute('data-variant-id', variantId);
           buyNowBtn.setAttribute('data-pack-label', packLabel);
+          buyNowBtn.setAttribute('data-stock', String(stock));
+          buyNowBtn.disabled = stock <= 0;
         }
         return;
       }
@@ -763,15 +844,24 @@
         const variantId = Number(addBtn.getAttribute('data-variant-id'));
         const productName = addBtn.getAttribute('data-product-name') || 'Product';
         const packLabel = addBtn.getAttribute('data-pack-label') || '250 g';
+        const container = addBtn.closest('[data-product-container]');
+        const activePill = container ? container.querySelector(`[data-variant-pill][data-variant-id="${variantId}"]`) : null;
+        const maxStock = activePill ? Math.max(0, Number.parseInt(activePill.getAttribute('data-stock') || '25', 10)) : 25;
+        if (maxStock <= 0) {
+          showToast(`${productName} (${packLabel}) is currently Out of Stock.`);
+          return;
+        }
         const qtyInput = document.getElementById('sn-pdp-qty');
-        const addQty = qtyInput ? Math.max(1, Number(qtyInput.value || 1)) : 1;
+        const rawQty = qtyInput ? Number.parseInt(qtyInput.value, 10) : 1;
+        const addQty = Number.isFinite(rawQty) && rawQty >= 1 ? Math.min(maxStock, rawQty) : 1;
+        if (qtyInput) qtyInput.value = String(addQty);
 
         const cart = getCart();
         const existing = cart.find(i => Number(i.variantId) === variantId);
         if (existing) {
-          existing.quantity = Math.min(25, existing.quantity + addQty);
+          existing.quantity = Math.min(maxStock, Math.min(25, Number(existing.quantity || 0) + addQty));
         } else {
-          cart.push({ variantId, quantity: addQty });
+          cart.push({ variantId, quantity: Math.min(maxStock, addQty) });
         }
         saveCart(cart);
 
@@ -792,15 +882,23 @@
       const buyNowBtn = e.target.closest('[data-buy-now]');
       if (buyNowBtn) {
         const variantId = Number(buyNowBtn.getAttribute('data-variant-id'));
+        const container = buyNowBtn.closest('[data-product-container]');
+        const activePill = container ? container.querySelector(`[data-variant-pill][data-variant-id="${variantId}"]`) : null;
+        const maxStock = activePill ? Math.max(0, Number.parseInt(activePill.getAttribute('data-stock') || '25', 10)) : 25;
+        if (maxStock <= 0) {
+          showToast('Selected pack size is currently Out of Stock.');
+          return;
+        }
         const qtyInput = document.getElementById('sn-pdp-qty');
-        const addQty = qtyInput ? Math.max(1, Number(qtyInput.value || 1)) : 1;
+        const rawQty = qtyInput ? Number.parseInt(qtyInput.value, 10) : 1;
+        const addQty = Number.isFinite(rawQty) && rawQty >= 1 ? Math.min(maxStock, rawQty) : 1;
 
         const cart = getCart();
         const existing = cart.find(i => Number(i.variantId) === variantId);
         if (existing) {
-          existing.quantity = Math.min(25, existing.quantity + addQty);
+          existing.quantity = Math.min(maxStock, Math.min(25, Number(existing.quantity || 0) + addQty));
         } else {
-          cart.push({ variantId, quantity: addQty });
+          cart.push({ variantId, quantity: Math.min(maxStock, addQty) });
         }
         saveCart(cart);
         window.location.href = `${BASE_PATH}/checkout`;
@@ -864,7 +962,7 @@
         return;
       }
 
-      if (e.target.id === 'sn-clear-cart-btn') {
+      if (e.target.id === 'sn-clear-cart-btn' || e.target.closest('[data-clear-cart]')) {
         saveCart([]);
         await refreshCartDrawer();
         if (typeof window.__snRenderCheckoutSummary === 'function') {
@@ -918,7 +1016,7 @@
       const cart = getCart();
       if (cart.length === 0) {
         summaryBox.innerHTML = `<p style="color:var(--sn-text-muted);">Your basket is empty. <a href="${BASE_PATH}/shop" style="color:var(--sn-accent-terracotta);font-weight:600;">Add products from the shop &rarr;</a></p>`;
-        if (submitOrderBtn) submitOrderBtn.disabled = false;
+        if (submitOrderBtn) submitOrderBtn.disabled = true;
         return;
       }
       const couponCode = couponInput ? couponInput.value.trim() : '';
@@ -1005,8 +1103,8 @@
                   ` : '')}
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;">
-                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" style="min-height:26px;padding:2px 7px;" data-cart-qty="${item.variantId}" data-delta="-1">-</button>
-                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" style="min-height:26px;padding:2px 7px;" data-cart-qty="${item.variantId}" data-delta="1">+</button>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" style="min-height:36px;padding:4px 10px;" data-cart-qty="${item.variantId}" data-delta="-1">-</button>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" style="min-height:36px;padding:4px 10px;" data-cart-qty="${item.variantId}" data-delta="1">+</button>
                   <span style="font-family:var(--sn-font-mono);font-weight:600;min-width:54px;text-align:right;">${formatInr(item.lineTotalPaise)}</span>
                 </div>
               </div>
@@ -1053,7 +1151,24 @@
           </div>
         `;
       } catch (err) {
-        summaryBox.innerHTML = `<p style="color:var(--sn-status-danger);">${err.message}</p>`;
+        summaryBox.innerHTML = `
+          <div style="padding:10px;border-radius:6px;background-color:var(--sn-status-danger-bg);border:1px solid var(--sn-status-danger);">
+            <p style="color:var(--sn-status-danger);margin:0 0 10px;font-weight:600;font-size:0.86rem;">${escapeHtmlClient(err.message)}</p>
+            <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;">
+              ${cart.map(it => `
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:0.8rem;background:#FFFFFF;padding:6px 10px;border-radius:6px;">
+                  <span>Variant #${Number(it.variantId)} (&times; ${Number(it.quantity)})</span>
+                  <div style="display:flex;gap:6px;">
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-cart-qty="${Number(it.variantId)}" data-delta="-${Math.max(1, Number(it.quantity) - 1)}">Set Qty 1</button>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-cart-remove="${Number(it.variantId)}">Remove</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+            <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-clear-cart="true" style="width:100%;">Reset / Clear Entire Basket</button>
+          </div>
+        `;
+        if (submitOrderBtn) submitOrderBtn.disabled = true;
       }
     }
 
@@ -1223,6 +1338,7 @@
         }
 
         saveCart([]);
+        await renderSummary();
         if (resultEl) {
           const contactParam = encodeURIComponent(payload.customerPhone || payload.customerEmail || '');
           resultEl.style.display = 'block';
@@ -1240,6 +1356,9 @@
               </div>
             </div>
           `;
+          if (typeof resultEl.scrollIntoView === 'function') {
+            resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
         }
         showToast(`Order ${orderNumber} placed successfully!`);
       } catch (err) {
@@ -5167,7 +5286,16 @@
     if (catJumpSelect) {
       catJumpSelect.addEventListener('change', () => {
         if (catJumpSelect.value) {
-          window.location.href = catJumpSelect.value;
+          if (IS_STATIC_SHOWCASE) {
+            window.location.href = catJumpSelect.value;
+            return;
+          }
+          filterForm.setAttribute('action', catJumpSelect.value);
+          if (typeof filterForm.requestSubmit === 'function') {
+            filterForm.requestSubmit();
+          } else {
+            filterForm.submit();
+          }
         }
       });
     }

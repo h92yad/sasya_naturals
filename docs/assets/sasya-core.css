@@ -236,6 +236,16 @@ img {
 
 @media (max-width: 1180px) {
   .sn-header-search {
+    flex: 0 1 175px;
+    min-width: 140px;
+  }
+  .sn-nav-links {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 960px) {
+  .sn-header-search {
     display: none;
   }
 }

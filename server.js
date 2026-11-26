@@ -9,6 +9,7 @@ const {
   APP_VERSION,
   IS_PROD,
   PORT,
+  DEV_BROWSER_PORT,
   CANONICAL_ORIGIN,
   IS_STAGING,
   BRAND_NAME,
@@ -195,13 +196,19 @@ function sendJson(res, statusCode, payload, extraHeaders = {}) {
 }
 
 function sendHtml(res, statusCode, html, canonicalPath = '/') {
+  const hasMdTwin = statusCode === 200
+    && !['/checkout', '/cart', '/track-order', '/account', '/admin'].includes(canonicalPath)
+    && !canonicalPath.startsWith('/orders/');
   const mdTwin = canonicalPath === '/' ? '/index.md' : `${canonicalPath}.md`;
+  const linkHeader = hasMdTwin
+    ? `<${CANONICAL_ORIGIN}${mdTwin}>; rel="alternate"; type="text/markdown"; title="Markdown Version", <${CANONICAL_ORIGIN}/llms.txt>; rel="llms-txt"; type="text/markdown"`
+    : `<${CANONICAL_ORIGIN}/llms.txt>; rel="llms-txt"; type="text/markdown"`;
   res.writeHead(statusCode, {
     'Content-Type': 'text/html; charset=utf-8',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'SAMEORIGIN',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
-    'Link': `<${CANONICAL_ORIGIN}${mdTwin}>; rel="alternate"; type="text/markdown"; title="Markdown Version", <${CANONICAL_ORIGIN}/llms.txt>; rel="llms-txt"; type="text/markdown"`
+    'Link': linkHeader
   });
   res.end(html);
 }
@@ -213,6 +220,19 @@ function sendHtml(res, statusCode, html, canonicalPath = '/') {
 function resolveAdminUser(req) {
   const db = getDb();
   const cookies = parseCookies(req.headers.cookie || '');
+  if (req.method === 'POST' && req.headers.origin) {
+    try {
+      const originHost = new URL(String(req.headers.origin)).host;
+      const reqHost = String(req.headers.host || '');
+      if (reqHost && originHost && originHost !== reqHost) {
+        const err = new Error('Cross-origin admin mutation blocked by CSRF Origin check.');
+        err.statusCode = 403;
+        throw err;
+      }
+    } catch (e) {
+      if (e.statusCode === 403) throw e;
+    }
+  }
   if (req.headers['x-csrf-token'] !== undefined) {
     if (!verifyCsrfToken(cookies[SESSION_COOKIE_NAME] || '', String(req.headers['x-csrf-token']))) {
       const err = new Error('CSRF token validation failed.');
@@ -463,6 +483,34 @@ function createServerHandler() {
           res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
           return res.end(md);
         }
+        if (baseRoute === '/shop') {
+          const prods = db.prepare('SELECT * FROM products WHERE is_active = 1 ORDER BY id').all();
+          const md = renderMarkdownTwin({
+            title: `All Natural Products Catalogue | ${BRAND_NAME}`,
+            canonicalPath: '/shop',
+            description: 'Browse all Sashya Naturals dry fruits, unpolished millets, and single-origin spices with 100 g, 250 g, 500 g, and 1 kg pack variants.',
+            sections: prods.map(p => ({ heading: `${p.name} (/product/${p.slug})`, body: `${p.short_description} | Origin: ${p.origin_region} | HSN: ${p.hsn_code}` }))
+          });
+          res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
+          return res.end(md);
+        }
+        if (baseRoute.startsWith('/category/')) {
+          const catSlug = baseRoute.replace('/category/', '');
+          const cat = db.prepare('SELECT * FROM categories WHERE slug = ? AND is_active = 1').get(catSlug);
+          if (!cat) {
+            res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+            return res.end('Category not found');
+          }
+          const prods = db.prepare('SELECT * FROM products WHERE category_id = ? AND is_active = 1 ORDER BY id').all(cat.id);
+          const md = renderMarkdownTwin({
+            title: `${cat.name} | ${BRAND_NAME}`,
+            canonicalPath: `/category/${cat.slug}`,
+            description: cat.description,
+            sections: prods.map(p => ({ heading: `${p.name} (/product/${p.slug})`, body: `${p.short_description} | Origin: ${p.origin_region} | HSN: ${p.hsn_code}` }))
+          });
+          res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
+          return res.end(md);
+        }
         if (baseRoute.startsWith('/product/')) {
           const slug = baseRoute.replace('/product/', '');
           const product = db.prepare('SELECT * FROM products WHERE slug = ? AND is_active = 1').get(slug);
@@ -588,8 +636,14 @@ function createServerHandler() {
         const cust = resolveCustomerUser(req);
         if (!cust) return sendJson(res, 401, { error: 'Please sign in to update your profile.' });
         const body = await readJsonBody(req);
-        const fullName = String(body.fullName || cust.full_name).trim();
-        const phone = String(body.phone || cust.phone).trim();
+        const fullName = String(body.fullName || '').trim() || String(cust.full_name || '').trim();
+        const phone = String(body.phone || '').trim() || String(cust.phone || '').trim();
+        if (phone) {
+          const phoneDigits = phone.replace(/\D/g, '').slice(-10);
+          if (!/^[6-9]\d{9}$/.test(phoneDigits)) {
+            return sendJson(res, 400, { error: 'Please enter a valid 10-digit Indian mobile number.' });
+          }
+        }
         db.prepare('UPDATE users SET full_name = ?, phone = ? WHERE id = ?').run(fullName, phone, cust.id);
         return sendJson(res, 200, { user: { id: cust.id, email: cust.email, fullName, phone } });
       }
@@ -634,9 +688,9 @@ function createServerHandler() {
         const cust = resolveCustomerUser(req);
         if (!cust) return sendJson(res, 401, { error: 'Please sign in to manage addresses.' });
         const body = await readJsonBody(req);
-        const label = String(body.label || 'Home').trim();
-        const recipientName = String(body.recipientName || cust.full_name).trim();
-        const phone = String(body.phone || cust.phone).trim();
+        const label = String(body.label || '').trim() || 'Home';
+        const recipientName = String(body.recipientName || '').trim() || String(cust.full_name || '').trim();
+        const phone = String(body.phone || '').trim() || String(cust.phone || '').trim();
         const line1 = String(body.line1 || '').trim();
         const line2 = String(body.line2 || '').trim();
         const city = String(body.city || '').trim();
@@ -645,10 +699,15 @@ function createServerHandler() {
         if (!line1 || !city || !state || !/^\d{6}$/.test(pincode)) {
           return sendJson(res, 400, { error: 'Complete street address, city, state, and 6-digit PIN code are required.' });
         }
+        const existingCount = db.prepare('SELECT COUNT(*) AS cnt FROM customer_addresses WHERE user_id = ?').get(cust.id).cnt;
+        const isDefault = existingCount === 0 || body.isDefault ? 1 : 0;
+        if (isDefault === 1 && existingCount > 0) {
+          db.prepare('UPDATE customer_addresses SET is_default = 0 WHERE user_id = ?').run(cust.id);
+        }
         const info = db.prepare(`
           INSERT INTO customer_addresses (user_id, label, recipient_name, phone, line1, line2, city, state, pincode, is_default)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-        `).run(cust.id, label, recipientName, phone, line1, line2, city, state, pincode);
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).run(cust.id, label, recipientName, phone, line1, line2, city, state, pincode, isDefault);
         return sendJson(res, 201, {
           address: {
             id: Number(info.lastInsertRowid),
@@ -661,7 +720,7 @@ function createServerHandler() {
             city,
             state,
             pincode,
-            is_default: 0
+            is_default: isDefault
           }
         });
       }
@@ -671,6 +730,10 @@ function createServerHandler() {
         if (!cust) return sendJson(res, 401, { error: 'Please sign in.' });
         const body = await readJsonBody(req);
         const addrId = Number(body.addressId);
+        const owned = db.prepare('SELECT id FROM customer_addresses WHERE id = ? AND user_id = ?').get(addrId, cust.id);
+        if (!owned) {
+          return sendJson(res, 404, { error: 'Saved address not found.' });
+        }
         db.prepare('UPDATE customer_addresses SET is_default = 0 WHERE user_id = ?').run(cust.id);
         db.prepare('UPDATE customer_addresses SET is_default = 1 WHERE id = ? AND user_id = ?').run(addrId, cust.id);
         return sendJson(res, 200, { defaultAddressId: addrId });
@@ -989,7 +1052,11 @@ function createServerHandler() {
 
       if (pathname === '/api/orders/create' && req.method === 'POST') {
         const body = await readJsonBody(req);
-        const orderResult = createOrder(body);
+        const cust = resolveCustomerUser(req);
+        const orderResult = createOrder({
+          ...body,
+          userId: cust ? cust.id : null
+        });
         return sendJson(res, 201, orderResult);
       }
 
@@ -2070,8 +2137,15 @@ function createServerHandler() {
           const catSlug = pathname.replace('/category/', '');
           activeCategory = categories.find(c => c.slug === catSlug);
           if (!activeCategory) {
-            res.writeHead(404);
-            return res.end('Category not found');
+            const notFoundHtml = renderStaticInfoPage({
+              slug: '404-category',
+              title: 'Category Not Found (404)',
+              subtitle: 'We could not find the pantry category you requested.',
+              paragraphs: [
+                'The category link may have moved or been renamed. Explore our full farm-direct catalogue of Dry Fruits, Unpolished Native Millets, and Single-Origin Indian Spices from the navigation bar above.'
+              ]
+            });
+            return sendHtml(res, 404, notFoundHtml, pathname);
           }
         }
 
@@ -2080,7 +2154,8 @@ function createServerHandler() {
         const tag = parsedUrl.searchParams.get('tag') || 'all';
         const maxPrice = parsedUrl.searchParams.get('maxPrice') || 'all';
         const pack = parsedUrl.searchParams.get('pack') || 'all';
-        const pageParam = Math.max(1, Number(parsedUrl.searchParams.get('page') || 1));
+        const rawPage = Number(parsedUrl.searchParams.get('page') || 1);
+        const pageParam = Number.isFinite(rawPage) ? Math.max(1, Math.floor(rawPage)) : 1;
         const limitParam = parsedUrl.searchParams.get('limit') === 'all' ? 999 : 12;
 
         let filtered = activeCategory
@@ -2161,8 +2236,15 @@ function createServerHandler() {
         const prodSlug = pathname.replace('/product/', '');
         const product = allProducts.find(p => p.slug === prodSlug);
         if (!product) {
-          res.writeHead(404);
-          return res.end('Product not found');
+          const notFoundHtml = renderStaticInfoPage({
+            slug: '404-product',
+            title: 'Product Not Found (404)',
+            subtitle: 'We could not find the harvest batch or product slug you requested.',
+            paragraphs: [
+              'This product URL may have changed. Use the search bar above or visit All Products (/shop) to browse all 100 g, 250 g, 500 g, and 1 kg pantry packs.'
+            ]
+          });
+          return sendHtml(res, 404, notFoundHtml, pathname);
         }
         const category = categories.find(c => c.id === product.category_id)
           || db.prepare('SELECT * FROM categories WHERE id = ?').get(product.category_id)
@@ -2245,7 +2327,9 @@ function createServerHandler() {
         const custOrders = customer
           ? db.prepare('SELECT * FROM orders WHERE user_id = ? OR lower(customer_email) = ? ORDER BY id DESC').all(customer.id, customer.email.toLowerCase())
           : [];
-        const allOrderItems = customer ? db.prepare('SELECT * FROM order_items').all() : [];
+        const allOrderItems = customer && custOrders.length > 0
+          ? db.prepare('SELECT * FROM order_items WHERE order_id IN (SELECT id FROM orders WHERE user_id = ? OR lower(customer_email) = ?)').all(customer.id, customer.email.toLowerCase())
+          : [];
         const html = renderCustomerAccountPage({
           customer,
           addresses,
@@ -2309,8 +2393,20 @@ function createServerHandler() {
         return sendHtml(res, 200, html, pathname);
       }
 
-      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('404 Not Found');
+      if (pathname.endsWith('.md') || pathname.startsWith('/api/')) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        return res.end('404 Not Found');
+      }
+
+      const notFoundHtml = renderStaticInfoPage({
+        slug: '404-not-found',
+        title: 'Page Not Found (404)',
+        subtitle: 'The page you requested could not be found on Sashya Naturals.',
+        paragraphs: [
+          'Please check the URL or use the navigation links above to browse our Dry Fruits, Unpolished Millets, and Single-Origin Spices.'
+        ]
+      });
+      return sendHtml(res, 404, notFoundHtml, pathname);
     } catch (err) {
       const code = err.statusCode || 400;
       sendJson(res, code, { error: err.message });
@@ -2323,7 +2419,8 @@ function startServer(port = PORT) {
   if (IS_PROD) {
     assertProductionLaunchReady();
   }
-  const server = http.createServer(createServerHandler());
+  const handler = createServerHandler();
+  const server = http.createServer(handler);
   server.on('error', (err) => {
     console.error(`[FATAL_PORT_BIND_ERROR] Failed to bind strictly to port ${port}:`, err.message);
     process.exit(1);
@@ -2331,6 +2428,15 @@ function startServer(port = PORT) {
   server.listen(port, '0.0.0.0', () => {
     console.log(`[Sashya Naturals SSR + Rust WASM] Live on http://localhost:${port} (APP_VERSION=${APP_VERSION})`);
   });
+
+  // In non-production mode, when bound to SIP-reserved port 5060, also listen on browser-safe port 5080
+  if (!IS_PROD && Number(port) === 5060 && DEV_BROWSER_PORT && Number(DEV_BROWSER_PORT) !== Number(port)) {
+    const browserServer = http.createServer(handler);
+    browserServer.on('error', () => {});
+    browserServer.listen(DEV_BROWSER_PORT, '0.0.0.0', () => {
+      console.log(`[Sashya Naturals Browser-Safe Mirror] Also live on http://localhost:${DEV_BROWSER_PORT}`);
+    });
+  }
   return server;
 }
 

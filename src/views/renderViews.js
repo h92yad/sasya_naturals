@@ -226,14 +226,19 @@ function resolveHelloBarForRender(helloBarConfig = null, shipCopy = getDynamicSh
 
 function renderProductCard(p, variants = [], basePath = '', idPrefix = '') {
   const prodVariants = variants.filter(v => Number(v.product_id) === Number(p.id) && v.is_active);
-  const defVar = prodVariants.find(v => v.pack_label === '250 g') || prodVariants[0] || {
-    id: 0,
-    sku: p.sku_base,
-    pack_label: '250 g',
-    mrp_paise: 30000,
-    selling_price_paise: 25000,
-    stock_qty: 20
-  };
+  const defVar = prodVariants.find(v => v.pack_label === '250 g' && Number(v.stock_qty) > 0)
+    || prodVariants.find(v => Number(v.stock_qty) > 0)
+    || prodVariants.find(v => v.pack_label === '250 g')
+    || prodVariants[0]
+    || {
+      id: 0,
+      sku: p.sku_base,
+      pack_label: '250 g',
+      mrp_paise: 30000,
+      selling_price_paise: 25000,
+      stock_qty: 20
+    };
+  const defInStock = Number(defVar.stock_qty || 0) > 0;
   const totalStock = prodVariants.reduce((sum, v) => sum + Number(v.stock_qty || 0), 0);
   const savePct = defVar.mrp_paise > defVar.selling_price_paise
     ? Math.round(((defVar.mrp_paise - defVar.selling_price_paise) / defVar.mrp_paise) * 100)
@@ -306,7 +311,8 @@ function renderProductCard(p, variants = [], basePath = '', idPrefix = '') {
             data-variant-id="${defVar.id}"
             data-product-name="${escapeHtml(p.name)}"
             data-pack-label="${escapeHtml(defVar.pack_label)}"
-          >Add to Basket</button>
+            ${defInStock ? '' : 'disabled'}
+          >${defInStock ? 'Add to Basket' : 'Out of Stock'}</button>
         </div>
       </div>
     </article>
@@ -789,9 +795,9 @@ function renderCatalogPage({
                   <a href="${basePath}/category/${escapeHtml(c.slug)}" class="sn-btn ${activeCategory && activeCategory.slug === c.slug ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">${escapeHtml(c.name)}</a>
                 `).join('')}
                 <span class="sn-catalog-pill-divider" aria-hidden="true">|</span>
-                <a href="${basePath}${canonicalPath}?tag=bestseller" class="sn-btn ${tagFilter === 'bestseller' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">★ Bestsellers</a>
-                <a href="${basePath}${canonicalPath}?tag=new_arrival" class="sn-btn ${tagFilter === 'new_arrival' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">New Harvests</a>
-                <a href="${basePath}${canonicalPath}?maxPrice=250" class="sn-btn ${String(maxPriceInr) === '250' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">Under ₹250</a>
+                <a href="${basePath}${canonicalPath}?tag=bestseller${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${maxPriceInr !== 'all' ? `&maxPrice=${encodeURIComponent(maxPriceInr)}` : ''}${packFilter !== 'all' ? `&pack=${encodeURIComponent(packFilter)}` : ''}" class="sn-btn ${tagFilter === 'bestseller' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">★ Bestsellers</a>
+                <a href="${basePath}${canonicalPath}?tag=new_arrival${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${maxPriceInr !== 'all' ? `&maxPrice=${encodeURIComponent(maxPriceInr)}` : ''}${packFilter !== 'all' ? `&pack=${encodeURIComponent(packFilter)}` : ''}" class="sn-btn ${tagFilter === 'new_arrival' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">New Harvests</a>
+                <a href="${basePath}${canonicalPath}?maxPrice=250${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${tagFilter !== 'all' ? `&tag=${encodeURIComponent(tagFilter)}` : ''}${packFilter !== 'all' ? `&pack=${encodeURIComponent(packFilter)}` : ''}" class="sn-btn ${String(maxPriceInr) === '250' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">Under ₹250</a>
               </div>
               <span class="sn-catalog-harvest-badge">
                 Showing ${products.length} of ${totalCount} Harvests
@@ -853,12 +859,12 @@ function renderCatalogPage({
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
               ${totalPages > 1 ? Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => `
                 <a
-                  href="${basePath}${canonicalPath}?page=${pg}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${tagFilter !== 'all' ? `&tag=${encodeURIComponent(tagFilter)}` : ''}${maxPriceInr !== 'all' ? `&maxPrice=${encodeURIComponent(maxPriceInr)}` : ''}"
+                  href="${basePath}${canonicalPath}?page=${pg}${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${tagFilter !== 'all' ? `&tag=${encodeURIComponent(tagFilter)}` : ''}${maxPriceInr !== 'all' ? `&maxPrice=${encodeURIComponent(maxPriceInr)}` : ''}${packFilter !== 'all' ? `&pack=${encodeURIComponent(packFilter)}` : ''}"
                   class="sn-btn ${pg === currentPage ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm"
                 >Page ${pg}</a>
               `).join('') : ''}
               ${totalPages > 1 ? `
-                <a href="${basePath}${canonicalPath}?limit=all" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-catalog-load-all-btn">View All (${totalCount})</a>
+                <a href="${basePath}${canonicalPath}?limit=all${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${tagFilter !== 'all' ? `&tag=${encodeURIComponent(tagFilter)}` : ''}${maxPriceInr !== 'all' ? `&maxPrice=${encodeURIComponent(maxPriceInr)}` : ''}${packFilter !== 'all' ? `&pack=${encodeURIComponent(packFilter)}` : ''}" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-catalog-load-all-btn">View All (${totalCount})</a>
               ` : `
                 <span style="font-family:var(--sn-font-mono);font-size:0.75rem;color:var(--sn-text-muted);">All matching packs displayed</span>
               `}
@@ -981,7 +987,7 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
             <div style="display:flex;align-items:center;gap:16px;font-family:var(--sn-font-mono);font-size:0.8rem;color:var(--sn-text-muted);margin-bottom:16px;flex-wrap:wrap;">
               <span>SKU: <strong data-sku-display>${escapeHtml(defVar.sku)}</strong></span>
               <span>Rating: ★ ${Number(product.rating_value).toFixed(1)} (${product.review_count} verified buyers)</span>
-              <span class="sn-status sn-status-paid" data-stock-display>In Stock (${defVar.stock_qty} packs)</span>
+              <span class="sn-status ${Number(defVar.stock_qty) > 0 ? 'sn-status-paid' : 'sn-status-danger'}" data-stock-display>${Number(defVar.stock_qty) > 0 ? `In Stock (${defVar.stock_qty} packs)` : 'Out of Stock'}</span>
             </div>
 
             <p style="font-size:1rem;color:var(--sn-text-primary);margin-bottom:20px;">${escapeHtml(product.description)}</p>
@@ -1040,7 +1046,8 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
                     data-variant-id="${defVar.id}"
                     data-product-name="${escapeHtml(product.name)}"
                     data-pack-label="${escapeHtml(defVar.pack_label)}"
-                  >Add Pack to Basket</button>
+                    ${Number(defVar.stock_qty) > 0 ? '' : 'disabled'}
+                  >${Number(defVar.stock_qty) > 0 ? 'Add Pack to Basket' : 'Out of Stock'}</button>
                   <button
                     type="button"
                     class="sn-btn sn-btn-forest"
@@ -1049,6 +1056,7 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
                     data-variant-id="${defVar.id}"
                     data-product-name="${escapeHtml(product.name)}"
                     data-pack-label="${escapeHtml(defVar.pack_label)}"
+                    ${Number(defVar.stock_qty) > 0 ? '' : 'disabled'}
                   >Buy Now &rarr;</button>
                 </div>
               </div>
@@ -1493,11 +1501,11 @@ function renderTrackOrderPage({
                 style="flex:1 1 240px;max-width:320px;"
                 id="track-order-input"
               />
-              ${!isShowcase && !customer ? `
+              ${!isShowcase && (!customer || lookupError || contactQuery) ? `
                 <input
                   type="text"
                   name="contact"
-                  required
+                  ${!customer ? 'required' : ''}
                   value="${escapeHtml(contactQuery)}"
                   placeholder="Registered Mobile No. or Email"
                   class="sn-input"
@@ -1532,11 +1540,11 @@ function renderTrackOrderPage({
               <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
                 <div>
                   <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">PAYMENT STATUS</div>
-                  <span class="sn-status ${order.payment_status === 'PAID' || order.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(order.payment_status)}</span>
+                  <span class="sn-status ${order.payment_status === 'PAID' || order.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : (['FAILED', 'REFUNDED'].includes(order.payment_status) ? 'sn-status-danger' : 'sn-status-warn')}">${escapeHtml(order.payment_status)}</span>
                 </div>
                 <div>
                   <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">FULFILMENT STATUS</div>
-                  <span class="sn-status sn-status-paid">${escapeHtml(order.fulfilment_status)}</span>
+                  <span class="sn-status ${['Cancelled', 'Refunded'].includes(order.fulfilment_status) ? 'sn-status-danger' : (order.fulfilment_status === 'Refund Initiated' ? 'sn-status-warn' : 'sn-status-paid')}">${escapeHtml(order.fulfilment_status)}</span>
                 </div>
                 <div>
                   <div style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">ORDER TOTAL</div>
@@ -1598,18 +1606,26 @@ function renderTrackOrderPage({
                           type="button"
                           class="sn-btn sn-btn-outline sn-btn-sm"
                           data-copy-shipping-label="${escapeHtml(order.tracking_number)}"
-                          style="padding:2px 8px;min-height:24px;font-size:0.7rem;"
+                          style="padding:6px 10px;min-height:36px;font-size:0.72rem;"
                         >📋 Copy AWB</button>
                       </div>
                     </div>
                     <div><span style="color:var(--sn-text-muted);">Dispatch Date:</span><br/><strong style="font-family:var(--sn-font-mono);">${escapeHtml(order.dispatch_date || 'Recorded')}</strong></div>
-                    <div><span style="color:var(--sn-text-muted);">Tracking Link:</span><br/><a href="${escapeHtml(order.tracking_url || '#')}" target="_blank" rel="noopener" style="color:var(--sn-accent-terracotta);font-weight:600;">Open Courier Portal &rarr;</a></div>
+                    ${order.tracking_url ? `
+                      <div><span style="color:var(--sn-text-muted);">Tracking Link:</span><br/><a href="${escapeHtml(order.tracking_url)}" target="_blank" rel="noopener" style="color:var(--sn-accent-terracotta);font-weight:600;">Open Courier Portal &rarr;</a></div>
+                    ` : `
+                      <div><span style="color:var(--sn-text-muted);">Tracking Portal:</span><br/><span style="font-size:0.82rem;color:var(--sn-text-secondary);">Use AWB on ${escapeHtml(order.courier_name)} website</span></div>
+                    `}
                   </div>
+                ` : (['Cancelled', 'Refunded', 'Refund Initiated'].includes(order.fulfilment_status) ? `
+                  <p style="margin:0;font-size:0.88rem;color:var(--sn-status-danger);font-weight:600;">
+                    This order has been marked as <strong>${escapeHtml(order.fulfilment_status)}</strong> (${escapeHtml(order.payment_status)}). No courier dispatch will take place for this order.
+                  </p>
                 ` : `
                   <p style="margin:0;font-size:0.88rem;color:var(--sn-text-secondary);">
                     Your order is currently in <strong>${escapeHtml(order.fulfilment_status)}</strong> stage. Once our packing team hands the parcel to the courier partner, the courier name and tracking AWB number will appear here automatically.
                   </p>
-                `}
+                `)}
               </div>
             </div>
 
@@ -1873,12 +1889,12 @@ function renderCustomerAccountPage({
               </p>
               <div class="sn-form-row-2-action">
                 <div>
-                  <label style="font-size:0.75rem;font-weight:600;">Email Address *</label>
-                  <input type="email" name="email" required value="${escapeHtml(isShowcase ? activeCustomer.email : '')}" placeholder="you@example.com" class="sn-input" />
+                  <label for="cust-login-email" style="font-size:0.75rem;font-weight:600;">Email Address *</label>
+                  <input type="email" name="email" id="cust-login-email" required value="${escapeHtml(isShowcase ? activeCustomer.email : '')}" placeholder="you@example.com" class="sn-input" />
                 </div>
                 <div>
-                  <label style="font-size:0.75rem;font-weight:600;">Password *</label>
-                  <input type="password" name="password" required value="${isShowcase ? 'Sashya@2026' : ''}" placeholder="Enter password" class="sn-input" />
+                  <label for="cust-login-password" style="font-size:0.75rem;font-weight:600;">Password *</label>
+                  <input type="password" name="password" id="cust-login-password" required value="${isShowcase ? 'Sashya@2026' : ''}" placeholder="Enter password" class="sn-input" />
                 </div>
                 <button type="submit" class="sn-btn sn-btn-forest">Sign In</button>
               </div>
@@ -1889,7 +1905,7 @@ function renderCustomerAccountPage({
               <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;font-size:1.05rem;color:var(--sn-bg-forest);">Forgot Password? Reset via 6-Digit OTP</h3>
               <form id="sn-customer-reset-otp-request-form" class="sn-form-row-1-action" style="margin-bottom:10px;">
                 <div>
-                  <label style="font-size:0.74rem;font-weight:600;">Registered Email Address *</label>
+                  <label for="sn-reset-otp-email" style="font-size:0.74rem;font-weight:600;">Registered Email Address *</label>
                   <input type="email" name="email" id="sn-reset-otp-email" required value="${escapeHtml(isShowcase ? activeCustomer.email : '')}" placeholder="you@example.com" class="sn-input" />
                 </div>
                 <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Send 6-Digit OTP</button>
@@ -1898,12 +1914,12 @@ function renderCustomerAccountPage({
               <form id="sn-customer-reset-otp-confirm-form" class="sn-form-row-2-action">
                 <input type="hidden" name="email" id="sn-reset-confirm-email" value="${escapeHtml(isShowcase ? activeCustomer.email : '')}" />
                 <div>
-                  <label style="font-size:0.74rem;font-weight:600;">6-Digit OTP Code *</label>
+                  <label for="sn-reset-otp-code" style="font-size:0.74rem;font-weight:600;">6-Digit OTP Code *</label>
                   <input type="text" name="otpCode" id="sn-reset-otp-code" required pattern="\\d{6}" placeholder="e.g. 482910" class="sn-input" style="font-family:var(--sn-font-mono);" />
                 </div>
                 <div>
-                  <label style="font-size:0.74rem;font-weight:600;">New Password (min 6 chars) *</label>
-                  <input type="password" name="newPassword" required minlength="6" placeholder="New password" class="sn-input" />
+                  <label for="sn-reset-new-password" style="font-size:0.74rem;font-weight:600;">New Password (min 8 chars) *</label>
+                  <input type="password" name="newPassword" id="sn-reset-new-password" required minlength="8" placeholder="New password" class="sn-input" />
                 </div>
                 <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Verify OTP &amp; Reset</button>
               </form>
@@ -1917,22 +1933,22 @@ function renderCustomerAccountPage({
             </p>
             <div class="sn-grid-2" style="gap:10px;margin-bottom:10px;">
               <div>
-                <label style="font-size:0.75rem;font-weight:600;">Full Name *</label>
-                <input type="text" name="fullName" required placeholder="e.g. Rohan Deshpande" class="sn-input" />
+                <label for="cust-reg-fullname" style="font-size:0.75rem;font-weight:600;">Full Name *</label>
+                <input type="text" name="fullName" id="cust-reg-fullname" required placeholder="e.g. Rohan Deshpande" class="sn-input" />
               </div>
               <div>
-                <label style="font-size:0.75rem;font-weight:600;">Mobile Number *</label>
-                <input type="tel" name="phone" required placeholder="+91 98200 11223" class="sn-input" />
+                <label for="cust-reg-phone" style="font-size:0.75rem;font-weight:600;">Mobile Number *</label>
+                <input type="tel" name="phone" id="cust-reg-phone" required placeholder="+91 98200 11223" class="sn-input" />
               </div>
             </div>
             <div class="sn-grid-2" style="gap:10px;margin-bottom:12px;">
               <div>
-                <label style="font-size:0.75rem;font-weight:600;">Email Address *</label>
-                <input type="email" name="email" required placeholder="rohan.d@example.com" class="sn-input" />
+                <label for="cust-reg-email" style="font-size:0.75rem;font-weight:600;">Email Address *</label>
+                <input type="email" name="email" id="cust-reg-email" required placeholder="rohan.d@example.com" class="sn-input" />
               </div>
               <div>
-                <label style="font-size:0.75rem;font-weight:600;">Create Password (min 6 chars) *</label>
-                <input type="password" name="password" required minlength="6" placeholder="••••••••" class="sn-input" />
+                <label for="cust-reg-password" style="font-size:0.75rem;font-weight:600;">Create Password (min 8 chars) *</label>
+                <input type="password" name="password" id="cust-reg-password" required minlength="8" placeholder="••••••••" class="sn-input" />
               </div>
             </div>
             <button type="submit" class="sn-btn sn-btn-primary" style="width:100%;">Create Customer Account &amp; Sign In &rarr;</button>
@@ -1949,15 +1965,15 @@ function renderCustomerAccountPage({
                 <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">1. Customer Profile &amp; Contact Preferences</h3>
                 <input type="hidden" name="userId" value="${activeCustomer.id}" />
                 <div style="margin-bottom:12px;">
-                  <label style="font-size:0.76rem;font-weight:600;display:block;margin-bottom:4px;">Full Name *</label>
+                  <label for="cust-prof-name" style="font-size:0.76rem;font-weight:600;display:block;margin-bottom:4px;">Full Name *</label>
                   <input type="text" name="fullName" required value="${escapeHtml(activeCustomer.full_name)}" class="sn-input" id="cust-prof-name" />
                 </div>
                 <div style="margin-bottom:12px;">
-                  <label style="font-size:0.76rem;font-weight:600;display:block;margin-bottom:4px;">Registered Email Address</label>
+                  <label for="cust-prof-email" style="font-size:0.76rem;font-weight:600;display:block;margin-bottom:4px;">Registered Email Address</label>
                   <input type="email" name="email" readonly value="${escapeHtml(activeCustomer.email)}" class="sn-input" style="background-color:var(--sn-bg-mortar);" id="cust-prof-email" />
                 </div>
                 <div style="margin-bottom:16px;">
-                  <label style="font-size:0.76rem;font-weight:600;display:block;margin-bottom:4px;">Mobile Number (for Courier &amp; COD OTP Updates) *</label>
+                  <label for="cust-prof-phone" style="font-size:0.76rem;font-weight:600;display:block;margin-bottom:4px;">Mobile Number (for Courier &amp; COD OTP Updates) *</label>
                   <input type="tel" name="phone" required value="${escapeHtml(activeCustomer.phone)}" class="sn-input" id="cust-prof-phone" />
                 </div>
                 <button type="submit" class="sn-btn sn-btn-forest">Save Profile Changes</button>
@@ -1967,12 +1983,12 @@ function renderCustomerAccountPage({
                 <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.05rem;color:var(--sn-bg-forest);">Change Account Password</h3>
                 <div class="sn-form-row-2-action">
                   <div>
-                    <label style="font-size:0.74rem;font-weight:600;">Current Password *</label>
-                    <input type="password" name="currentPassword" required placeholder="Current password" class="sn-input" />
+                    <label for="cust-chg-current-password" style="font-size:0.74rem;font-weight:600;">Current Password *</label>
+                    <input type="password" name="currentPassword" id="cust-chg-current-password" required placeholder="Current password" class="sn-input" />
                   </div>
                   <div>
-                    <label style="font-size:0.74rem;font-weight:600;">New Password (min 6 chars) *</label>
-                    <input type="password" name="newPassword" required minlength="6" placeholder="New password" class="sn-input" />
+                    <label for="cust-chg-new-password" style="font-size:0.74rem;font-weight:600;">New Password (min 8 chars) *</label>
+                    <input type="password" name="newPassword" id="cust-chg-new-password" required minlength="8" placeholder="New password" class="sn-input" />
                   </div>
                   <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Update Password</button>
                 </div>
@@ -2011,40 +2027,40 @@ function renderCustomerAccountPage({
                   <input type="hidden" name="userId" value="${activeCustomer.id}" />
                   <div class="sn-grid-3" style="gap:8px;margin-bottom:8px;">
                     <div>
-                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">Address Label *</label>
-                      <input type="text" name="label" required placeholder="e.g. Office / Home" class="sn-input" />
+                      <label for="cust-addr-label" style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">Address Label *</label>
+                      <input type="text" name="label" id="cust-addr-label" required placeholder="e.g. Office / Home" class="sn-input" />
                     </div>
                     <div>
-                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">Recipient Name *</label>
-                      <input type="text" name="recipientName" required value="${escapeHtml(activeCustomer.full_name)}" placeholder="Recipient Name" class="sn-input" />
+                      <label for="cust-addr-recipient" style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">Recipient Name *</label>
+                      <input type="text" name="recipientName" id="cust-addr-recipient" required value="${escapeHtml(activeCustomer.full_name)}" placeholder="Recipient Name" class="sn-input" />
                     </div>
                     <div>
-                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">Mobile No. *</label>
-                      <input type="tel" name="phone" required value="${escapeHtml(activeCustomer.phone)}" placeholder="Mobile No." class="sn-input" />
+                      <label for="cust-addr-phone" style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">Mobile No. *</label>
+                      <input type="tel" name="phone" id="cust-addr-phone" required value="${escapeHtml(activeCustomer.phone)}" placeholder="Mobile No." class="sn-input" />
                     </div>
                   </div>
                   <div class="sn-grid-2" style="gap:8px;margin-bottom:8px;">
                     <div>
-                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">House / Flat / Street Address *</label>
-                      <input type="text" name="line1" required placeholder="House / Flat / Street Address" class="sn-input" />
+                      <label for="cust-addr-line1" style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">House / Flat / Street Address *</label>
+                      <input type="text" name="line1" id="cust-addr-line1" required placeholder="House / Flat / Street Address" class="sn-input" />
                     </div>
                     <div>
-                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">Landmark / Area (Optional)</label>
-                      <input type="text" name="line2" placeholder="Landmark / Area (Optional)" class="sn-input" />
+                      <label for="cust-addr-line2" style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">Landmark / Area (Optional)</label>
+                      <input type="text" name="line2" id="cust-addr-line2" placeholder="Landmark / Area (Optional)" class="sn-input" />
                     </div>
                   </div>
                   <div class="sn-form-row-3-action" style="align-items:end;">
                     <div>
-                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">City *</label>
-                      <input type="text" name="city" required placeholder="e.g. Bengaluru" class="sn-input" />
+                      <label for="cust-addr-city" style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">City *</label>
+                      <input type="text" name="city" id="cust-addr-city" required placeholder="e.g. Bengaluru" class="sn-input" />
                     </div>
                     <div>
-                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">State *</label>
-                      <input type="text" name="state" required placeholder="e.g. Karnataka" class="sn-input" />
+                      <label for="cust-addr-state" style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">State *</label>
+                      <input type="text" name="state" id="cust-addr-state" required placeholder="e.g. Karnataka" class="sn-input" />
                     </div>
                     <div>
-                      <label style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">6-Digit PIN *</label>
-                      <input type="text" name="pincode" required pattern="\\d{6}" placeholder="560038" class="sn-input" />
+                      <label for="cust-addr-pincode" style="font-size:0.72rem;font-weight:600;display:block;margin-bottom:2px;">6-Digit PIN *</label>
+                      <input type="text" name="pincode" id="cust-addr-pincode" required pattern="\\d{6}" placeholder="560038" class="sn-input" />
                     </div>
                     <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Save Address</button>
                   </div>
@@ -2073,8 +2089,8 @@ function renderCustomerAccountPage({
                         <span style="font-family:var(--sn-font-mono);font-size:0.78rem;color:var(--sn-text-muted);white-space:nowrap;">Placed: ${escapeHtml((o.created_at || '').slice(0, 10))}</span>
                       </div>
                       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                        <span class="sn-status ${o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : 'sn-status-warn'}">${escapeHtml(o.payment_status)}</span>
-                        <span class="sn-status sn-status-paid">${escapeHtml(o.fulfilment_status)}</span>
+                        <span class="sn-status ${o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED' ? 'sn-status-paid' : (['FAILED', 'REFUNDED'].includes(o.payment_status) ? 'sn-status-danger' : 'sn-status-warn')}">${escapeHtml(o.payment_status)}</span>
+                        <span class="sn-status ${['Cancelled', 'Refunded'].includes(o.fulfilment_status) ? 'sn-status-danger' : (o.fulfilment_status === 'Refund Initiated' ? 'sn-status-warn' : 'sn-status-paid')}">${escapeHtml(o.fulfilment_status)}</span>
                         <strong style="font-family:var(--sn-font-mono);font-size:1.02rem;color:var(--sn-bg-forest);white-space:nowrap;">${formatInr(o.total_paise)}</strong>
                       </div>
                     </div>
@@ -2094,7 +2110,7 @@ function renderCustomerAccountPage({
                       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:10px 12px;border-radius:6px;background-color:var(--sn-bg-surface);border:1px solid var(--sn-border-warm);">
                         <div style="font-family:var(--sn-font-mono);font-size:0.76rem;line-height:1.4;">
                           <span style="color:var(--sn-text-muted);display:block;font-size:0.69rem;text-transform:uppercase;">Courier &amp; AWB</span>
-                          ${o.courier_name ? `<strong>${escapeHtml(o.courier_name)}</strong><br/>AWB: ${escapeHtml(o.tracking_number)}` : 'Awaiting Dispatch'}
+                          ${o.courier_name ? `<strong>${escapeHtml(o.courier_name)}</strong><br/>AWB: ${escapeHtml(o.tracking_number)}` : (['Cancelled', 'Refunded', 'Refund Initiated'].includes(o.fulfilment_status) ? escapeHtml(o.fulfilment_status) : 'Awaiting Dispatch')}
                         </div>
                         <div style="display:flex;gap:8px;flex-wrap:wrap;">
                           <a href="${basePath}/track-order?order=${encodeURIComponent(o.order_number)}" class="sn-btn sn-btn-forest sn-btn-sm">Track Order</a>
@@ -2148,12 +2164,12 @@ function renderAdminLoginRequiredPage({ basePath = '' }) {
           </p>
           <form id="sn-admin-login-form">
             <div style="margin-bottom:14px;">
-              <label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Staff Email Address *</label>
-              <input type="email" name="email" required value="" placeholder="staff@sashyanaturals.com" class="sn-input" />
+              <label for="admin-login-email" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Staff Email Address *</label>
+              <input type="email" name="email" id="admin-login-email" required value="" placeholder="staff@sashyanaturals.com" class="sn-input" />
             </div>
             <div style="margin-bottom:18px;">
-              <label style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Password *</label>
-              <input type="password" name="password" required value="" placeholder="Enter staff password" class="sn-input" />
+              <label for="admin-login-password" style="font-size:0.8rem;font-weight:600;display:block;margin-bottom:4px;">Password *</label>
+              <input type="password" name="password" id="admin-login-password" required value="" placeholder="Enter staff password" class="sn-input" />
             </div>
             <button type="submit" class="sn-btn sn-btn-forest" style="width:100%;padding:12px;">Sign In to Admin Portal &rarr;</button>
           </form>
@@ -2217,16 +2233,19 @@ function renderAdminPortalPage({
   }
 
   const totalRevenuePaise = orders
-    .filter(o => (o.payment_status === 'PAID' || o.payment_status === 'COD_COLLECTED') && o.fulfilment_status !== 'Cancelled' && o.fulfilment_status !== 'Refunded')
-    .reduce((acc, o) => acc + Number(o.total_paise || 0), 0);
+    .filter(o => ['PAID', 'COD_COLLECTED', 'PARTIALLY_REFUNDED'].includes(o.payment_status) && o.fulfilment_status !== 'Cancelled' && o.fulfilment_status !== 'Refunded')
+    .reduce((acc, o) => {
+      const partialRef = o.payment_status === 'PARTIALLY_REFUNDED' ? (refundByOrderId.get(Number(o.id)) || 0) : 0;
+      return acc + Math.max(0, Number(o.total_paise || 0) - partialRef);
+    }, 0);
   const codPendingPaise = orders
     .filter(o => o.payment_status === 'COD_PENDING' && o.fulfilment_status !== 'Cancelled')
     .reduce((acc, o) => acc + o.total_paise, 0);
   const refundedPaise = orders
-    .filter(o => o.payment_status === 'REFUNDED')
+    .filter(o => ['REFUNDED', 'PARTIALLY_REFUNDED'].includes(o.payment_status))
     .reduce((acc, o) => {
       const explicitRef = refundByOrderId.get(Number(o.id));
-      return acc + (explicitRef > 0 ? Math.min(o.total_paise, explicitRef) : o.total_paise);
+      return acc + (explicitRef > 0 ? Math.min(o.total_paise, explicitRef) : (o.payment_status === 'REFUNDED' ? o.total_paise : 0));
     }, 0);
   const totalGstPaise = orders
     .filter(o => o.payment_status !== 'REFUNDED' && o.payment_status !== 'FAILED' && o.fulfilment_status !== 'Cancelled')

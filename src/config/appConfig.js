@@ -2,7 +2,7 @@
 
 const path = require('node:path');
 
-const APP_VERSION = '3.5.2';
+const APP_VERSION = '3.6.0';
 const WIKIDATA_MORATORIUM_UNTIL = '2027-11-20';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'sasya_naturals_session_hmac_secret_2026_v1';
 const SELLER_ORIGIN_STATE = 'Karnataka';
@@ -13,6 +13,7 @@ const IS_PROD = ENV === 'production';
 
 const DEFAULT_PORT = IS_PROD ? 3020 : 5060;
 const PORT = Number(process.env.PORT || DEFAULT_PORT);
+const DEV_BROWSER_PORT = Number(process.env.DEV_BROWSER_PORT || 5080);
 const STANDBY_PORT = 3021;
 
 const CANONICAL_ORIGIN = (process.env.CANONICAL_ORIGIN || 'https://sashyanaturals.com').replace(/\/+$/, '');
@@ -53,6 +54,7 @@ const ORDER_PAYMENT_STATUSES = [
   'COD_COLLECTED',
   'FAILED',
   'REFUND_INITIATED',
+  'PARTIALLY_REFUNDED',
   'REFUNDED'
 ];
 
@@ -85,6 +87,7 @@ module.exports = {
   ENV,
   IS_PROD,
   PORT,
+  DEV_BROWSER_PORT,
   STANDBY_PORT,
   CANONICAL_ORIGIN,
   IS_STAGING,

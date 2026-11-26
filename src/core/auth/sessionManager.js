@@ -122,10 +122,15 @@ function normalizeStaffOrCustomerEmail(rawEmail) {
 }
 
 function checkPasswordWithTrimFallback(rawPassword, passwordHash, requireSymbol = false) {
-  const str = String(rawPassword || '').trim();
+  const rawStr = String(rawPassword || '');
+  const str = rawStr.trim();
   if (str.length < 8 || str.length > 128) return false;
   if (requireSymbol && !/[!@#$%^&*]/.test(str)) return false;
-  return verifyPassword(str, passwordHash);
+  if (verifyPassword(str, passwordHash)) return true;
+  if (rawStr !== str && rawStr.length >= 8 && rawStr.length <= 128) {
+    return verifyPassword(rawStr, passwordHash);
+  }
+  return false;
 }
 
 function loginAdminWithPassword(email, password, clientIp = '127.0.0.1') {
@@ -201,11 +206,12 @@ const CUSTOMER_COOKIE_NAME = 'sn_customer_session';
 
 function loginCustomerWithPassword(email, password, clientIp = '127.0.0.1') {
   const cleanEmail = normalizeStaffOrCustomerEmail(email);
+  const altEmail = cleanEmail.replace(/@sashyanaturals\.com$/, '@sasynaturals.com');
   const rateKey = `cust:${clientIp}:${cleanEmail}`;
   checkLoginRateLimit(rateKey);
 
   const db = getDb();
-  const user = db.prepare("SELECT * FROM users WHERE lower(email) = ? AND is_active = 1").get(cleanEmail);
+  const user = db.prepare("SELECT * FROM users WHERE lower(email) IN (?, ?) AND is_active = 1").get(cleanEmail, altEmail);
   if (!user || !checkPasswordWithTrimFallback(password, user.password_hash)) {
     recordFailedAttempt(rateKey);
     const err = new Error('Invalid customer email or password.');
@@ -235,21 +241,28 @@ function loginCustomerWithPassword(email, password, clientIp = '127.0.0.1') {
 }
 
 function registerCustomerAccount({ fullName, email, phone, password }) {
-  const cleanEmail = String(email || '').trim().toLowerCase();
+  const cleanEmail = normalizeStaffOrCustomerEmail(email);
+  const altEmail = cleanEmail.replace(/@sashyanaturals\.com$/, '@sasynaturals.com');
   const cleanName = String(fullName || '').trim();
   const cleanPhone = String(phone || '').trim();
-  const rawPass = String(password || '');
+  const rawPass = String(password || '').trim();
 
-  if (!cleanName || !cleanEmail || !cleanEmail.includes('@')) {
+  if (!cleanName || !cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
     throw new Error('Full Name and a valid Email Address are required.');
   }
-  if (rawPass.length < 6) {
-    throw new Error('Password must be at least 6 characters.');
+  if (cleanPhone) {
+    const phoneDigits = cleanPhone.replace(/\D/g, '').slice(-10);
+    if (!/^[6-9]\d{9}$/.test(phoneDigits)) {
+      throw new Error('Please enter a valid 10-digit Indian mobile number.');
+    }
+  }
+  if (rawPass.length < 8) {
+    throw new Error('Password must be at least 8 characters.');
   }
 
   const { hashPassword } = require('../../db/database');
   const db = getDb();
-  const existing = db.prepare('SELECT id FROM users WHERE lower(email) = ?').get(cleanEmail);
+  const existing = db.prepare('SELECT id FROM users WHERE lower(email) IN (?, ?)').get(cleanEmail, altEmail);
   if (existing) {
     throw new Error('An account with this email address already exists. Please sign in.');
   }
@@ -287,14 +300,14 @@ function changeUserPassword({ userId, currentPassword, newPassword }) {
   if (!user) {
     throw new Error('User account not found.');
   }
-  if (!verifyPassword(String(currentPassword || ''), user.password_hash)) {
+  if (!checkPasswordWithTrimFallback(String(currentPassword || ''), user.password_hash)) {
     const err = new Error('Current password is incorrect.');
     err.statusCode = 401;
     throw err;
   }
-  const cleanNew = String(newPassword || '');
-  if (cleanNew.length < 6) {
-    throw new Error('New password must be at least 6 characters.');
+  const cleanNew = String(newPassword || '').trim();
+  if (cleanNew.length < 8) {
+    throw new Error('New password must be at least 8 characters.');
   }
 
   const { hashPassword } = require('../../db/database');
@@ -366,8 +379,8 @@ function resetPasswordWithOtp({ email, otpCode, newPassword }) {
   const cleanOtp = String(otpCode || '').trim();
   const cleanNew = String(newPassword || '').trim();
 
-  if (cleanNew.length < 6) {
-    throw new Error('New password must be at least 6 characters.');
+  if (cleanNew.length < 8) {
+    throw new Error('New password must be at least 8 characters.');
   }
 
   const db = getDb();

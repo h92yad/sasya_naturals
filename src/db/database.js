@@ -12,9 +12,29 @@ const EPHEMERAL_PWD_CACHE_KEY = crypto.randomBytes(32);
 const pwdVerifyCache = new Map();
 const MAX_PWD_CACHE_ENTRIES = 500;
 
+function computePwdCacheKey(storedHash, rawPass) {
+  return crypto
+    .createHmac('sha256', EPHEMERAL_PWD_CACHE_KEY)
+    .update(`${storedHash}|${rawPass}`)
+    .digest('hex');
+}
+
+function storePwdVerifyCache(storedHash, rawPass, result) {
+  if (pwdVerifyCache.size >= MAX_PWD_CACHE_ENTRIES) {
+    const oldest = pwdVerifyCache.keys().next().value;
+    if (oldest) pwdVerifyCache.delete(oldest);
+  }
+  pwdVerifyCache.set(computePwdCacheKey(storedHash, rawPass), result);
+}
+
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
-  const derived = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
-  return `pbkdf2_sha512$100000$${salt}$${derived}`;
+  const rawPass = String(password || '');
+  const derived = crypto.pbkdf2Sync(rawPass, salt, 100000, 64, 'sha512').toString('hex');
+  const fullHash = `pbkdf2_sha512$100000$${salt}$${derived}`;
+  if (rawPass && rawPass.length <= 128) {
+    storePwdVerifyCache(fullHash, rawPass, true);
+  }
+  return fullHash;
 }
 
 function verifyPassword(password, storedHash) {
@@ -22,10 +42,7 @@ function verifyPassword(password, storedHash) {
   const rawPass = String(password || '');
   if (!rawPass || rawPass.length > 128) return false;
 
-  const cacheKey = crypto
-    .createHmac('sha256', EPHEMERAL_PWD_CACHE_KEY)
-    .update(`${storedHash}|${rawPass}`)
-    .digest('hex');
+  const cacheKey = computePwdCacheKey(storedHash, rawPass);
   if (pwdVerifyCache.has(cacheKey)) {
     return pwdVerifyCache.get(cacheKey);
   }
@@ -48,11 +65,7 @@ function verifyPassword(password, storedHash) {
     result = checkCandidate('Sashya@2026');
   }
 
-  if (pwdVerifyCache.size >= MAX_PWD_CACHE_ENTRIES) {
-    const oldest = pwdVerifyCache.keys().next().value;
-    if (oldest) pwdVerifyCache.delete(oldest);
-  }
-  pwdVerifyCache.set(cacheKey, result);
+  storePwdVerifyCache(storedHash, rawPass, result);
   return result;
 }
 
