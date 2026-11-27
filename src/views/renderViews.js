@@ -369,12 +369,12 @@ function renderShell({
   <link rel="icon" type="image/png" sizes="32x32" href="${basePath}/images/favicon-32.png?v=${APP_VERSION}" />
   <link rel="apple-touch-icon" sizes="180x180" href="${basePath}/images/apple-touch-icon.png?v=${APP_VERSION}" />
   <link rel="manifest" href="${basePath}/site.webmanifest?v=${APP_VERSION}" />
-  <link rel="preload" href="${basePath}/assets/fonts/poppins-latin-400.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="${basePath}/assets/fonts/news701-bt-bold.ttf" as="font" type="font/ttf" crossorigin />
+  <link rel="preload" href="${basePath}/assets/fonts/manrope-var-wght.ttf" as="font" type="font/ttf" crossorigin />
+  <link rel="preload" href="${basePath}/assets/fonts/poppins-regular.ttf" as="font" type="font/ttf" crossorigin />
   <link rel="preload" href="${basePath}/assets/fonts/poppins-latin-500.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="${basePath}/assets/fonts/poppins-latin-600.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="${basePath}/assets/fonts/poppins-latin-700.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="preload" href="${basePath}/assets/fonts/lora-latin-var.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="preload" href="${basePath}/assets/fonts/lora-latin-italic-var.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="${basePath}/assets/sasya-core.css?v=${APP_VERSION}" />
   <script type="application/ld+json">${JSON.stringify(schemaGraph)}</script>
 </head>

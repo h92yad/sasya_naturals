@@ -319,6 +319,8 @@ function createServerHandler() {
           '.wasm': 'application/wasm',
           '.woff2': 'font/woff2',
           '.woff': 'font/woff',
+          '.ttf': 'font/ttf',
+          '.otf': 'font/otf',
           '.jpg': 'image/jpeg',
           '.jpeg': 'image/jpeg',
           '.png': 'image/png',

@@ -1,19 +1,19 @@
 /* Sashya Naturals (sashyanaturals.com) - Core Design System (sn- namespace) */
 /* Self-hosted preloaded Latin WOFF2 fonts + Metric-Calibrated Fallbacks (Zero FOUT / Zero CLS) */
 @font-face {
-  font-family: 'Lora';
+  font-family: 'News701 BT';
   font-style: normal;
-  font-weight: 500 700;
+  font-weight: 700;
   font-display: block;
-  src: url('./fonts/lora-latin-var.woff2') format('woff2');
+  src: url('./fonts/news701-bt-bold.ttf') format('truetype');
 }
 
 @font-face {
-  font-family: 'Lora';
-  font-style: italic;
-  font-weight: 400 700;
+  font-family: 'Manrope';
+  font-style: normal;
+  font-weight: 200 800;
   font-display: block;
-  src: url('./fonts/lora-latin-italic-var.woff2') format('woff2');
+  src: url('./fonts/manrope-var-wght.ttf') format('truetype');
 }
 
 @font-face {
@@ -21,7 +21,8 @@
   font-style: normal;
   font-weight: 400;
   font-display: block;
-  src: url('./fonts/poppins-latin-400.woff2') format('woff2');
+  src: url('./fonts/poppins-regular.ttf') format('truetype'),
+       url('./fonts/poppins-latin-400.woff2') format('woff2');
 }
 
 @font-face {
@@ -46,6 +47,22 @@
   font-weight: 700;
   font-display: block;
   src: url('./fonts/poppins-latin-700.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: block;
+  src: url('./fonts/lora-latin-var.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400 700;
+  font-display: block;
+  src: url('./fonts/lora-latin-italic-var.woff2') format('woff2');
 }
 
 @font-face {
@@ -95,9 +112,9 @@
   --sn-radius-lg: 16px;
   --sn-shadow-soft: 0 4px 20px rgba(17, 26, 77, 0.08);
   --sn-shadow-elevated: 0 14px 38px rgba(17, 26, 77, 0.15);
-  --sn-font-serif: 'Lora', 'Lora-Fallback', Georgia, serif;
-  --sn-font-sans: 'Poppins', 'Poppins-Fallback', -apple-system, BlinkMacSystemFont, sans-serif;
-  --sn-font-mono: 'Poppins', 'Poppins-Fallback', -apple-system, BlinkMacSystemFont, sans-serif;
+  --sn-font-serif: 'News701 BT', 'Manrope', 'Poppins', 'Lora-Fallback', Georgia, serif;
+  --sn-font-sans: 'Manrope', 'Poppins', 'Poppins-Fallback', -apple-system, BlinkMacSystemFont, sans-serif;
+  --sn-font-mono: 'Poppins', 'Manrope', 'Poppins-Fallback', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 *, *::before, *::after {
@@ -130,7 +147,7 @@ h1,
   font-family: var(--sn-font-serif);
   font-style: italic;
   font-weight: 700;
-  font-synthesis: none;
+  font-synthesis: style;
   color: var(--sn-heading-navy);
   letter-spacing: -0.008em;
   word-spacing: -0.055em;
@@ -141,7 +158,7 @@ h2 {
   font-family: var(--sn-font-serif);
   font-style: italic;
   font-weight: 700;
-  font-synthesis: none;
+  font-synthesis: style;
   color: var(--sn-heading-navy);
   letter-spacing: -0.008em;
   word-spacing: -0.05em;
@@ -152,7 +169,7 @@ h3,
 h4 {
   font-family: var(--sn-font-serif);
   font-weight: 700;
-  font-synthesis: none;
+  font-synthesis: style;
   color: var(--sn-heading-navy);
   letter-spacing: -0.006em;
   word-spacing: -0.04em;
@@ -738,7 +755,7 @@ img {
 .sn-hero-display-title {
   font-family: var(--sn-font-serif);
   font-style: italic;
-  font-synthesis: none;
+  font-synthesis: style;
   font-size: clamp(2.2rem, 3.65vw, 3.3rem);
   font-weight: 700;
   line-height: 1.12;
@@ -807,7 +824,7 @@ img {
   z-index: 1;
   font-family: var(--sn-font-serif);
   font-style: italic;
-  font-synthesis: none;
+  font-synthesis: style;
   font-weight: 700;
   font-size: clamp(1.2rem, 1.85vw, 1.5rem);
   color: #111A4D;
@@ -947,7 +964,7 @@ img {
 .sn-section-head h1 {
   font-family: var(--sn-font-serif);
   font-style: italic;
-  font-synthesis: none;
+  font-synthesis: style;
   font-weight: 700;
   font-size: clamp(1.9rem, 3vw, 2.65rem);
   color: var(--sn-heading-navy);
@@ -973,7 +990,7 @@ img {
 .sn-section-head h2 {
   font-family: var(--sn-font-serif);
   font-style: italic;
-  font-synthesis: none;
+  font-synthesis: style;
   font-weight: 700;
   font-size: clamp(1.7rem, 2.55vw, 2.25rem);
   color: var(--sn-heading-navy);
@@ -986,7 +1003,7 @@ img {
 .sn-page-h1 {
   font-family: var(--sn-font-serif);
   font-style: italic;
-  font-synthesis: none;
+  font-synthesis: style;
   font-weight: 700;
   font-size: clamp(1.95rem, 3vw, 2.6rem);
   color: var(--sn-heading-navy);
@@ -1000,7 +1017,7 @@ img {
 .sn-pdp-title {
   font-family: var(--sn-font-serif);
   font-style: italic;
-  font-synthesis: none;
+  font-synthesis: style;
   font-weight: 700;
   font-size: clamp(1.85rem, 2.85vw, 2.5rem);
   color: var(--sn-heading-navy);
@@ -1013,7 +1030,7 @@ img {
 .sn-invoice-h1 {
   font-family: var(--sn-font-serif);
   font-style: italic;
-  font-synthesis: none;
+  font-synthesis: style;
   font-weight: 700;
   font-size: 1.8rem;
   color: var(--sn-heading-navy);
@@ -1025,7 +1042,7 @@ img {
 .sn-admin-login-h1 {
   font-family: var(--sn-font-serif);
   font-style: italic;
-  font-synthesis: none;
+  font-synthesis: style;
   font-weight: 700;
   font-size: 1.85rem;
   color: var(--sn-heading-navy);
@@ -1037,7 +1054,7 @@ img {
 .sn-admin-banner-h1 {
   font-family: var(--sn-font-serif);
   font-style: italic;
-  font-synthesis: none;
+  font-synthesis: style;
   font-weight: 700;
   font-size: 1.5rem;
   color: #FFFFFF;
