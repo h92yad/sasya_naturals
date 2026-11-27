@@ -509,7 +509,112 @@ function runVerifyRbacAndAudit() {
   db.prepare("DELETE FROM store_settings WHERE key IN ('content_homepage_json', 'content_hellobar_json')").run();
   db.prepare("DELETE FROM audit_logs WHERE action IN ('HOMEPAGE_CONTENT_UPDATED', 'HELLOBAR_CONTENT_UPDATED')").run();
 
-  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Fail-Closed Production Go-Live Guardrail, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager, v2.5.0 Adversarial Edge-Case Guards, v2.7.0 FSSAI Nutrition + Per-Weight Discounts, v3.4.0 4,500-Attack Hardening & immutable audit_logs');
+  // 15. Verify v4.0.0 Full Storefront Editability (All 5 Lean Audit Areas)
+  const {
+    renderHomePage,
+    renderCatalogPage,
+    renderCheckoutPage,
+    renderTrackOrderPage,
+    renderCustomerAccountPage,
+    renderStaticInfoPage
+  } = require('../src/views/renderViews');
+  const { buildOrganizationNode } = require('../src/core/content/schemaBuilder');
+
+  try {
+    // 15a. Homepage section eyebrows/headings + footer copyright line
+    updateHomepageContent({
+      homeCategoriesEyebrow: 'Custom Pantry Collections Eyebrow',
+      homeCategoriesHeading: 'Custom Five Natural Collections Heading',
+      homeFeaturedEyebrow: 'Custom Harvest Selection Eyebrow',
+      homeFeaturedHeading: 'Custom Single-Origin Staples Heading',
+      homeBestsellersEyebrow: 'Custom Most Reordered Eyebrow',
+      homeBestsellersHeading: 'Custom Household Bestsellers Heading',
+      footerCopyrightLine: 'Custom GST & Verified Pincode Compliance Line'
+    });
+    const activeCategories = db.prepare('SELECT * FROM categories WHERE is_active = 1 ORDER BY display_order').all();
+    const activeProducts = db.prepare('SELECT * FROM products WHERE is_active = 1 ORDER BY id').all();
+    const activeVariants = db.prepare('SELECT * FROM product_variants WHERE is_active = 1 ORDER BY id').all();
+    const homeHtml = renderHomePage({
+      categories: activeCategories,
+      products: activeProducts,
+      variants: activeVariants
+    });
+    assert(homeHtml.includes('Custom Five Natural Collections Heading'), 'Homepage must render custom homeCategoriesHeading');
+    assert(homeHtml.includes('Custom Single-Origin Staples Heading'), 'Homepage must render custom homeFeaturedHeading');
+    assert(homeHtml.includes('Custom Household Bestsellers Heading'), 'Homepage must render custom homeBestsellersHeading');
+    assert(homeHtml.includes('Custom GST &amp; Verified Pincode Compliance Line'), 'Global footer must render custom footerCopyrightLine');
+
+    // 15b. Functional storefront page headings (/shop, /checkout, /track-order, /account) via Module 9.2
+    updateInfoPageContent({
+      slug: 'shop',
+      title: 'Custom All Natural Products Heading',
+      subtitle: 'Custom Farm-to-Kitchen Eyebrow',
+      paragraphsText: 'Custom catalog intro paragraph for testing.'
+    });
+    const shopHtml = renderCatalogPage({
+      title: 'All Natural Products',
+      subtitle: 'Complete Farm-to-Kitchen Catalogue',
+      canonicalPath: '/shop',
+      categories: activeCategories,
+      products: activeProducts,
+      variants: activeVariants
+    });
+    assert(shopHtml.includes('Custom All Natural Products Heading'), '/shop must render custom infoPages.shop title');
+    assert(shopHtml.includes('Custom Farm-to-Kitchen Eyebrow'), '/shop must render custom infoPages.shop subtitle');
+    assert(shopHtml.includes('Custom catalog intro paragraph for testing.'), '/shop must render custom infoPages.shop intro paragraph');
+
+    updateInfoPageContent({
+      slug: 'checkout',
+      title: 'Custom Express Checkout Heading',
+      subtitle: 'Custom Checkout Eyebrow',
+      paragraphsText: 'Complete your order securely.'
+    });
+    const checkoutHtml = renderCheckoutPage({ categories: activeCategories });
+    assert(checkoutHtml.includes('Custom Express Checkout Heading'), '/checkout must render custom infoPages.checkout title');
+
+    updateInfoPageContent({
+      slug: 'track-order',
+      title: 'Custom Order Lookup Heading',
+      subtitle: 'Custom Dispatch Status Eyebrow',
+      paragraphsText: 'Enter your order number and mobile phone below.'
+    });
+    const trackHtml = renderTrackOrderPage({ categories: activeCategories, order: null, orderItems: [], searchedOrderNumber: '' });
+    assert(trackHtml.includes('Custom Order Lookup Heading'), '/track-order must render custom infoPages["track-order"] title');
+
+    updateInfoPageContent({
+      slug: 'account',
+      title: 'Custom Customer Account Heading',
+      subtitle: 'Custom Account Eyebrow',
+      paragraphsText: 'Manage your saved addresses and order history.'
+    });
+    const accountHtml = renderCustomerAccountPage({ categories: activeCategories, customerUser: null, savedAddresses: [], customerOrders: [] });
+    assert(accountHtml.includes('Custom Customer Account Heading'), '/account must render custom infoPages.account title');
+
+    // 15c. Live store_settings synchronization on /contact, /shipping-returns, and Organization JSON-LD
+    const prevPhoneRow = db.prepare("SELECT value FROM store_settings WHERE key = 'support_phone'").get();
+    db.prepare("INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES ('support_phone', '+91 80 9999 8888', datetime('now'))").run();
+    const contactHtml = renderStaticInfoPage({
+      slug: 'contact',
+      title: 'Contact & Bulk Orders',
+      subtitle: 'Bengaluru Support Desk',
+      paragraphs: ['Reach our care desk.'],
+      categories: activeCategories
+    });
+    assert(contactHtml.includes('+91 80 9999 8888'), '/contact #support-channels must render live support_phone from store_settings');
+    const orgNode = buildOrganizationNode();
+    assert.strictEqual(orgNode.contactPoint.telephone, '+91 80 9999 8888', 'Organization JSON-LD must use live support_phone from store_settings');
+    if (prevPhoneRow) {
+      db.prepare("UPDATE store_settings SET value = ? WHERE key = 'support_phone'").run(prevPhoneRow.value);
+    } else {
+      db.prepare("DELETE FROM store_settings WHERE key = 'support_phone'").run();
+    }
+  } finally {
+    // Clean up Section 15 test mutations
+    db.prepare("DELETE FROM store_settings WHERE key IN ('content_homepage_json', 'content_pages_json')").run();
+    db.prepare("DELETE FROM audit_logs WHERE action IN ('HOMEPAGE_CONTENT_UPDATED', 'INFO_PAGE_CONTENT_UPDATED')").run();
+  }
+
+  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Fail-Closed Production Go-Live Guardrail, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager, v2.5.0 Adversarial Edge-Case Guards, v2.7.0 FSSAI Nutrition + Per-Weight Discounts, v3.4.0 4,500-Attack Hardening, v4.0.0 Full Storefront Editability & immutable audit_logs');
 }
 
 if (require.main === module) {

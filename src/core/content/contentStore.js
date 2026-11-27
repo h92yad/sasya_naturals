@@ -37,9 +37,16 @@ const DEFAULT_HOMEPAGE_CONTENT = {
   trust2Sub: 'Intact bran millets & unbleached nuts',
   trust3Title: 'Verified Payments',
   trust3Sub: 'Razorpay UPI, Cards, NetBanking & COD',
+  homeCategoriesEyebrow: 'Three Core Pantry Pillars',
+  homeCategoriesHeading: 'Shop by Category',
+  homeFeaturedEyebrow: 'Select Pack Size & Add Directly',
+  homeFeaturedHeading: 'Featured Harvests',
+  homeBestsellersEyebrow: 'Most Reordered Across India',
+  homeBestsellersHeading: 'Pantry Best Sellers',
   footerBlurb:
     'Direct-to-customer Indian pantry delivering unbleached dry fruits, rain-fed unpolished millets, and cold-milled heirloom spices in 100 g, 250 g, 500 g, and 1 kg packs.',
-  footerSupportLine: 'Domain: sashyanaturals.com | Support: care@sashyanaturals.com'
+  footerSupportLine: 'Domain: sashyanaturals.com | Support: care@sashyanaturals.com',
+  footerCopyrightLine: '© 2026 Sashya Naturals (sashyanaturals.com). All rights reserved.'
 };
 
 const DEFAULT_INFO_PAGES = {
@@ -93,10 +100,31 @@ const DEFAULT_INFO_PAGES = {
     ]
   },
   account: {
-    title: 'Customer Account & Saved Addresses',
-    subtitle: 'Manage Your Profile, Saved Delivery Addresses & Order History',
+    title: 'My Sashya Naturals Pantry Account',
+    subtitle: 'Customer Account • Saved Delivery Addresses, Order Tracking & Tax Invoices',
     paragraphs: [
       'Signed-in customers can view past orders, download tax invoices, and manage default delivery addresses across India. Guest checkout is also always available without mandatory registration.'
+    ]
+  },
+  shop: {
+    title: 'All Sashya Naturals Products',
+    subtitle: 'Complete D2C Pantry Catalogue',
+    paragraphs: [
+      'Browse all Sashya Naturals dry fruits, unpolished millets, and single-origin spices with 100 g, 250 g, 500 g, and 1 kg pack variants.'
+    ]
+  },
+  checkout: {
+    title: 'Checkout & Delivery Details',
+    subtitle: 'Secure Encrypted Checkout • Instant UPI, Cards, NetBanking & COD',
+    paragraphs: [
+      'Complete your Sashya Naturals order with server-verified Razorpay online payment or Cash on Delivery across India.'
+    ]
+  },
+  'track-order': {
+    title: 'Track Your Sashya Naturals Order',
+    subtitle: 'Dual Payment & Fulfilment Status + Manual Courier Reference',
+    paragraphs: [
+      'Track your Sashya Naturals order status, separate payment and fulfilment states, and manual courier AWB tracking reference.'
     ]
   }
 };
@@ -266,7 +294,8 @@ function getStorefrontContentAndSeo() {
   for (const [routePath, defSeo] of Object.entries(DEFAULT_SEO_ROUTES)) {
     const custom = savedSeo[routePath];
     const slugKey = routePath.replace(/^\/+/, '');
-    const linkedInfoPage = slugKey && infoPages[slugKey] ? infoPages[slugKey] : null;
+    const isStaticPolicySlug = ['about', 'contact', 'faq', 'shipping-returns', 'privacy', 'terms'].includes(slugKey);
+    const linkedInfoPage = isStaticPolicySlug && infoPages[slugKey] ? infoPages[slugKey] : null;
     const baseMetaTitle = linkedInfoPage ? `${linkedInfoPage.title} | ${BRAND_NAME}` : defSeo.metaTitle;
     const baseMetaDesc = linkedInfoPage ? linkedInfoPage.subtitle : defSeo.metaDescription;
 

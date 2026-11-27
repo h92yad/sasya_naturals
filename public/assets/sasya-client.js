@@ -2839,6 +2839,8 @@
       setModalInputVal('sn-edit-prod-featured', '0', '0');
       setModalInputVal('sn-edit-prod-bestseller', '0', '0');
       setModalInputVal('sn-edit-prod-new', '1', '1');
+      setModalInputVal('sn-edit-prod-rating', '4.8', '4.8');
+      setModalInputVal('sn-edit-prod-reviews', '24', '24');
 
       applyModalNutritionPreset(initialCatId, { updateCategoryDefaults: true });
 
@@ -2917,6 +2919,8 @@
           const isFeatured = tr.getAttribute('data-prod-featured') || '0';
           const isBestseller = tr.getAttribute('data-prod-bestseller') || '0';
           const isNew = tr.getAttribute('data-prod-new') || '0';
+          const ratingVal = tr.getAttribute('data-prod-rating') || '4.8';
+          const reviewsVal = tr.getAttribute('data-prod-reviews') || '24';
 
           const thumbEl = document.getElementById('sn-edit-modal-thumb');
           const skuEl = document.getElementById('sn-edit-modal-sku');
@@ -2967,6 +2971,8 @@
           if (featSelect) featSelect.value = isFeatured;
           if (bestSelect) bestSelect.value = isBestseller;
           if (newSelect) newSelect.value = isNew;
+          setModalInputVal('sn-edit-prod-rating', ratingVal, '4.8');
+          setModalInputVal('sn-edit-prod-reviews', reviewsVal, '24');
 
           // Hydrate 4-pack variant prices, discounts & stock
           let variantsArr = [];

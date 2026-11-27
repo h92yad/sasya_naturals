@@ -6,7 +6,7 @@ const {
   WIKIDATA_MORATORIUM_UNTIL,
   BANNED_PORTFOLIO_DOMAINS
 } = require('../../config/appConfig');
-const { parseProductNutrition } = require('../../db/database');
+const { getDb, parseProductNutrition } = require('../../db/database');
 
 function resolveEffectiveVariantPaise(v = {}) {
   const sell = Number(v.selling_price_paise || 0);
@@ -38,6 +38,18 @@ function assertZeroPortfolioFootprintBleed(payloadString) {
 }
 
 function buildOrganizationNode() {
+  let tel = '+91-80-4568-2200';
+  let email = 'care@sashyanaturals.com';
+  try {
+    const db = getDb();
+    const rows = db.prepare("SELECT key, value FROM store_settings WHERE key IN ('support_phone', 'support_email')").all();
+    for (const r of rows) {
+      if (r.key === 'support_phone' && r.value) tel = String(r.value).trim();
+      if (r.key === 'support_email' && r.value) email = String(r.value).trim();
+    }
+  } catch {
+    // Fallback to baseline contact point
+  }
   return {
     '@type': 'Organization',
     '@id': `${CANONICAL_ORIGIN}/#organization`,
@@ -49,7 +61,8 @@ function buildOrganizationNode() {
     },
     contactPoint: {
       '@type': 'ContactPoint',
-      telephone: '+91-80-4568-2200',
+      telephone: tel,
+      email,
       contactType: 'customer service',
       areaServed: 'IN',
       availableLanguage: ['en', 'hi', 'kn']
@@ -346,5 +359,6 @@ module.exports = {
   WIKIDATA_MORATORIUM_UNTIL,
   assertZeroWikidataGrounding,
   assertZeroPortfolioFootprintBleed,
+  buildOrganizationNode,
   buildMasterSchemaGraph
 };

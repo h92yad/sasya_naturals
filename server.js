@@ -1553,6 +1553,12 @@ function createServerHandler() {
         const isBestseller = body.isBestseller !== undefined && body.isBestseller !== '' ? (Number(body.isBestseller) ? 1 : 0) : 0;
         const isNewArrival = body.isNewArrival !== undefined && body.isNewArrival !== '' ? (Number(body.isNewArrival) ? 1 : 0) : 1;
         const isActive = body.isActive !== undefined && body.isActive !== '' ? (Number(body.isActive) ? 1 : 0) : 1;
+        const ratingValue = body.ratingValue !== undefined && body.ratingValue !== '' && Number.isFinite(Number(body.ratingValue))
+          ? Math.max(1.0, Math.min(5.0, Math.round(Number(body.ratingValue) * 10) / 10))
+          : 4.8;
+        const reviewCount = body.reviewCount !== undefined && body.reviewCount !== '' && Number.isFinite(Number(body.reviewCount))
+          ? Math.max(1, Math.min(50000, Math.round(Number(body.reviewCount))))
+          : 24;
 
         let imageUrl = catRow.hero_image_url || defaultImgByCat[catId] || '/images/cat-spices.jpg';
         if (body.imageBase64) {
@@ -1570,8 +1576,8 @@ function createServerHandler() {
               origin_region, harvest_batch, shelf_life_months, fssai_notes,
               ingredients, allergen_info, gst_percent, hsn_code, image_url, image_caption,
               nutrition_json, pincode_restriction_mode, pincode_rules_json,
-              is_featured, is_new_arrival, is_bestseller, is_active
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              is_featured, is_new_arrival, is_bestseller, is_active, rating_value, review_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `).run(
             skuBase,
             slug,
@@ -1595,7 +1601,9 @@ function createServerHandler() {
             isFeatured,
             isNewArrival,
             isBestseller,
-            isActive
+            isActive,
+            ratingValue,
+            reviewCount
           );
 
           newProdId = Number(prodRes.lastInsertRowid);
@@ -1614,7 +1622,7 @@ function createServerHandler() {
             action: 'PRODUCT_CREATED',
             entityType: 'PRODUCT',
             entityId: skuBase,
-            details: { name: rawName, slug, imageUrl, hsnCode, isFeatured, isBestseller, isNewArrival, isActive, nutrition: nutritionObj, pincodeRules }
+            details: { name: rawName, slug, imageUrl, hsnCode, isFeatured, isBestseller, isNewArrival, isActive, ratingValue, reviewCount, nutrition: nutritionObj, pincodeRules }
           });
 
           db.exec('COMMIT;');
@@ -1624,7 +1632,7 @@ function createServerHandler() {
         }
 
         return sendJson(res, 201, {
-          product: { id: newProdId, skuBase, name: rawName, slug, imageUrl, hsnCode, nutrition: nutritionObj, pincodeRules },
+          product: { id: newProdId, skuBase, name: rawName, slug, imageUrl, hsnCode, ratingValue, reviewCount, nutrition: nutritionObj, pincodeRules },
           variants: createdVariants
         });
       }
@@ -1722,6 +1730,12 @@ function createServerHandler() {
         const nextBestseller = body.isBestseller !== undefined && body.isBestseller !== '' ? (Number(body.isBestseller) ? 1 : 0) : prod.is_bestseller;
         const nextNewArrival = body.isNewArrival !== undefined && body.isNewArrival !== '' ? (Number(body.isNewArrival) ? 1 : 0) : prod.is_new_arrival;
         const nextActive = body.isActive !== undefined && body.isActive !== '' ? (Number(body.isActive) ? 1 : 0) : prod.is_active;
+        const nextRating = body.ratingValue !== undefined && body.ratingValue !== '' && Number.isFinite(Number(body.ratingValue))
+          ? Math.max(1.0, Math.min(5.0, Math.round(Number(body.ratingValue) * 10) / 10))
+          : Number(prod.rating_value || 4.8);
+        const nextReviews = body.reviewCount !== undefined && body.reviewCount !== '' && Number.isFinite(Number(body.reviewCount))
+          ? Math.max(1, Math.min(50000, Math.round(Number(body.reviewCount))))
+          : Number(prod.review_count || 24);
 
         // Validate Per-Weight Variant Pricing & Discount Overrides BEFORE mutating DB
         const pVars = db.prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY weight_grams ASC').all(productId);
@@ -1841,7 +1855,9 @@ function createServerHandler() {
                 is_featured = ?,
                 is_bestseller = ?,
                 is_new_arrival = ?,
-                is_active = ?
+                is_active = ?,
+                rating_value = ?,
+                review_count = ?
             WHERE id = ?
           `).run(
             nextName,
@@ -1864,6 +1880,8 @@ function createServerHandler() {
             nextBestseller,
             nextNewArrival,
             nextActive,
+            nextRating,
+            nextReviews,
             productId
           );
 

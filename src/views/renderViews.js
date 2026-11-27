@@ -548,7 +548,7 @@ function renderShell({
         </div>
       </div>
       <div class="sn-footer-bottom">
-        <span>© 2026 Sashya Naturals (sashyanaturals.com). All rights reserved.</span>
+        <span>${escapeHtml(hp.footerCopyrightLine || '© 2026 Sashya Naturals (sashyanaturals.com). All rights reserved.')}</span>
         <span>${staticShowcaseScript ? `Engine: Node.js 22 SSR + Rust WASM Commerce Core (v${APP_VERSION})` : 'FSSAI Licensed &amp; GST Compliant • 100% Farm-Direct Indian Pantry'}</span>
       </div>
     </div>
@@ -589,9 +589,9 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
   const sectionBookmarks = [
     { id: 'hero-banner', name: 'Farm-Direct Pantry Hero', shortLabel: 'Overview' },
     { id: 'trust-assurance', name: 'Quality & FSSAI Assurance', shortLabel: 'FSSAI Trust' },
-    { id: 'pantry-categories', name: 'Shop by Category', shortLabel: 'Categories' },
-    { id: 'featured-harvests', name: 'Featured Harvests', shortLabel: 'Featured' },
-    { id: 'bestsellers', name: 'Pantry Best Sellers', shortLabel: 'Best Sellers' }
+    { id: 'pantry-categories', name: hp.homeCategoriesHeading || 'Shop by Category', shortLabel: 'Categories' },
+    { id: 'featured-harvests', name: hp.homeFeaturedHeading || 'Featured Harvests', shortLabel: 'Featured' },
+    { id: 'bestsellers', name: hp.homeBestsellersHeading || 'Pantry Best Sellers', shortLabel: 'Best Sellers' }
   ];
 
   const schemaGraph = buildMasterSchemaGraph({
@@ -603,9 +603,15 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
     sectionBookmarks
   });
 
-  const catSectionEyebrow = categories.length === 3
-    ? 'Three Core Pantry Pillars'
-    : `${categories.length} Curated Pantry Collections`;
+  const catSectionEyebrow =
+    categories.length !== 3 && (!hp.homeCategoriesEyebrow || hp.homeCategoriesEyebrow === 'Three Core Pantry Pillars')
+      ? `${categories.length} Curated Pantry Collections`
+      : (hp.homeCategoriesEyebrow || 'Three Core Pantry Pillars');
+  const catSectionHeading = hp.homeCategoriesHeading || 'Shop by Category';
+  const featuredSectionEyebrow = hp.homeFeaturedEyebrow || 'Select Pack Size & Add Directly';
+  const featuredSectionHeading = hp.homeFeaturedHeading || 'Featured Harvests';
+  const bestsellersSectionEyebrow = hp.homeBestsellersEyebrow || 'Most Reordered Across India';
+  const bestsellersSectionHeading = hp.homeBestsellersHeading || 'Pantry Best Sellers';
 
   const rawHeading = String(hp.heroHeading || 'A Little More Goodness, Every Day.').trim();
   let heroLine1 = rawHeading;
@@ -776,7 +782,7 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
         <div class="sn-section-head">
           <div>
             <span class="sn-eyebrow" id="home-categories-eyebrow">${escapeHtml(catSectionEyebrow)}</span>
-            <h2>Shop by Category${renderHeadingAnchor('pantry-categories', 'Shop by Category')}</h2>
+            <h2>${escapeHtml(catSectionHeading)}${renderHeadingAnchor('pantry-categories', catSectionHeading)}</h2>
           </div>
           <a href="${basePath}/shop" class="sn-btn sn-btn-outline sn-btn-sm">View All ${products.length} Products</a>
         </div>
@@ -804,8 +810,8 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
       <div class="sn-container">
         <div class="sn-section-head">
           <div>
-            <span class="sn-eyebrow">Select Pack Size &amp; Add Directly</span>
-            <h2>Featured Harvests${renderHeadingAnchor('featured-harvests', 'Featured Harvests')}</h2>
+            <span class="sn-eyebrow">${escapeHtml(featuredSectionEyebrow)}</span>
+            <h2>${escapeHtml(featuredSectionHeading)}${renderHeadingAnchor('featured-harvests', featuredSectionHeading)}</h2>
           </div>
           <a href="${basePath}/shop" class="sn-btn sn-btn-forest sn-btn-sm">Browse All Packs</a>
         </div>
@@ -819,8 +825,8 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
       <div class="sn-container">
         <div class="sn-section-head">
           <div>
-            <span class="sn-eyebrow">Most Reordered Across India</span>
-            <h2>Pantry Best Sellers${renderHeadingAnchor('bestsellers', 'Pantry Best Sellers')}</h2>
+            <span class="sn-eyebrow">${escapeHtml(bestsellersSectionEyebrow)}</span>
+            <h2>${escapeHtml(bestsellersSectionHeading)}${renderHeadingAnchor('bestsellers', bestsellersSectionHeading)}</h2>
           </div>
         </div>
         <div class="sn-product-grid">
@@ -861,12 +867,20 @@ function renderCatalogPage({
   isNoIndex = false
 }) {
   const canonicalPath = activeCategory ? `/category/${activeCategory.slug}` : '/shop';
+  const shopInfo = !activeCategory ? (getStorefrontContentAndSeo().infoPages.shop || {}) : null;
+  const shopHeading = shopInfo && shopInfo.title ? shopInfo.title : 'All Sashya Naturals Products';
+  const shopEyebrow = shopInfo && shopInfo.subtitle ? shopInfo.subtitle : 'Complete D2C Pantry Catalogue';
+  const shopLeadParagraph =
+    shopInfo && Array.isArray(shopInfo.paragraphs) && shopInfo.paragraphs[0]
+      ? shopInfo.paragraphs[0]
+      : 'Browse all Sashya Naturals dry fruits, unpolished millets, and single-origin spices with 100 g, 250 g, 500 g, and 1 kg pack variants.';
+
   const title = activeCategory
     ? `${activeCategory.name} (${activeCategory.subtitle}) | ${BRAND_NAME}`
     : `All Natural Products Catalogue | ${BRAND_NAME}`;
   const description = activeCategory
     ? activeCategory.description
-    : 'Browse all Sashya Naturals dry fruits, unpolished millets, and single-origin spices with 100 g, 250 g, 500 g, and 1 kg pack variants.';
+    : shopLeadParagraph;
 
   const breadcrumbs = [{ name: 'Home', url: '/' }];
   if (activeCategory) {
@@ -877,7 +891,7 @@ function renderCatalogPage({
   }
 
   const sectionBookmarks = [
-    { id: 'collection-overview', name: activeCategory ? activeCategory.name : 'All Sashya Naturals Products', shortLabel: 'Overview' },
+    { id: 'collection-overview', name: activeCategory ? activeCategory.name : shopHeading, shortLabel: 'Overview' },
     { id: 'catalogue-filters', name: 'Category & Pack-Size Filters', shortLabel: 'Filters' },
     { id: 'product-grid', name: 'Product Catalogue Grid', shortLabel: `Products (${products.length})` },
     { id: 'catalogue-pagination', name: 'Catalogue Pagination', shortLabel: 'Pagination' }
@@ -903,8 +917,8 @@ function renderCatalogPage({
         ${renderSectionJumpBar(sectionBookmarks, 'On This Page:')}
         <div class="sn-section-head" id="collection-overview">
           <div>
-            <span class="sn-eyebrow">${activeCategory ? escapeHtml(activeCategory.subtitle) : 'Complete D2C Pantry Catalogue'}</span>
-            <h1>${activeCategory ? escapeHtml(activeCategory.name) : 'All Sashya Naturals Products'}</h1>
+            <span class="sn-eyebrow">${activeCategory ? escapeHtml(activeCategory.subtitle) : escapeHtml(shopEyebrow)}</span>
+            <h1>${activeCategory ? escapeHtml(activeCategory.name) : escapeHtml(shopHeading)}</h1>
             <p style="color:var(--sn-text-secondary);max-width:68ch;margin:8px 0 0;">${escapeHtml(description)}</p>
           </div>
         </div>
@@ -1347,6 +1361,10 @@ function renderCheckoutPage({
   const initState = defAddr ? defAddr.state : (isShowcase ? 'Karnataka' : '');
   const initPin = defAddr ? defAddr.pincode : (isShowcase ? '560003' : '');
 
+  const chkInfo = getStorefrontContentAndSeo().infoPages.checkout || {};
+  const chkEyebrow = chkInfo.subtitle || 'Secure Encrypted Checkout • Instant UPI, Cards, NetBanking & COD';
+  const chkHeading = chkInfo.title || 'Checkout & Delivery Details';
+
   const bodyHtml = `
     <section class="sn-section">
       <div class="sn-container">
@@ -1354,8 +1372,8 @@ function renderCheckoutPage({
         ${renderSectionJumpBar(sectionBookmarks, 'Checkout Steps:')}
         <div class="sn-section-head">
           <div>
-            <span class="sn-eyebrow">Secure Encrypted Checkout • Instant UPI, Cards, NetBanking &amp; COD</span>
-            <h1>Checkout &amp; Delivery Details</h1>
+            <span class="sn-eyebrow">${escapeHtml(chkEyebrow)}</span>
+            <h1>${escapeHtml(chkHeading)}</h1>
           </div>
           <div>
             ${customer ? `
@@ -1578,6 +1596,10 @@ function renderTrackOrderPage({
     ? `${basePath}/orders/${escapeHtml(order.order_number)}/invoice${contactQuery ? `?contact=${encodeURIComponent(contactQuery)}` : ''}`
     : '#';
 
+  const trkInfo = getStorefrontContentAndSeo().infoPages['track-order'] || {};
+  const trkEyebrow = trkInfo.subtitle || 'Dual Payment & Fulfilment Status + Manual Courier Reference';
+  const trkHeading = trkInfo.title || 'Track Your Sashya Naturals Order';
+
   const bodyHtml = `
     <section class="sn-section">
       <div class="sn-container">
@@ -1585,8 +1607,8 @@ function renderTrackOrderPage({
         ${renderSectionJumpBar(sectionBookmarks, 'Tracking Sections:')}
         <div class="sn-section-head">
           <div>
-            <span class="sn-eyebrow">Dual Payment &amp; Fulfilment Status + Manual Courier Reference</span>
-            <h1>Track Your Sashya Naturals Order</h1>
+            <span class="sn-eyebrow">${escapeHtml(trkEyebrow)}</span>
+            <h1>${escapeHtml(trkHeading)}</h1>
           </div>
           ${customer ? `
             <div>
@@ -1972,13 +1994,17 @@ function renderCustomerAccountPage({
     role: 'CUSTOMER'
   };
 
+  const accInfo = getStorefrontContentAndSeo().infoPages.account || {};
+  const accEyebrow = accInfo.subtitle || 'Customer Account • Saved Delivery Addresses, Order Tracking & Tax Invoices';
+  const accHeading = accInfo.title || 'My Sashya Naturals Pantry Account';
+
   const bodyHtml = `
     <section class="sn-section" id="sn-customer-account-page" data-customer-signed-in="${isSignedIn ? '1' : '0'}">
       <div class="sn-container">
         <div class="sn-section-head">
           <div>
-            <span class="sn-eyebrow">Customer Account • Saved Delivery Addresses, Order Tracking &amp; Tax Invoices</span>
-            <h1>My Sashya Naturals Pantry Account</h1>
+            <span class="sn-eyebrow">${escapeHtml(accEyebrow)}</span>
+            <h1>${escapeHtml(accHeading)}</h1>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
             <span class="sn-status ${isSignedIn ? 'sn-status-paid' : 'sn-status-warn'}" id="sn-account-active-badge">
@@ -3254,6 +3280,8 @@ function renderAdminPortalPage({
                             data-prod-bestseller="${p.is_bestseller ? '1' : '0'}"
                             data-prod-featured="${p.is_featured ? '1' : '0'}"
                             data-prod-new="${p.is_new_arrival ? '1' : '0'}"
+                            data-prod-rating="${Number(p.rating_value || 4.8).toFixed(1)}"
+                            data-prod-reviews="${Number(p.review_count || 24)}"
                           >
                             <td data-label="Photo">
                               <img src="${basePath}${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" data-product-img-id="${p.id}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--sn-border-strong);" />
@@ -3551,6 +3579,17 @@ function renderAdminPortalPage({
                               <option value="1">New Harvest: Yes</option>
                               <option value="0">New Harvest: No</option>
                             </select>
+                          </div>
+                        </div>
+
+                        <div class="sn-grid-2" style="gap:12px;margin-bottom:12px;">
+                          <div>
+                            <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Verified Rating Score (1.0 – 5.0 ★) *</label>
+                            <input type="number" name="ratingValue" id="sn-edit-prod-rating" step="0.1" min="1.0" max="5.0" value="4.8" required class="sn-input" style="font-family:var(--sn-font-mono);" />
+                          </div>
+                          <div>
+                            <label style="font-size:0.74rem;font-weight:600;display:block;margin-bottom:4px;">Verified Review Count *</label>
+                            <input type="number" name="reviewCount" id="sn-edit-prod-reviews" step="1" min="1" max="50000" value="24" required class="sn-input" style="font-family:var(--sn-font-mono);" />
                           </div>
                         </div>
 
@@ -4975,7 +5014,25 @@ function renderAdminPortalPage({
                     </div>
                   </div>
 
-                  <div class="sn-grid-2" style="gap:10px;margin-bottom:14px;">
+                  <div class="sn-grid-3" style="gap:10px;margin-bottom:12px;">
+                    <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Categories Section Eyebrow &amp; H2 *</label>
+                      <input type="text" name="homeCategoriesEyebrow" required value="${escapeHtml(contentAndSeo.homepage.homeCategoriesEyebrow || 'The Sashya Pantry')}" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="homeCategoriesHeading" required value="${escapeHtml(contentAndSeo.homepage.homeCategoriesHeading || 'Explore Five Natural Collections')}" class="sn-input" />
+                    </div>
+                    <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Featured Section Eyebrow &amp; H2 *</label>
+                      <input type="text" name="homeFeaturedEyebrow" required value="${escapeHtml(contentAndSeo.homepage.homeFeaturedEyebrow || 'Harvest Selection')}" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="homeFeaturedHeading" required value="${escapeHtml(contentAndSeo.homepage.homeFeaturedHeading || 'Featured Single-Origin Staples')}" class="sn-input" />
+                    </div>
+                    <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Bestsellers Section Eyebrow &amp; H2 *</label>
+                      <input type="text" name="homeBestsellersEyebrow" required value="${escapeHtml(contentAndSeo.homepage.homeBestsellersEyebrow || 'Most Reordered')}" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="homeBestsellersHeading" required value="${escapeHtml(contentAndSeo.homepage.homeBestsellersHeading || 'Household Bestsellers')}" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <div class="sn-grid-3" style="gap:10px;margin-bottom:14px;">
                     <div>
                       <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Global Footer Brand Blurb *</label>
                       <input type="text" name="footerBlurb" required value="${escapeHtml(contentAndSeo.homepage.footerBlurb)}" class="sn-input" />
@@ -4983,6 +5040,10 @@ function renderAdminPortalPage({
                     <div>
                       <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Global Footer Domain &amp; Support Line *</label>
                       <input type="text" name="footerSupportLine" required value="${escapeHtml(contentAndSeo.homepage.footerSupportLine)}" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Global Footer Copyright &amp; Compliance Line *</label>
+                      <input type="text" name="footerCopyrightLine" required value="${escapeHtml(contentAndSeo.homepage.footerCopyrightLine || 'All prices in INR (₹) inclusive of GST • Verified India Pincode Delivery')}" class="sn-input" />
                     </div>
                   </div>
 
@@ -4992,11 +5053,11 @@ function renderAdminPortalPage({
                 </form>
               </div>
 
-              <!-- Sub-Panel 9.2: Static Info & Policy Pages Editor (About, Contact, FAQ, Shipping/Returns, Privacy, Terms) -->
+              <!-- Sub-Panel 9.2: Static Info & Policy Pages Editor (About, Contact, FAQ, Shipping/Returns, Privacy, Terms, Shop, Checkout, Track Order, Account) -->
               <div data-admin-subpanel="content:pages" style="display:none;">
                 <form id="sn-admin-content-page-form" class="sn-card" style="background-color:var(--sn-bg-parchment);padding:16px 18px;">
                   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
-                    <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">Edit Storefront Info &amp; Legal Policy Pages (HTML + Markdown Twin)</h3>
+                    <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">Edit Storefront Info, Functional &amp; Legal Policy Pages (HTML + Markdown Twin)</h3>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
                       <a id="sn-content-page-live-link" href="${basePath}/about" target="_blank" rel="noopener" class="sn-btn sn-btn-outline sn-btn-sm">↗ Open Live Page (/about)</a>
                       <a id="sn-content-page-md-link" href="${basePath}/about.md" target="_blank" rel="noopener" class="sn-btn sn-btn-outline sn-btn-sm">📄 View Markdown Twin (/about.md)</a>
@@ -5007,7 +5068,7 @@ function renderAdminPortalPage({
                     <div>
                       <label for="sn-admin-content-page-select" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Select Storefront Page *</label>
                       <select name="slug" id="sn-admin-content-page-select" class="sn-select">
-                        ${['about', 'contact', 'faq', 'shipping-returns', 'privacy', 'terms'].map(slug => {
+                        ${['about', 'contact', 'faq', 'shipping-returns', 'privacy', 'terms', 'shop', 'checkout', 'track-order', 'account'].map(slug => {
                           const pg = contentAndSeo.infoPages[slug] || { title: slug, subtitle: '', paragraphs: [] };
                           return `<option
                             value="${escapeHtml(slug)}"
@@ -5500,6 +5561,11 @@ function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath
 
   let extraSectionHtml = '';
   if (slug === 'shipping-returns') {
+    const pol = getShippingPolicyFromDb();
+    const zA = pol.zones && pol.zones.A ? pol.zones.A : { base500gPaise: 4000, extra500gPaise: 1500 };
+    const zB = pol.zones && pol.zones.B ? pol.zones.B : { base500gPaise: 5500, extra500gPaise: 2500 };
+    const zC = pol.zones && pol.zones.C ? pol.zones.C : { base500gPaise: 7500, extra500gPaise: 3500 };
+    const zD = pol.zones && pol.zones.D ? pol.zones.D : { base500gPaise: 11000, extra500gPaise: 5500 };
     extraSectionHtml = `
       <div class="sn-card" id="zone-rate-card" style="margin-top:20px;background-color:var(--sn-bg-parchment);">
         <h2 style="font-family:var(--sn-font-serif);font-size:1.3rem;margin:0 0 12px;color:var(--sn-bg-forest);">4-Zone + 500g Weight-Slab Courier Rate Card${renderHeadingAnchor('zone-rate-card', '4-Zone + 500g Weight-Slab Courier Rate Card')}</h2>
@@ -5509,32 +5575,42 @@ function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath
               <tr><th>Delivery Zone</th><th>PIN Code Coverage</th><th>Base 500g Slab</th><th>Each Additional 500g</th><th>Estimated Transit</th></tr>
             </thead>
             <tbody>
-              <tr><td data-label="Delivery Zone"><strong>Zone A (Local Bengaluru)</strong></td><td data-label="PIN Coverage" style="font-family:var(--sn-font-mono);">560xxx</td><td data-label="Base 500g Slab" style="font-family:var(--sn-font-mono);">₹40</td><td data-label="Each Addl. 500g" style="font-family:var(--sn-font-mono);">+₹15</td><td data-label="Estimated Transit">1 to 2 Business Days</td></tr>
-              <tr><td data-label="Delivery Zone"><strong>Zone B (South India)</strong></td><td data-label="PIN Coverage" style="font-family:var(--sn-font-mono);">Karnataka, TN, Kerala, AP, Telangana</td><td data-label="Base 500g Slab" style="font-family:var(--sn-font-mono);">₹55</td><td data-label="Each Addl. 500g" style="font-family:var(--sn-font-mono);">+₹25</td><td data-label="Estimated Transit">2 to 4 Business Days</td></tr>
-              <tr><td data-label="Delivery Zone"><strong>Zone C (Rest of India)</strong></td><td data-label="PIN Coverage" style="font-family:var(--sn-font-mono);">MH, DL, GJ, RJ, UP, WB, MP &amp; Metros</td><td data-label="Base 500g Slab" style="font-family:var(--sn-font-mono);">₹75</td><td data-label="Each Addl. 500g" style="font-family:var(--sn-font-mono);">+₹35</td><td data-label="Estimated Transit">3 to 5 Business Days</td></tr>
-              <tr><td data-label="Delivery Zone"><strong>Zone D (NE / J&amp;K / Remote)</strong></td><td data-label="PIN Coverage" style="font-family:var(--sn-font-mono);">18xxxx, 19xxxx, 78xxxx, 79xxxx</td><td data-label="Base 500g Slab" style="font-family:var(--sn-font-mono);">₹110</td><td data-label="Each Addl. 500g" style="font-family:var(--sn-font-mono);">+₹55</td><td data-label="Estimated Transit">5 to 7 Business Days</td></tr>
+              <tr><td data-label="Delivery Zone"><strong>Zone A (Local Bengaluru)</strong></td><td data-label="PIN Coverage" style="font-family:var(--sn-font-mono);">560xxx</td><td data-label="Base 500g Slab" style="font-family:var(--sn-font-mono);">${formatInr(zA.base500gPaise)}</td><td data-label="Each Addl. 500g" style="font-family:var(--sn-font-mono);">+${formatInr(zA.extra500gPaise)}</td><td data-label="Estimated Transit">1 to 2 Business Days</td></tr>
+              <tr><td data-label="Delivery Zone"><strong>Zone B (South India)</strong></td><td data-label="PIN Coverage" style="font-family:var(--sn-font-mono);">Karnataka, TN, Kerala, AP, Telangana</td><td data-label="Base 500g Slab" style="font-family:var(--sn-font-mono);">${formatInr(zB.base500gPaise)}</td><td data-label="Each Addl. 500g" style="font-family:var(--sn-font-mono);">+${formatInr(zB.extra500gPaise)}</td><td data-label="Estimated Transit">2 to 4 Business Days</td></tr>
+              <tr><td data-label="Delivery Zone"><strong>Zone C (Rest of India)</strong></td><td data-label="PIN Coverage" style="font-family:var(--sn-font-mono);">MH, DL, GJ, RJ, UP, WB, MP &amp; Metros</td><td data-label="Base 500g Slab" style="font-family:var(--sn-font-mono);">${formatInr(zC.base500gPaise)}</td><td data-label="Each Addl. 500g" style="font-family:var(--sn-font-mono);">+${formatInr(zC.extra500gPaise)}</td><td data-label="Estimated Transit">3 to 5 Business Days</td></tr>
+              <tr><td data-label="Delivery Zone"><strong>Zone D (NE / J&amp;K / Remote)</strong></td><td data-label="PIN Coverage" style="font-family:var(--sn-font-mono);">18xxxx, 19xxxx, 78xxxx, 79xxxx</td><td data-label="Base 500g Slab" style="font-family:var(--sn-font-mono);">${formatInr(zD.base500gPaise)}</td><td data-label="Each Addl. 500g" style="font-family:var(--sn-font-mono);">+${formatInr(zD.extra500gPaise)}</td><td data-label="Estimated Transit">5 to 7 Business Days</td></tr>
             </tbody>
           </table>
         </div>
       </div>
     `;
   } else if (slug === 'contact') {
+    const db = getDb();
+    const rawSettings = db.prepare(`
+      SELECT key, value FROM store_settings
+      WHERE key IN ('support_phone', 'support_email', 'registered_address')
+    `).all();
+    const sMap = {};
+    for (const r of rawSettings) sMap[r.key] = r.value;
+    const supportPhone = sMap.support_phone || '+91 80 4568 2200';
+    const supportEmail = sMap.support_email || 'care@sashyanaturals.com';
+    const registeredAddress = sMap.registered_address || 'No. 48, 100 Feet Road, Indiranagar, Bengaluru, Karnataka - 560038';
     extraSectionHtml = `
       <div class="sn-category-grid" id="support-channels" style="margin-top:20px;">
         <div class="sn-card" id="contact-phone-whatsapp" style="background-color:var(--sn-bg-parchment);">
           <span class="sn-eyebrow">Direct Support Desk</span>
           <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Phone &amp; WhatsApp Care${renderHeadingAnchor('contact-phone-whatsapp', 'Phone & WhatsApp Care')}</h3>
-          <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">+91 80 4568 2200<br/>Mon to Sat, 9:30 AM to 6:30 PM IST</p>
+          <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">${escapeHtml(supportPhone)}<br/>Mon to Sat, 9:30 AM to 6:30 PM IST</p>
         </div>
         <div class="sn-card" id="contact-email-care" style="background-color:var(--sn-bg-parchment);">
           <span class="sn-eyebrow">Order &amp; Bulk Enquiries</span>
           <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Email Customer Care${renderHeadingAnchor('contact-email-care', 'Email Customer Care')}</h3>
-          <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">care@sashyanaturals.com<br/>Responses within 4 business hours</p>
+          <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">${escapeHtml(supportEmail)}<br/>Responses within 4 business hours</p>
         </div>
         <div class="sn-card" id="contact-dispatch-hub" style="background-color:var(--sn-bg-parchment);">
           <span class="sn-eyebrow">Bengaluru Dispatch Hub</span>
           <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Registered Pantry Office${renderHeadingAnchor('contact-dispatch-hub', 'Registered Pantry Office')}</h3>
-          <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">No. 48, 100 Feet Road, Indiranagar, Bengaluru, Karnataka - 560038</p>
+          <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">${escapeHtml(registeredAddress)}</p>
         </div>
       </div>
     `;
