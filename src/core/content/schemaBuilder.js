@@ -39,7 +39,7 @@ function assertZeroPortfolioFootprintBleed(payloadString) {
 
 function buildOrganizationNode() {
   let tel = '+91-80-4568-2200';
-  let email = 'care@sashyanaturals.com';
+  let email = 'support@sashyanaturals.com';
   try {
     const db = getDb();
     const rows = db.prepare("SELECT key, value FROM store_settings WHERE key IN ('support_phone', 'support_email')").all();

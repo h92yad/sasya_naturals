@@ -2,7 +2,7 @@
 
 const path = require('node:path');
 
-const APP_VERSION = '4.0.2';
+const APP_VERSION = '4.0.3';
 const WIKIDATA_MORATORIUM_UNTIL = '2027-11-20';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'sasya_naturals_session_hmac_secret_2026_v1';
 const SELLER_ORIGIN_STATE = 'Karnataka';

@@ -422,6 +422,8 @@ function seedVaultAndHsnDefaults(db) {
   for (const [k, v] of defaultShippingSettings) {
     insertShipSetting.run(k, v);
   }
+
+  db.prepare("UPDATE store_settings SET value = 'support@sashyanaturals.com' WHERE key = 'support_email' AND value IN ('care@sashyanaturals.com', 'care@sasynaturals.com')").run();
 }
 
 function seedDatabaseIfEmpty(db) {
@@ -434,7 +436,7 @@ function seedDatabaseIfEmpty(db) {
     ['brand_domain', 'sashyanaturals.com'],
     ['gstin', 'CONFIGURABLE_PENDING_TAX_ADVISER_VERIFICATION'],
     ['fssai_license', 'CONFIGURABLE_PENDING_FSSAI_VERIFICATION'],
-    ['support_email', 'care@sashyanaturals.com'],
+    ['support_email', 'support@sashyanaturals.com'],
     ['support_phone', '+91 80 4568 2200'],
     ['registered_address', 'Configurable Registered Office & Dispatch Address, Bengaluru, Karnataka'],
     ['free_shipping_threshold_inr', '799'],

@@ -45,7 +45,7 @@ const DEFAULT_HOMEPAGE_CONTENT = {
   homeBestsellersHeading: 'Pantry Best Sellers',
   footerBlurb:
     'Direct-to-customer Indian pantry delivering unbleached dry fruits, rain-fed unpolished millets, and cold-milled heirloom spices in 100 g, 250 g, 500 g, and 1 kg packs.',
-  footerSupportLine: 'Domain: sashyanaturals.com | Support: care@sashyanaturals.com',
+  footerSupportLine: 'Domain: sashyanaturals.com | Support: support@sashyanaturals.com',
   footerCopyrightLine: '© 2026 Sashya Naturals (sashyanaturals.com). All rights reserved.'
 };
 
@@ -62,7 +62,7 @@ const DEFAULT_INFO_PAGES = {
     title: 'Contact Customer Support',
     subtitle: 'Order Assistance, Bulk Enquiries & Dispatch Support',
     paragraphs: [
-      'Customer Support Email: care@sashyanaturals.com | Phone: +91 80 4568 2200 (Monday to Saturday, 9:30 AM to 6:30 PM IST).',
+      'Customer Support Email: support@sashyanaturals.com (Monday to Saturday, 9:30 AM to 6:30 PM IST).',
       'For order tracking queries, please keep your Order Number (for example SN-2026-1001) ready.'
     ]
   },
@@ -96,7 +96,7 @@ const DEFAULT_INFO_PAGES = {
     subtitle: '4-Zone + 500g Weight-Slab Courier Dispatch, Damaged Parcel Replacement & Refund Timelines',
     paragraphs: [
       'Delivery charges are calculated transparently using our 4-Zone (Local Bengaluru, South India, National, and Remote/NE) + 500g billable weight-slab engine (including 150g protective carton tare weight). Orders meeting the active free-delivery threshold and weight cap qualify for complimentary shipping.',
-      'Orders may be cancelled prior to dispatch. If a parcel arrives damaged or tampered, contact care@sashyanaturals.com within 48 hours of delivery for a verified replacement or refund to your original payment source.'
+      'Orders may be cancelled prior to dispatch. If a parcel arrives damaged or tampered, contact support@sashyanaturals.com within 48 hours of delivery for a verified replacement or refund to your original payment source.'
     ]
   },
   account: {
@@ -236,6 +236,9 @@ function getStorefrontContentAndSeo() {
   ) {
     delete savedHomepage.heroLead;
   }
+  if (typeof savedHomepage.footerSupportLine === 'string') {
+    savedHomepage.footerSupportLine = savedHomepage.footerSupportLine.replace(/care@sash?yanaturals\.com/gi, 'support@sashyanaturals.com');
+  }
   const homepage = {
     ...DEFAULT_HOMEPAGE_CONTENT,
     ...savedHomepage
@@ -272,13 +275,22 @@ function getStorefrontContentAndSeo() {
   for (const [slug, defPage] of Object.entries(DEFAULT_INFO_PAGES)) {
     const custom = savedPages[slug];
     if (custom && typeof custom === 'object') {
+      const normalizedParas =
+        Array.isArray(custom.paragraphs) && custom.paragraphs.length > 0
+          ? custom.paragraphs
+              .map(p => {
+                let text = String(p).trim().replace(/care@sash?yanaturals\.com/gi, 'support@sashyanaturals.com');
+                if (slug === 'contact') {
+                  text = text.replace(/\s*\|\s*Phone:\s*\+?91[\d\s-]+/i, '');
+                }
+                return text;
+              })
+              .filter(Boolean)
+          : defPage.paragraphs;
       infoPages[slug] = {
         title: String(custom.title || defPage.title).trim(),
         subtitle: String(custom.subtitle || defPage.subtitle).trim(),
-        paragraphs:
-          Array.isArray(custom.paragraphs) && custom.paragraphs.length > 0
-            ? custom.paragraphs.map(p => String(p).trim()).filter(Boolean)
-            : defPage.paragraphs
+        paragraphs: normalizedParas
       };
     } else {
       infoPages[slug] = {

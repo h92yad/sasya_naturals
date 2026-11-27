@@ -591,22 +591,23 @@ function runVerifyRbacAndAudit() {
     assert(accountHtml.includes('Custom Customer Account Heading'), '/account must render custom infoPages.account title');
 
     // 15c. Live store_settings synchronization on /contact, /shipping-returns, and Organization JSON-LD
-    const prevPhoneRow = db.prepare("SELECT value FROM store_settings WHERE key = 'support_phone'").get();
-    db.prepare("INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES ('support_phone', '+91 80 9999 8888', datetime('now'))").run();
+    const prevEmailRow = db.prepare("SELECT value FROM store_settings WHERE key = 'support_email'").get();
+    db.prepare("INSERT OR REPLACE INTO store_settings (key, value, updated_at) VALUES ('support_email', 'support@sashyanaturals.com', datetime('now'))").run();
     const contactHtml = renderStaticInfoPage({
       slug: 'contact',
       title: 'Contact & Bulk Orders',
       subtitle: 'Bengaluru Support Desk',
-      paragraphs: ['Reach our care desk.'],
+      paragraphs: ['Customer Support Email: support@sashyanaturals.com (Monday to Saturday, 9:30 AM to 6:30 PM IST).'],
       categories: activeCategories
     });
-    assert(contactHtml.includes('+91 80 9999 8888'), '/contact #support-channels must render live support_phone from store_settings');
+    assert(contactHtml.includes('support@sashyanaturals.com'), '/contact #support-channels must render live support_email from store_settings');
+    assert(!contactHtml.includes('contact-phone-whatsapp'), '/contact must not display phone support card');
     const orgNode = buildOrganizationNode();
-    assert.strictEqual(orgNode.contactPoint.telephone, '+91 80 9999 8888', 'Organization JSON-LD must use live support_phone from store_settings');
-    if (prevPhoneRow) {
-      db.prepare("UPDATE store_settings SET value = ? WHERE key = 'support_phone'").run(prevPhoneRow.value);
+    assert.strictEqual(orgNode.contactPoint.email, 'support@sashyanaturals.com', 'Organization JSON-LD must use live support_email from store_settings');
+    if (prevEmailRow) {
+      db.prepare("UPDATE store_settings SET value = ? WHERE key = 'support_email'").run(prevEmailRow.value);
     } else {
-      db.prepare("DELETE FROM store_settings WHERE key = 'support_phone'").run();
+      db.prepare("DELETE FROM store_settings WHERE key = 'support_email'").run();
     }
   } finally {
     // Clean up Section 15 test mutations

@@ -4866,7 +4866,7 @@ function renderAdminPortalPage({
                       <div class="sn-grid-3" style="gap:12px;margin-bottom:12px;">
                         <div>
                           <label style="font-size:0.74rem;font-weight:600;display:block;">Customer Support Email *</label>
-                          <input type="email" name="support_email" required value="${escapeHtml(sMap.support_email || 'care@sashyanaturals.com')}" class="sn-input" />
+                          <input type="email" name="support_email" required value="${escapeHtml(sMap.support_email || 'support@sashyanaturals.com')}" class="sn-input" />
                         </div>
                         <div>
                           <label style="font-size:0.74rem;font-weight:600;display:block;">Support Phone *</label>
@@ -5601,7 +5601,7 @@ function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath
     } else if (slug === 'contact') {
       sectionBookmarks.push({
         id: 'support-channels',
-        name: 'Direct Support Desk, Email Care & Bengaluru Dispatch Hub',
+        name: 'Email Care & Bengaluru Dispatch Hub',
         shortLabel: 'Support Channels'
       });
     }
@@ -5646,20 +5646,14 @@ function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath
     const db = getDb();
     const rawSettings = db.prepare(`
       SELECT key, value FROM store_settings
-      WHERE key IN ('support_phone', 'support_email', 'registered_address')
+      WHERE key IN ('support_email', 'registered_address')
     `).all();
     const sMap = {};
     for (const r of rawSettings) sMap[r.key] = r.value;
-    const supportPhone = sMap.support_phone || '+91 80 4568 2200';
-    const supportEmail = sMap.support_email || 'care@sashyanaturals.com';
+    const supportEmail = sMap.support_email || 'support@sashyanaturals.com';
     const registeredAddress = sMap.registered_address || 'No. 48, 100 Feet Road, Indiranagar, Bengaluru, Karnataka - 560038';
     extraSectionHtml = `
-      <div class="sn-category-grid" id="support-channels" style="margin-top:20px;">
-        <div class="sn-card" id="contact-phone-whatsapp" style="background-color:var(--sn-bg-parchment);">
-          <span class="sn-eyebrow">Direct Support Desk</span>
-          <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Phone &amp; WhatsApp Care${renderHeadingAnchor('contact-phone-whatsapp', 'Phone & WhatsApp Care')}</h3>
-          <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0;">${escapeHtml(supportPhone)}<br/>Mon to Sat, 9:30 AM to 6:30 PM IST</p>
-        </div>
+      <div class="sn-grid-2" id="support-channels" style="margin-top:20px;gap:16px;">
         <div class="sn-card" id="contact-email-care" style="background-color:var(--sn-bg-parchment);">
           <span class="sn-eyebrow">Order &amp; Bulk Enquiries</span>
           <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;color:var(--sn-bg-forest);">Email Customer Care${renderHeadingAnchor('contact-email-care', 'Email Customer Care')}</h3>
