@@ -428,7 +428,7 @@ function renderShell({
   <header class="sn-header" id="site-header">
     <div class="sn-container sn-header-inner">
       <a href="${basePath}/" class="sn-brand" id="nav-brand-logo" aria-label="${escapeHtml(BRAND_NAME)} — Rooted in Trust">
-        <img src="${basePath}/images/logo-horizontal.webp" alt="${escapeHtml(BRAND_NAME)} — Rooted in Trust" class="sn-brand-logo-img" width="132" height="38" />
+        <img src="${basePath}/images/logo-horizontal.webp?v=${APP_VERSION}" alt="${escapeHtml(BRAND_NAME)} — Rooted in Trust" class="sn-brand-logo-img" width="116" height="36" />
       </a>
       <nav class="sn-nav ${hasCategoryOverflow ? 'sn-nav-has-overflow' : ''}" id="sn-main-nav" aria-label="Main Navigation" data-nav-cat-count="${navCategories.length}">
         <form action="${basePath}/shop" method="GET" class="sn-mobile-nav-search">
