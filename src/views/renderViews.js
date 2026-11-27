@@ -1104,8 +1104,8 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
           </div>
 
           <div>
-            <span class="sn-eyebrow">${escapeHtml(category.name)} • ${escapeHtml(product.origin_region)} • Batch ${escapeHtml(product.harvest_batch)}</span>
-            <h1 style="font-family:var(--sn-font-serif);font-size:clamp(1.8rem,2.8vw,2.45rem);color:var(--sn-bg-forest);margin:0 0 10px;">${escapeHtml(product.name)}</h1>
+            <span class="sn-eyebrow sn-eyebrow-pill">${escapeHtml(category.name)} • ${escapeHtml(product.origin_region)} • Batch ${escapeHtml(product.harvest_batch)}</span>
+            <h1 class="sn-pdp-title">${escapeHtml(product.name)}</h1>
             <div style="display:flex;align-items:center;gap:16px;font-family:var(--sn-font-mono);font-size:0.8rem;color:var(--sn-text-muted);margin-bottom:16px;flex-wrap:wrap;">
               <span>SKU: <strong data-sku-display>${escapeHtml(defVar.sku)}</strong></span>
               <span>Rating: ★ ${Number(product.rating_value).toFixed(1)} (${product.review_count} verified buyers)</span>
@@ -1845,7 +1845,7 @@ function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, verifi
           <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;padding-bottom:20px;border-bottom:2px solid var(--sn-bg-forest);">
             <div style="flex:1.3 1 320px;">
               <span class="sn-eyebrow">Tax Invoice (Original for Recipient)</span>
-              <h1 style="font-family:var(--sn-font-serif);font-size:1.75rem;margin:0;color:var(--sn-bg-forest);">${escapeHtml(legalName)}</h1>
+              <h1 class="sn-invoice-h1">${escapeHtml(legalName)}</h1>
               <div style="font-size:0.84rem;color:var(--sn-text-secondary);margin-top:4px;">
                 ${escapeHtml(regAddr)}<br/>
                 <strong>GSTIN:</strong> <span style="font-family:var(--sn-font-mono);">${escapeHtml(gstinVal)}</span> |
@@ -2279,8 +2279,8 @@ function renderAdminLoginRequiredPage({ basePath = '' }) {
     <section class="sn-section">
       <div class="sn-container" style="max-width:520px;">
         <div class="sn-card" style="padding:32px;">
-          <span class="sn-eyebrow">Staff Operations &amp; Role-Based Administration</span>
-          <h1 style="font-family:var(--sn-font-serif);font-size:1.75rem;margin:0 0 8px;color:var(--sn-bg-forest);">Sashya Naturals Staff Sign In</h1>
+          <span class="sn-eyebrow sn-eyebrow-pill">Staff Operations &amp; Role-Based Administration</span>
+          <h1 class="sn-admin-login-h1">Sashya Naturals Staff Sign In</h1>
           <p style="font-size:0.88rem;color:var(--sn-text-secondary);margin:0 0 20px;">
             Sign in with your authorized staff credentials to access your role-assigned administration modules.
           </p>
@@ -2564,7 +2564,7 @@ function renderAdminPortalPage({
           <div style="display:flex;justify-content:space-between;align-items:center;width:100%;gap:10px;flex-wrap:wrap;">
             <div>
               <span class="sn-eyebrow" style="color:var(--sn-accent-turmeric);margin-bottom:2px;">${isShowcase ? 'Interactive RBAC Showcase • 5 Staff Roles &amp; Write-Only API Vault' : 'Authenticated Staff Operations Portal'}</span>
-              <h1 style="font-family:var(--sn-font-serif);font-size:1.45rem;margin:0;color:#FFFFFF;">Sashya Naturals Operations &amp; Administration</h1>
+              <h1 class="sn-admin-banner-h1">Sashya Naturals Operations &amp; Administration</h1>
             </div>
             ${isShowcase ? `
               <button
@@ -5544,8 +5544,8 @@ function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath
       <div class="sn-container" style="max-width:920px;">
         ${renderBreadcrumbNav(breadcrumbs, basePath)}
         ${renderSectionJumpBar(sectionBookmarks, slug === 'faq' ? 'Jump to Question:' : 'On This Page:')}
-        <span class="sn-eyebrow">${escapeHtml(subtitle)}</span>
-        <h1 style="font-family:var(--sn-font-serif);font-size:2.2rem;color:var(--sn-bg-forest);margin:0 0 24px;">${escapeHtml(title)}</h1>
+        <span class="sn-eyebrow sn-eyebrow-pill">${escapeHtml(subtitle)}</span>
+        <h1 class="sn-page-h1">${escapeHtml(title)}</h1>
         ${slug === 'faq' ? `
           <div style="display:flex;flex-direction:column;gap:4px;">
             ${parsedFaqBlocks.map(b => {
