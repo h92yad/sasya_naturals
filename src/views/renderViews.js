@@ -4969,7 +4969,7 @@ function renderAdminPortalPage({
                     </div>
                   </div>
 
-                  <div class="sn-grid-3" style="gap:10px;margin-bottom:16px;">
+                  <div class="sn-grid-2" style="gap:10px;margin-bottom:12px;">
                     <div>
                       <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Golden Brush Ribbon Text *</label>
                       <input type="text" name="heroHighlightBanner" required value="${escapeHtml(contentAndSeo.homepage.heroHighlightBanner || 'Pure | Natural | Wholesome')}" class="sn-input" />
@@ -4978,9 +4978,32 @@ function renderAdminPortalPage({
                       <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Pack Sizes Callout Line *</label>
                       <input type="text" name="heroPackSizesText" required value="${escapeHtml(contentAndSeo.homepage.heroPackSizesText || 'Available in convenient 100 g, 250 g, 500 g and 1 kg packs.')}" class="sn-input" />
                     </div>
-                    <div>
-                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Right Visual Image Path *</label>
-                      <input type="text" name="heroImageUrl" required value="${escapeHtml(contentAndSeo.homepage.heroImageUrl || '/images/hero-pouch-spread.jpg')}" class="sn-input" />
+                  </div>
+
+                  <div class="sn-card" style="background-color:var(--sn-bg-surface);padding:12px 14px;margin-bottom:16px;border:1px solid var(--sn-border-strong);">
+                    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+                      <img
+                        id="sn-admin-hero-img-preview"
+                        src="${basePath}${escapeHtml(contentAndSeo.homepage.heroImageUrl || '/images/hero-pouch-spread.jpg')}"
+                        alt="Homepage Hero Visual Preview"
+                        style="width:128px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--sn-border-strong);background-color:#F6EFE0;flex-shrink:0;"
+                      />
+                      <div style="flex:1;min-width:240px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+                          <strong style="font-size:0.84rem;color:var(--sn-bg-forest);">🖼️ Homepage Hero Right Visual Image (Upload New Photo or Edit Path)</strong>
+                          <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-admin-hero-img-reset-btn" style="padding:3px 10px;font-size:0.72rem;">↺ Reset to Default Pouch Spread</button>
+                        </div>
+                        <div class="sn-grid-2" style="gap:10px;align-items:end;">
+                          <div>
+                            <label for="sn-admin-hero-img-file" style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Upload New Hero Image (JPEG / PNG / WebP)</label>
+                            <input type="file" name="heroImageFile" id="sn-admin-hero-img-file" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input sn-file-input-sm" />
+                          </div>
+                          <div>
+                            <label for="sn-admin-hero-img-url" style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Active Hero Image Path *</label>
+                            <input type="text" name="heroImageUrl" id="sn-admin-hero-img-url" required value="${escapeHtml(contentAndSeo.homepage.heroImageUrl || '/images/hero-pouch-spread.jpg')}" class="sn-input" style="font-family:var(--sn-font-mono);font-size:0.78rem;" />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 

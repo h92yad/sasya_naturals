@@ -4330,19 +4330,70 @@
 
     // 11. Module 9: Storefront Content & SEO Manager (9.1 Homepage, 9.2 Info Pages, 9.3 Route SEO + Live SERP Preview)
     const homepageContentForm = document.getElementById('sn-admin-content-homepage-form');
+    const heroImgFileInput = document.getElementById('sn-admin-hero-img-file');
+    const heroImgUrlInput = document.getElementById('sn-admin-hero-img-url');
+    const heroImgPreview = document.getElementById('sn-admin-hero-img-preview');
+    const heroImgResetBtn = document.getElementById('sn-admin-hero-img-reset-btn');
+
+    if (heroImgFileInput && heroImgPreview) {
+      heroImgFileInput.addEventListener('change', async () => {
+        const f = heroImgFileInput.files && heroImgFileInput.files[0];
+        if (!f) return;
+        try {
+          const dataUrl = await readFileAsDataUrl(f);
+          if (dataUrl) heroImgPreview.src = dataUrl;
+        } catch (err) {
+          showToast(err.message || 'Invalid image file');
+        }
+      });
+    }
+
+    if (heroImgUrlInput && heroImgPreview) {
+      heroImgUrlInput.addEventListener('input', () => {
+        const val = heroImgUrlInput.value.trim();
+        if (val.startsWith('/')) {
+          heroImgPreview.src = `${BASE_PATH}${val}`;
+        }
+      });
+    }
+
+    if (heroImgResetBtn) {
+      heroImgResetBtn.addEventListener('click', () => {
+        const defaultPath = '/images/hero-pouch-spread.jpg';
+        if (heroImgFileInput) heroImgFileInput.value = '';
+        if (heroImgUrlInput) heroImgUrlInput.value = defaultPath;
+        if (heroImgPreview) heroImgPreview.src = `${BASE_PATH}${defaultPath}`;
+        showToast('Reset Hero image path to default (/images/hero-pouch-spread.jpg). Click Save below to apply.');
+      });
+    }
+
     if (homepageContentForm) {
       homepageContentForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const email = getActiveAdminEmail();
         const fd = new FormData(homepageContentForm);
+        const heroFile = fd.get('heroImageFile');
         const payload = Object.fromEntries(fd.entries());
+        delete payload.heroImageFile;
+
+        let heroImageBase64 = '';
+        try {
+          heroImageBase64 = await readFileAsDataUrl(heroFile);
+          if (heroImageBase64) payload.heroImageBase64 = heroImageBase64;
+        } catch (imgErr) {
+          showToast(imgErr.message || 'Invalid hero image file');
+          return;
+        }
 
         if (IS_STATIC_SHOWCASE) {
           if (email !== 'superadmin@sashyanaturals.com') {
             showToast('403 RBAC Permission Denied: Only SUPER_ADMIN can edit Homepage & Global Shell copy.');
             return;
           }
-          showToast('[Showcase Verified] Updated Homepage Hero, Topbar & Global Footer Copy!');
+          if (heroImageBase64 && heroImgPreview) {
+            heroImgPreview.src = heroImageBase64;
+          }
+          showToast('[Showcase Verified] Updated Homepage Hero (including Hero Image), Topbar & Global Footer Copy!');
           return;
         }
 
@@ -4359,7 +4410,12 @@
           showToast(data.error || 'Failed to update homepage content');
           return;
         }
-        showToast('Saved Homepage Hero, Topbar & Global Footer Copy!');
+        if (data.homepage && data.homepage.heroImageUrl) {
+          if (heroImgUrlInput) heroImgUrlInput.value = data.homepage.heroImageUrl;
+          if (heroImgPreview) heroImgPreview.src = `${BASE_PATH}${data.homepage.heroImageUrl}`;
+          if (heroImgFileInput) heroImgFileInput.value = '';
+        }
+        showToast('Saved Homepage Hero (Image & Copy), Topbar & Global Footer!');
       });
     }
 

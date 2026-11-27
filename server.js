@@ -918,6 +918,10 @@ function createServerHandler() {
         const adminUser = resolveAdminUser(req);
         assertAdminPermission(adminUser, 'settings.manage');
         const body = await readJsonBody(req);
+        if (body.heroImageBase64) {
+          const savedImg = saveVerifiedImageToUploads(body.heroImageBase64, 'homepage-hero');
+          body.heroImageUrl = savedImg.publicUrl;
+        }
         const homepage = updateHomepageContent(body, {
           actorId: adminUser.id,
           actorEmail: adminUser.email,
