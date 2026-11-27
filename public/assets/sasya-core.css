@@ -987,7 +987,9 @@ img {
   margin-bottom: 30px;
 }
 
-.sn-section-head h1 {
+.sn-section-head h1,
+.sn-page-h1,
+.sn-pdp-title {
   font-family: var(--sn-font-serif);
   font-style: italic;
   font-synthesis: style;
@@ -1002,8 +1004,17 @@ img {
   padding-bottom: 10px;
 }
 
+.sn-page-h1 {
+  margin-bottom: 18px;
+}
+
+.sn-pdp-title {
+  margin-bottom: 12px;
+}
+
 .sn-section-head h1::after,
-.sn-page-h1::after {
+.sn-page-h1::after,
+.sn-pdp-title::after {
   content: "";
   display: block;
   width: 96px;
@@ -1024,33 +1035,6 @@ img {
   letter-spacing: -0.008em;
   word-spacing: -0.05em;
   line-height: 1.16;
-}
-
-.sn-page-h1 {
-  font-family: var(--sn-font-serif);
-  font-style: italic;
-  font-synthesis: style;
-  font-weight: 700;
-  font-size: clamp(1.95rem, 3vw, 2.6rem);
-  color: var(--sn-heading-navy);
-  margin: 0 0 22px;
-  letter-spacing: -0.008em;
-  word-spacing: -0.055em;
-  line-height: 1.14;
-  position: relative;
-}
-
-.sn-pdp-title {
-  font-family: var(--sn-font-serif);
-  font-style: italic;
-  font-synthesis: style;
-  font-weight: 700;
-  font-size: clamp(1.85rem, 2.85vw, 2.5rem);
-  color: var(--sn-heading-navy);
-  margin: 0 0 12px;
-  letter-spacing: -0.008em;
-  word-spacing: -0.055em;
-  line-height: 1.15;
 }
 
 .sn-invoice-h1 {
