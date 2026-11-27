@@ -88,6 +88,9 @@ function runVerifyHydration() {
 
   const homeHtml = pages.find(p => p.name === 'Home').html;
   assert(homeHtml.includes('id="hero-banner"') && homeHtml.includes('id="pantry-categories"') && homeHtml.includes('id="featured-harvests"') && homeHtml.includes('id="bestsellers"'), 'Home page must include section bookmark IDs');
+  assert(homeHtml.includes('id="hero-eyebrow-pill"') && homeHtml.includes('id="hero-highlight-ribbon"') && homeHtml.includes('id="hero-pack-sizes-row"'), 'Home page hero must render editable pill eyebrow, golden brush ribbon, and pack-sizes row');
+  assert(homeHtml.includes('class="sn-hero-origins-bar"') && homeHtml.includes('Kashmir') && homeHtml.includes('Meghalaya'), 'Home page hero must render the 5-region origin bar');
+  assert(!homeHtml.includes('id="hero-shop-all-btn"'), 'Home page hero must omit CTA buttons to strictly match the reference artwork');
   assert(homeHtml.includes('rel="bookmark"'), 'Product and category cards must include rel="bookmark"');
 
   const pdpHtml = pages.find(p => p.name === 'PDP Almonds').html;

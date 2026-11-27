@@ -246,10 +246,17 @@ function runVerifyRbacAndAudit() {
   assert(userPurchasesCsv.includes('SN-2026-1000'), 'User purchases CSV must include order SN-2026-1000');
 
   const updatedHome = updateHomepageContent(
-    { heroBatchCaptionLeft: 'Harvest Batch: Dec 2026' },
+    {
+      heroBatchCaptionLeft: 'Harvest Batch: Dec 2026',
+      heroHighlightBanner: 'Pure | Natural | Wholesome',
+      region1Title: 'Kashmir',
+      region5Sub: 'Aromatic Spices'
+    },
     { actorId: superAdmin.id, actorEmail: superAdmin.email, actorRole: superAdmin.role }
   );
   assert.strictEqual(updatedHome.heroBatchCaptionLeft, 'Harvest Batch: Dec 2026', 'updateHomepageContent must persist updated hero batch caption');
+  assert.strictEqual(updatedHome.heroHighlightBanner, 'Pure | Natural | Wholesome', 'updateHomepageContent must persist updated hero highlight ribbon');
+  assert.strictEqual(updatedHome.region5Sub, 'Aromatic Spices', 'updateHomepageContent must persist updated 5-region origin bar copy');
 
   const updatedFaq = updateInfoPageContent(
     {

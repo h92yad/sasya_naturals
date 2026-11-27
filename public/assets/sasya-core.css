@@ -616,15 +616,28 @@ img {
 }
 
 .sn-hero {
-  padding: 48px 0 56px;
+  position: relative;
+  overflow: hidden;
+  padding: 26px 0 28px;
+  background: linear-gradient(135deg, #FEF9EC 0%, #FAF5E4 48%, #F4E9CC 100%);
   border-bottom: 1px solid var(--sn-border-warm);
+}
+
+.sn-hero-shell {
+  position: relative;
 }
 
 .sn-hero-grid {
   display: grid;
-  grid-template-columns: 1.08fr 0.92fr;
-  gap: 44px;
+  grid-template-columns: 1.04fr 0.96fr;
+  gap: 18px;
   align-items: center;
+}
+
+.sn-hero-copy {
+  position: relative;
+  z-index: 2;
+  padding: 6px 0 10px;
 }
 
 .sn-eyebrow {
@@ -638,28 +651,190 @@ img {
   margin-bottom: 12px;
 }
 
-.sn-hero h1 {
-  font-family: var(--sn-font-serif);
-  font-size: clamp(2.15rem, 3.6vw, 3.2rem);
+.sn-hero-pill-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(180deg, #1B2763 0%, #131B4B 100%);
+  color: #FFFFFF;
+  border: 2px solid #E5B83B;
+  box-shadow: 0 3px 10px rgba(19, 27, 75, 0.14);
+  border-radius: 999px;
+  padding: 7px 20px;
+  font-family: var(--sn-font-sans);
+  font-size: 0.8rem;
   font-weight: 600;
-  line-height: 1.14;
-  letter-spacing: -0.02em;
-  color: var(--sn-bg-forest);
-  margin: 0 0 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+  line-height: 1.25;
+  margin-bottom: 16px;
+}
+
+.sn-hero h1,
+.sn-hero-display-title {
+  font-family: var(--sn-font-serif);
+  font-style: italic;
+  font-size: clamp(2.2rem, 3.65vw, 3.3rem);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  color: #111A4D;
+  margin: 0 0 16px;
+}
+
+.sn-hero-title-line1 {
+  display: block;
+}
+
+.sn-hero-title-line2 {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.sn-hero-title-swoosh {
+  width: clamp(115px, 13.5vw, 172px);
+  height: 24px;
+  flex-shrink: 0;
+  margin-top: 6px;
 }
 
 .sn-hero-lead {
-  font-size: 1.05rem;
-  color: var(--sn-text-secondary);
-  margin: 0 0 28px;
-  max-width: 58ch;
+  font-size: 1.06rem;
+  font-weight: 600;
+  line-height: 1.42;
+  color: #151E52;
+  margin: 0 0 13px;
+  max-width: 50ch;
 }
 
-.sn-hero-ctas {
+.sn-hero-body-text {
+  font-size: 0.925rem;
+  font-weight: 400;
+  line-height: 1.54;
+  color: #232A4A;
+  margin: 0 0 18px;
+  max-width: 56ch;
+}
+
+.sn-hero-brush-ribbon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 34px 10px 24px;
+  margin: 0 0 16px;
+}
+
+.sn-hero-brush-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  filter: drop-shadow(0 2px 6px rgba(229, 175, 22, 0.2));
+}
+
+.sn-hero-brush-text {
+  position: relative;
+  z-index: 1;
+  font-family: var(--sn-font-serif);
+  font-style: italic;
+  font-weight: 700;
+  font-size: clamp(1.2rem, 1.85vw, 1.5rem);
+  color: #111A4D;
+  letter-spacing: 0.01em;
+}
+
+.sn-hero-pack-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-bottom: 32px;
+  align-items: center;
+  gap: 11px;
+}
+
+.sn-hero-pack-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.sn-hero-pack-text {
+  font-size: 0.95rem;
+  color: #161F52;
+  font-weight: 500;
+}
+
+.sn-hero-pack-text strong {
+  font-weight: 700;
+  color: #0F1640;
+}
+
+.sn-hero-visual {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.sn-hero-pouch-img {
+  width: 100%;
+  max-width: 615px;
+  height: auto;
+  object-fit: contain;
+  border-radius: 16px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.72) 5%, #000000 14%);
+  mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.72) 5%, #000000 14%);
+}
+
+.sn-hero-origins-bar {
+  position: relative;
+  z-index: 3;
+  margin-top: 12px;
+  background: linear-gradient(180deg, rgba(253, 247, 230, 0.96) 0%, rgba(246, 235, 204, 0.98) 100%);
+  border: 1.5px solid rgba(212, 190, 138, 0.9);
+  border-radius: 999px;
+  padding: 13px 20px;
+  box-shadow: 0 8px 26px rgba(22, 33, 91, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  align-items: center;
+}
+
+.sn-hero-origin-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  padding: 4px 12px;
+  border-right: 1.5px solid #CBB682;
+}
+
+.sn-hero-origin-item:last-child {
+  border-right: none;
+}
+
+.sn-hero-origin-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.sn-hero-origin-copy strong {
+  display: block;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #121B50;
+  line-height: 1.2;
+}
+
+.sn-hero-origin-copy span {
+  display: block;
+  font-size: 0.81rem;
+  font-weight: 500;
+  color: #242C50;
+  line-height: 1.28;
+  margin-top: 2px;
 }
 
 .sn-trust-strip {
@@ -679,32 +854,6 @@ img {
 .sn-trust-item span {
   font-size: 0.78rem;
   color: var(--sn-text-muted);
-}
-
-.sn-hero-media {
-  position: relative;
-  border-radius: var(--sn-radius-lg);
-  overflow: hidden;
-  box-shadow: var(--sn-shadow-elevated);
-  border: 1px solid var(--sn-border-strong);
-  background-color: var(--sn-bg-mortar);
-}
-
-.sn-hero-media img {
-  width: 100%;
-  height: 430px;
-  object-fit: cover;
-}
-
-.sn-hero-caption {
-  background-color: var(--sn-bg-forest);
-  color: #FAF5E4;
-  padding: 14px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.8125rem;
-  font-family: var(--sn-font-mono);
 }
 
 .sn-section {
@@ -2036,6 +2185,29 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
     grid-template-columns: 1fr;
   }
 
+  .sn-hero-visual {
+    justify-content: center;
+  }
+
+  .sn-hero-pouch-img {
+    max-width: 540px;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .sn-hero-origins-bar {
+    border-radius: 24px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px 6px;
+    padding: 14px 16px;
+  }
+
+  .sn-hero-origin-item {
+    justify-content: flex-start;
+    border-right: none;
+    padding: 6px 10px;
+  }
+
   /* Keep PDP gallery & buy-box 2-column side-by-side on Tablet (641px-960px) so CTA is above the fold */
   .sn-pdp-main-layout {
     grid-template-columns: 0.92fr 1.08fr;
@@ -2353,6 +2525,24 @@ input[type="file"].sn-input.sn-file-input-sm::file-selector-button {
 
   .sn-hero {
     padding: 18px 0 24px;
+  }
+
+  .sn-hero-pill-eyebrow {
+    font-size: 0.7rem;
+    padding: 6px 14px;
+    border-radius: 16px;
+  }
+
+  .sn-hero-origins-bar {
+    grid-template-columns: repeat(2, 1fr);
+    border-radius: 18px;
+    padding: 12px;
+    gap: 10px 8px;
+  }
+
+  .sn-hero-origin-icon {
+    width: 36px;
+    height: 36px;
   }
 
   .sn-header-inner {

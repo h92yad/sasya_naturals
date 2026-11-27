@@ -8,10 +8,25 @@ const DEFAULT_HOMEPAGE_CONTENT = {
   topbarBadge1: 'Unpolished Native Grains',
   topbarBadge2: 'Single-Origin Spices',
   topbarBadge3: 'Razorpay UPI / Cards & COD',
-  heroEyebrow: 'Direct-To-Customer Indian Pantry • Batch Traceable',
-  heroHeading: 'Single-Origin Dry Fruits, Unpolished Native Millets & Heirloom Spices',
+  heroEyebrow: 'DIRECT FROM INDIAN GROWERS • QUALITY YOU CAN TRUST',
+  heroHeading: 'A Little More Goodness, Every Day.',
   heroLead:
-    'Every Sashya Naturals harvest is sourced directly from regional grower cooperatives in Kashmir, Goa, Karnataka, Kerala, and Meghalaya. Packed fresh in 100 g, 250 g, 500 g, and 1 kg pouches with transparent batch labels.',
+    'Discover carefully selected dry fruits, native millets, traditional spices and wholesome natural foods from across India.',
+  heroBodyText:
+    "At Sashya Naturals, we bring nature's goodness closer to your home through thoughtfully sourced ingredients, carefully selected products and hygienic packaging. Every product reflects our commitment to quality, purity and trust.",
+  heroHighlightBanner: 'Pure | Natural | Wholesome',
+  heroPackSizesText: 'Available in convenient 100 g, 250 g, 500 g and 1 kg packs.',
+  heroImageUrl: '/images/hero-pouch-spread.jpg',
+  region1Title: 'Kashmir',
+  region1Sub: 'Dry Fruits',
+  region2Title: 'Goa',
+  region2Sub: 'Natural Produce',
+  region3Title: 'Karnataka',
+  region3Sub: 'Native Millets',
+  region4Title: 'Kerala',
+  region4Sub: 'Wholesome Ingredients',
+  region5Title: 'Meghalaya',
+  region5Sub: 'Aromatic Spices',
   heroPrimaryCtaLabel: 'Explore Full Pantry',
   heroSecondaryCtaLabel: 'Track Your Order',
   heroBatchCaptionLeft: 'Harvest Batch: Nov 2026',
@@ -181,6 +196,18 @@ function getStorefrontContentAndSeo() {
   const map = Object.fromEntries(rows.map(r => [r.key, r.value]));
 
   const savedHomepage = safeParseJson(map.content_homepage_json, {});
+  if (savedHomepage.heroEyebrow === 'Direct-To-Customer Indian Pantry • Batch Traceable') {
+    delete savedHomepage.heroEyebrow;
+  }
+  if (savedHomepage.heroHeading === 'Single-Origin Dry Fruits, Unpolished Native Millets & Heirloom Spices') {
+    delete savedHomepage.heroHeading;
+  }
+  if (
+    typeof savedHomepage.heroLead === 'string' &&
+    savedHomepage.heroLead.startsWith('Every Sashya Naturals harvest is sourced directly from regional grower cooperatives')
+  ) {
+    delete savedHomepage.heroLead;
+  }
   const homepage = {
     ...DEFAULT_HOMEPAGE_CONTENT,
     ...savedHomepage
@@ -346,6 +373,14 @@ function updateHomepageContent(payload = {}, actor = {}) {
     if (payload[key] !== undefined && cleanDash(payload[key]) !== '') {
       next[key] = cleanDash(payload[key]);
     }
+  }
+
+  if (next.heroImageUrl) {
+    const rawHeroImg = String(next.heroImageUrl).trim();
+    if (/^https?:\/\//i.test(rawHeroImg) || rawHeroImg.startsWith('//') || rawHeroImg.includes('..') || /[<>"'\s]/.test(rawHeroImg)) {
+      throw new Error('Hero image path must be a local storefront path starting with "/" (e.g. /images/hero-pouch-spread.jpg).');
+    }
+    next.heroImageUrl = rawHeroImg.startsWith('/') ? rawHeroImg : `/${rawHeroImg}`;
   }
 
   const combinedText = Object.values(next).join(' ');

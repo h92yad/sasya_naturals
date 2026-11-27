@@ -606,42 +606,164 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
     ? 'Three Core Pantry Pillars'
     : `${categories.length} Curated Pantry Collections`;
 
+  const rawHeading = String(hp.heroHeading || 'A Little More Goodness, Every Day.').trim();
+  let heroLine1 = rawHeading;
+  let heroLine2 = '';
+  if (rawHeading.includes('\n')) {
+    const parts = rawHeading.split('\n').map(s => s.trim()).filter(Boolean);
+    heroLine1 = parts[0] || rawHeading;
+    heroLine2 = parts.slice(1).join(' ');
+  } else if (rawHeading.includes(',')) {
+    const commaIdx = rawHeading.indexOf(',');
+    heroLine1 = rawHeading.slice(0, commaIdx + 1).trim();
+    heroLine2 = rawHeading.slice(commaIdx + 1).trim();
+  }
+
+  const rawPackText = String(hp.heroPackSizesText || 'Available in convenient 100 g, 250 g, 500 g and 1 kg packs.').trim();
+  const convMatch = rawPackText.match(/^(.*?\bconvenient\s+)(.+)$/i);
+  const formattedPackSizesHtml = convMatch
+    ? `${escapeHtml(convMatch[1])}<strong>${escapeHtml(convMatch[2])}</strong>`
+    : escapeHtml(rawPackText).replace(/(\b\d+\s*(?:g|kg)\b)/gi, '<strong>$1</strong>');
+
+  const heroImgSrc = `${basePath}${escapeHtml(hp.heroImageUrl || '/images/hero-pouch-spread.jpg')}`;
+
   const bodyHtml = `
     <section class="sn-hero" id="hero-banner">
-      <div class="sn-container sn-hero-grid">
-        <div>
-          <span class="sn-eyebrow">${escapeHtml(hp.heroEyebrow)}</span>
-          <h1>${escapeHtml(hp.heroHeading)}</h1>
-          <p class="sn-hero-lead">
-            ${escapeHtml(hp.heroLead)}
-          </p>
-          <div class="sn-hero-ctas">
-            <a href="${basePath}/shop" class="sn-btn sn-btn-primary" id="hero-shop-all-btn">${escapeHtml(hp.heroPrimaryCtaLabel)}</a>
-            ${staticShowcaseScript
-              ? `<a href="${basePath}/track-order?order=SN-2026-1001" class="sn-btn sn-btn-outline" id="hero-track-demo-btn">${escapeHtml(hp.heroSecondaryCtaLabel)}</a>`
-              : `<a href="${basePath}/shop?tag=bestseller" class="sn-btn sn-btn-outline" id="hero-track-demo-btn">Explore Bestsellers</a>`
-            }
+      <div class="sn-container sn-hero-shell">
+        <div class="sn-hero-grid">
+          <div class="sn-hero-copy">
+            <div class="sn-hero-pill-eyebrow" id="hero-eyebrow-pill">${escapeHtml(hp.heroEyebrow)}</div>
+            <h1 class="sn-hero-display-title">
+              <span class="sn-hero-title-line1">${escapeHtml(heroLine1)}</span>
+              ${heroLine2 ? `
+              <span class="sn-hero-title-line2">
+                <span>${escapeHtml(heroLine2)}</span>
+                <svg class="sn-hero-title-swoosh" viewBox="0 0 180 26" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <path d="M4 19.5C44 6.2 114 4.5 175 15.2C138 11.8 70 14.2 10 23.2C4.2 24 1.5 20.4 4 19.5Z" fill="#F2C12E"/>
+                  <path d="M12 15.4C54 6.4 118 5.4 166 13.2" stroke="#E5AF16" stroke-width="2.4" stroke-linecap="round"/>
+                </svg>
+              </span>
+              ` : `
+              <svg class="sn-hero-title-swoosh" viewBox="0 0 180 26" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M4 19.5C44 6.2 114 4.5 175 15.2C138 11.8 70 14.2 10 23.2C4.2 24 1.5 20.4 4 19.5Z" fill="#F2C12E"/>
+                <path d="M12 15.4C54 6.4 118 5.4 166 13.2" stroke="#E5AF16" stroke-width="2.4" stroke-linecap="round"/>
+              </svg>
+              `}
+            </h1>
+            <p class="sn-hero-lead">
+              ${escapeHtml(hp.heroLead)}
+            </p>
+            <p class="sn-hero-body-text">
+              ${escapeHtml(hp.heroBodyText || '')}
+            </p>
+            <div class="sn-hero-brush-ribbon" id="hero-highlight-ribbon">
+              <svg class="sn-hero-brush-bg" viewBox="0 0 460 58" preserveAspectRatio="none" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M14 10C48 4 398 3 442 9C455 11 458 21 448 27C457 32 452 44 436 48C392 54 52 55 16 49C3 46 2 34 11 28C3 22 5 12 14 10Z" fill="url(#snBrushGrad)"/>
+                <path d="M22 6C110 2 350 2 434 7" stroke="#F6D365" stroke-width="2" stroke-linecap="round" opacity="0.75"/>
+                <path d="M26 52C120 55 340 55 428 50" stroke="#E5B228" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+                <defs>
+                  <linearGradient id="snBrushGrad" x1="0" y1="0" x2="460" y2="58" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#F7D358"/>
+                    <stop offset="50%" stop-color="#F2C12E"/>
+                    <stop offset="100%" stop-color="#F5CC46"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span class="sn-hero-brush-text">${escapeHtml(hp.heroHighlightBanner || 'Pure | Natural | Wholesome')}</span>
+            </div>
+            <div class="sn-hero-pack-row" id="hero-pack-sizes-row">
+              <svg class="sn-hero-pack-icon" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M7 11.5L11.5 5.5H24.5L29 11.5V28.5C29 29.88 27.88 31 26.5 31H9.5C8.12 31 7 29.88 7 28.5V11.5Z" stroke="#16215B" stroke-width="1.9" stroke-linejoin="round"/>
+                <path d="M7 11.5H29" stroke="#16215B" stroke-width="1.9"/>
+                <path d="M18 5.5V11.5" stroke="#16215B" stroke-width="1.7"/>
+                <rect x="11" y="17" width="8" height="9" rx="1.2" stroke="#16215B" stroke-width="1.6"/>
+                <path d="M13 21.5H17" stroke="#16215B" stroke-width="1.4" stroke-linecap="round"/>
+                <path d="M23 15V28" stroke="#16215B" stroke-width="1.5" stroke-dasharray="2 2"/>
+              </svg>
+              <span class="sn-hero-pack-text">${formattedPackSizesHtml}</span>
+            </div>
           </div>
-          <div class="sn-trust-strip" id="trust-assurance">
-            <div class="sn-trust-item">
-              <strong>${escapeHtml(hp.trust1Title)}</strong>
-              <span>${escapeHtml(hp.trust1Sub)}</span>
-            </div>
-            <div class="sn-trust-item">
-              <strong>${escapeHtml(hp.trust2Title)}</strong>
-              <span>${escapeHtml(hp.trust2Sub)}</span>
-            </div>
-            <div class="sn-trust-item">
-              <strong>${escapeHtml(hp.trust3Title)}</strong>
-              <span>${escapeHtml(hp.trust3Sub)}</span>
-            </div>
+          <div class="sn-hero-visual">
+            <img src="${heroImgSrc}" alt="Sashya Naturals stand-up pouch surrounded by wooden bowls of dry fruits, native millets, and heirloom spices" class="sn-hero-pouch-img" />
           </div>
         </div>
-        <div class="sn-hero-media">
-          <img src="${basePath}/images/hero-pantry.jpg" alt="Sashya Naturals dry fruits, unpolished millets, and heirloom spices" />
-          <div class="sn-hero-caption">
-            <span>${escapeHtml(hp.heroBatchCaptionLeft)}</span>
-            <span>${escapeHtml(hp.heroBatchCaptionRight)}</span>
+
+        <div class="sn-hero-origins-bar" id="trust-assurance" aria-label="Regional Sourcing Origins">
+          <div class="sn-hero-origin-item">
+            <svg class="sn-hero-origin-icon" viewBox="0 0 56 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M6 42C6 22 15.5 8 28 8C40.5 8 50 22 50 42" stroke="#16215B" stroke-width="2" stroke-linecap="round"/>
+              <path d="M7 42L21 22L29 33L36 24L49 42H7Z" stroke="#16215B" stroke-width="1.9" stroke-linejoin="round"/>
+              <path d="M21 22L25 32L21 42H7L21 22Z" fill="#16215B" fill-opacity="0.14"/>
+              <path d="M36 24L49 42H34L36 24Z" fill="#16215B"/>
+              <path d="M17 28L21 26L24 29" stroke="#16215B" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="sn-hero-origin-copy">
+              <strong>${escapeHtml(hp.region1Title || 'Kashmir')}</strong>
+              <span>${escapeHtml(hp.region1Sub || 'Dry Fruits')}</span>
+            </div>
+          </div>
+
+          <div class="sn-hero-origin-item">
+            <svg class="sn-hero-origin-icon" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <circle cx="26" cy="26" r="20" stroke="#16215B" stroke-width="2"/>
+              <path d="M11 39C16 37 22 37 28 39C33 40.5 38 40 41 38.5" stroke="#16215B" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M24 38C24.5 30 26 24 28.5 18" stroke="#16215B" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M28.5 18C22 15 16 17 14 21" stroke="#16215B" stroke-width="2" stroke-linecap="round"/>
+              <path d="M28.5 18C21 19 17 23 16 27" stroke="#16215B" stroke-width="1.9" stroke-linecap="round"/>
+              <path d="M28.5 18C34 15 39 17 41 21" stroke="#16215B" stroke-width="2" stroke-linecap="round"/>
+              <path d="M28.5 18C35 19.5 38 23.5 38.5 27.5" stroke="#16215B" stroke-width="1.9" stroke-linecap="round"/>
+              <path d="M28.5 18C27 13 30 10 34 11" stroke="#16215B" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <div class="sn-hero-origin-copy">
+              <strong>${escapeHtml(hp.region2Title || 'Goa')}</strong>
+              <span>${escapeHtml(hp.region2Sub || 'Natural Produce')}</span>
+            </div>
+          </div>
+
+          <div class="sn-hero-origin-item">
+            <svg class="sn-hero-origin-icon" viewBox="0 0 54 50" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M7 42V25C7 13.5 16 6 27 6C38 6 47 13.5 47 25V42" stroke="#16215B" stroke-width="2" stroke-linecap="round"/>
+              <path d="M11 42H43" stroke="#16215B" stroke-width="2" stroke-linecap="round"/>
+              <path d="M27 11V15" stroke="#16215B" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M21 23C21 18.5 23.5 15.5 27 15.5C30.5 15.5 33 18.5 33 23H21Z" fill="#16215B" fill-opacity="0.18" stroke="#16215B" stroke-width="1.8"/>
+              <rect x="17" y="23" width="20" height="7" stroke="#16215B" stroke-width="1.8"/>
+              <rect x="14" y="30" width="26" height="12" stroke="#16215B" stroke-width="1.8"/>
+              <path d="M20 42V34M27 42V34M34 42V34" stroke="#16215B" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            <div class="sn-hero-origin-copy">
+              <strong>${escapeHtml(hp.region3Title || 'Karnataka')}</strong>
+              <span>${escapeHtml(hp.region3Sub || 'Native Millets')}</span>
+            </div>
+          </div>
+
+          <div class="sn-hero-origin-item">
+            <svg class="sn-hero-origin-icon" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <circle cx="26" cy="26" r="20" stroke="#16215B" stroke-width="2"/>
+              <path d="M12 39C18 37.5 25 38 39 39.5" stroke="#16215B" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M23 39C23.5 31 25.5 24 28 18" stroke="#16215B" stroke-width="2.4" stroke-linecap="round"/>
+              <path d="M28 18C21 15 15.5 17.5 13.5 22" stroke="#16215B" stroke-width="2" stroke-linecap="round"/>
+              <path d="M28 18C21.5 20 17.5 24 17 28.5" stroke="#16215B" stroke-width="1.9" stroke-linecap="round"/>
+              <path d="M28 18C34 15.5 39.5 18 41 22.5" stroke="#16215B" stroke-width="2" stroke-linecap="round"/>
+              <path d="M28 18C34 20 37.5 24.5 37.5 28.5" stroke="#16215B" stroke-width="1.9" stroke-linecap="round"/>
+            </svg>
+            <div class="sn-hero-origin-copy">
+              <strong>${escapeHtml(hp.region4Title || 'Kerala')}</strong>
+              <span>${escapeHtml(hp.region4Sub || 'Wholesome Ingredients')}</span>
+            </div>
+          </div>
+
+          <div class="sn-hero-origin-item">
+            <svg class="sn-hero-origin-icon" viewBox="0 0 54 50" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M6 39V25C6 13.5 15.5 6 27 6C38.5 6 48 13.5 48 25V39" stroke="#16215B" stroke-width="2" stroke-linecap="round"/>
+              <path d="M6 38L19 23L29 33L38 22L48 38C42 42 35 44 27 44C19 44 12 42 6 38Z" fill="#16215B" stroke="#16215B" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M12 37C18 35 25 35 33 38" stroke="#FAF5E4" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M20 40C27 38.5 35 38.5 42 40.5" stroke="#FAF5E4" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M22 15C24 13.5 27 13.5 29 15C31 13.5 34 14 35 16" stroke="#16215B" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            <div class="sn-hero-origin-copy">
+              <strong>${escapeHtml(hp.region5Title || 'Meghalaya')}</strong>
+              <span>${escapeHtml(hp.region5Sub || 'Aromatic Spices')}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -4765,10 +4887,10 @@ function renderAdminPortalPage({
                 <button type="button" class="sn-admin-subtab-pill" data-admin-subtab-btn="content:coupons" id="subtab-btn-content-coupons">🏷️ 9.4 Coupons, Promotions &amp; Hello Bar</button>
               </div>
 
-              <!-- Sub-Panel 9.1 (Default): Homepage Hero, Topbar Badges, Trust Strip & Footer Copy -->
+              <!-- Sub-Panel 9.1 (Default): Homepage Hero, Regional Sourcing Bar, Topbar Badges & Footer Copy -->
               <div data-admin-subpanel="content:homepage">
                 <form id="sn-admin-content-homepage-form" class="sn-card" style="background-color:var(--sn-bg-parchment);padding:16px 18px;">
-                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">1. Topbar Announcement Badges &amp; Homepage Hero Section</h3>
+                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">1. Topbar Announcement Badges &amp; Homepage Hero Copy</h3>
 
                   <div class="sn-grid-3" style="gap:10px;margin-bottom:12px;">
                     <div>
@@ -4787,56 +4909,68 @@ function renderAdminPortalPage({
 
                   <div class="sn-grid-2" style="gap:10px;margin-bottom:12px;">
                     <div>
-                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Eyebrow *</label>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Pill Eyebrow Badge *</label>
                       <input type="text" name="heroEyebrow" required value="${escapeHtml(contentAndSeo.homepage.heroEyebrow)}" class="sn-input" />
                     </div>
                     <div>
-                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero H1 Main Headline *</label>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero H1 Main Headline (Comma Splits Line 1 &amp; Line 2 Swoosh) *</label>
                       <input type="text" name="heroHeading" required value="${escapeHtml(contentAndSeo.homepage.heroHeading)}" class="sn-input" />
                     </div>
                   </div>
 
-                  <div style="margin-bottom:12px;">
-                    <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Lead Paragraph (Humanizer-Checked) *</label>
-                    <textarea name="heroLead" rows="2" required class="sn-textarea">${escapeHtml(contentAndSeo.homepage.heroLead)}</textarea>
-                  </div>
-
-                  <div class="sn-grid-4" style="gap:10px;margin-bottom:16px;">
+                  <div class="sn-grid-2" style="gap:10px;margin-bottom:12px;">
                     <div>
-                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Primary CTA Button Text *</label>
-                      <input type="text" name="heroPrimaryCtaLabel" required value="${escapeHtml(contentAndSeo.homepage.heroPrimaryCtaLabel)}" class="sn-input" />
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Bold Lead Subheadline (Humanizer-Checked) *</label>
+                      <textarea name="heroLead" rows="2" required class="sn-textarea">${escapeHtml(contentAndSeo.homepage.heroLead)}</textarea>
                     </div>
                     <div>
-                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Secondary CTA Button Text *</label>
-                      <input type="text" name="heroSecondaryCtaLabel" required value="${escapeHtml(contentAndSeo.homepage.heroSecondaryCtaLabel)}" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Image Batch Tag *</label>
-                      <input type="text" name="heroBatchCaptionLeft" required value="${escapeHtml(contentAndSeo.homepage.heroBatchCaptionLeft)}" class="sn-input" />
-                    </div>
-                    <div>
-                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Image Dispatch Tag *</label>
-                      <input type="text" name="heroBatchCaptionRight" required value="${escapeHtml(contentAndSeo.homepage.heroBatchCaptionRight)}" class="sn-input" />
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Story Body Paragraph (Humanizer-Checked) *</label>
+                      <textarea name="heroBodyText" rows="2" required class="sn-textarea">${escapeHtml(contentAndSeo.homepage.heroBodyText || '')}</textarea>
                     </div>
                   </div>
 
-                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">2. Homepage 3 Trust Pillars &amp; Global Footer Copy</h3>
+                  <div class="sn-grid-3" style="gap:10px;margin-bottom:16px;">
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Golden Brush Ribbon Text *</label>
+                      <input type="text" name="heroHighlightBanner" required value="${escapeHtml(contentAndSeo.homepage.heroHighlightBanner || 'Pure | Natural | Wholesome')}" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Pack Sizes Callout Line *</label>
+                      <input type="text" name="heroPackSizesText" required value="${escapeHtml(contentAndSeo.homepage.heroPackSizesText || 'Available in convenient 100 g, 250 g, 500 g and 1 kg packs.')}" class="sn-input" />
+                    </div>
+                    <div>
+                      <label style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">Hero Right Visual Image Path *</label>
+                      <input type="text" name="heroImageUrl" required value="${escapeHtml(contentAndSeo.homepage.heroImageUrl || '/images/hero-pouch-spread.jpg')}" class="sn-input" />
+                    </div>
+                  </div>
+
+                  <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;font-size:1.1rem;color:var(--sn-bg-forest);">2. Bottom 5-Region Sourcing Strip &amp; Global Footer Copy</h3>
 
                   <div class="sn-grid-3" style="gap:10px;margin-bottom:12px;">
                     <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
-                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Trust Pillar 1 Title &amp; Subtitle</label>
-                      <input type="text" name="trust1Title" required value="${escapeHtml(contentAndSeo.homepage.trust1Title)}" class="sn-input" style="margin-bottom:6px;" />
-                      <input type="text" name="trust1Sub" required value="${escapeHtml(contentAndSeo.homepage.trust1Sub)}" class="sn-input" />
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Region 1 (Mountains Emblem) Title &amp; Specialty</label>
+                      <input type="text" name="region1Title" required value="${escapeHtml(contentAndSeo.homepage.region1Title || 'Kashmir')}" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="region1Sub" required value="${escapeHtml(contentAndSeo.homepage.region1Sub || 'Dry Fruits')}" class="sn-input" />
                     </div>
                     <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
-                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Trust Pillar 2 Title &amp; Subtitle</label>
-                      <input type="text" name="trust2Title" required value="${escapeHtml(contentAndSeo.homepage.trust2Title)}" class="sn-input" style="margin-bottom:6px;" />
-                      <input type="text" name="trust2Sub" required value="${escapeHtml(contentAndSeo.homepage.trust2Sub)}" class="sn-input" />
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Region 2 (Coastal Palm Emblem) Title &amp; Specialty</label>
+                      <input type="text" name="region2Title" required value="${escapeHtml(contentAndSeo.homepage.region2Title || 'Goa')}" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="region2Sub" required value="${escapeHtml(contentAndSeo.homepage.region2Sub || 'Natural Produce')}" class="sn-input" />
                     </div>
                     <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
-                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Trust Pillar 3 Title &amp; Subtitle</label>
-                      <input type="text" name="trust3Title" required value="${escapeHtml(contentAndSeo.homepage.trust3Title)}" class="sn-input" style="margin-bottom:6px;" />
-                      <input type="text" name="trust3Sub" required value="${escapeHtml(contentAndSeo.homepage.trust3Sub)}" class="sn-input" />
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Region 3 (Heritage Dome Emblem) Title &amp; Specialty</label>
+                      <input type="text" name="region3Title" required value="${escapeHtml(contentAndSeo.homepage.region3Title || 'Karnataka')}" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="region3Sub" required value="${escapeHtml(contentAndSeo.homepage.region3Sub || 'Native Millets')}" class="sn-input" />
+                    </div>
+                    <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Region 4 (Coconut Palm Emblem) Title &amp; Specialty</label>
+                      <input type="text" name="region4Title" required value="${escapeHtml(contentAndSeo.homepage.region4Title || 'Kerala')}" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="region4Sub" required value="${escapeHtml(contentAndSeo.homepage.region4Sub || 'Wholesome Ingredients')}" class="sn-input" />
+                    </div>
+                    <div class="sn-card" style="padding:10px 12px;background-color:var(--sn-bg-surface);">
+                      <label style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Region 5 (Misty Hills Emblem) Title &amp; Specialty</label>
+                      <input type="text" name="region5Title" required value="${escapeHtml(contentAndSeo.homepage.region5Title || 'Meghalaya')}" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="region5Sub" required value="${escapeHtml(contentAndSeo.homepage.region5Sub || 'Aromatic Spices')}" class="sn-input" />
                     </div>
                   </div>
 
@@ -4852,7 +4986,7 @@ function renderAdminPortalPage({
                   </div>
 
                   <div style="display:flex;justify-content:flex-end;">
-                    <button type="submit" class="sn-btn sn-btn-forest" id="sn-save-homepage-content-btn">Save Homepage &amp; Global Shell Copy</button>
+                    <button type="submit" class="sn-btn sn-btn-forest" id="sn-save-homepage-content-btn">Save Homepage Hero &amp; Global Shell Copy</button>
                   </div>
                 </form>
               </div>
