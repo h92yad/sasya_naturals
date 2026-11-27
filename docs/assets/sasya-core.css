@@ -3404,3 +3404,78 @@ nav[id] {
   color: var(--sn-bg-forest);
   font-weight: 700;
 }
+
+/* Admin Image Upload Specification Tooltip Badge & Popover (Dimensions, Aspect Ratio & Format) */
+.sn-img-spec-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--sn-font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--sn-bg-forest);
+  background-color: #F3E8C8;
+  border: 1px solid rgba(229, 184, 59, 0.72);
+  border-radius: 999px;
+  padding: 2px 8px;
+  cursor: help;
+  user-select: none;
+  white-space: nowrap;
+  vertical-align: middle;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.sn-img-spec-tooltip:hover,
+.sn-img-spec-tooltip:focus-visible {
+  background-color: var(--sn-bg-forest);
+  color: #FAF5E4;
+  border-color: var(--sn-bg-forest);
+  outline: none;
+}
+
+.sn-img-spec-popover {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  min-width: 245px;
+  max-width: 290px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background-color: var(--sn-bg-forest);
+  color: #FAF5E4;
+  border: 1px solid var(--sn-accent-turmeric);
+  box-shadow: 0 10px 26px rgba(17, 26, 77, 0.28);
+  font-family: var(--sn-font-sans);
+  font-size: 0.74rem;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+  white-space: normal;
+  z-index: 1500;
+  pointer-events: none;
+}
+
+.sn-img-spec-popover strong {
+  color: var(--sn-accent-turmeric);
+  font-weight: 700;
+}
+
+.sn-img-spec-popover::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  right: 16px;
+  border-width: 6px;
+  border-style: solid;
+  border-color: var(--sn-bg-forest) transparent transparent transparent;
+}
+
+.sn-img-spec-tooltip:hover .sn-img-spec-popover,
+.sn-img-spec-tooltip:focus .sn-img-spec-popover,
+.sn-img-spec-tooltip:focus-visible .sn-img-spec-popover {
+  display: block;
+}
+

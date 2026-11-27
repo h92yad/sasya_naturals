@@ -55,6 +55,38 @@ function formatInr(paise) {
   });
 }
 
+const IMAGE_UPLOAD_SPECS = {
+  product: {
+    dimensions: '1200 × 900 px (min 640 × 480 px)',
+    aspectRatio: '4:3 Landscape',
+    formats: 'JPEG, PNG, or WebP (Max 3 MB)',
+    summary: 'Dimensions: 1200 × 900 px (min 640 × 480 px) • Aspect Ratio: 4:3 Landscape • Format: JPEG, PNG, or WebP (Max 3 MB)'
+  },
+  category: {
+    dimensions: '1200 × 900 px (min 800 × 600 px)',
+    aspectRatio: '4:3 Landscape',
+    formats: 'JPEG, PNG, or WebP (Max 3 MB)',
+    summary: 'Dimensions: 1200 × 900 px (min 800 × 600 px) • Aspect Ratio: 4:3 Landscape • Format: JPEG, PNG, or WebP (Max 3 MB)'
+  },
+  hero: {
+    dimensions: '1160 × 992 px (2x Retina) or 580 × 496 px',
+    aspectRatio: '7:6 (1.17:1) Composition',
+    formats: 'JPEG, PNG, or WebP (Max 3 MB)',
+    summary: 'Dimensions: 1160 × 992 px (or 580 × 496 px) • Aspect Ratio: 7:6 (1.17:1) • Format: JPEG, PNG, or WebP (Max 3 MB)'
+  },
+  opengraph: {
+    dimensions: '1200 × 630 px (or 1376 × 768 px)',
+    aspectRatio: '1.91:1 / 16:9 Widescreen',
+    formats: 'JPEG, PNG, or WebP',
+    summary: 'Dimensions: 1200 × 630 px (or 1376 × 768 px) • Aspect Ratio: 1.91:1 / 16:9 Widescreen • Format: JPEG, PNG, or WebP'
+  }
+};
+
+function renderImageSpecTooltip(typeKey = 'product') {
+  const spec = IMAGE_UPLOAD_SPECS[typeKey] || IMAGE_UPLOAD_SPECS.product;
+  return `<span class="sn-img-spec-tooltip" tabindex="0" role="note" aria-label="${escapeHtml(spec.summary)}" title="${escapeHtml(spec.summary)}" data-img-spec-badge="${escapeHtml(typeKey)}">ⓘ Specs<span class="sn-img-spec-popover" aria-hidden="true"><strong>Dimensions:</strong> ${escapeHtml(spec.dimensions)}<br/><strong>Aspect Ratio:</strong> ${escapeHtml(spec.aspectRatio)}<br/><strong>Format:</strong> ${escapeHtml(spec.formats)}</span></span>`;
+}
+
 function slugifyBookmarkId(text, prefix = 'sec', usedSet = null) {
   const base = String(text || '')
     .toLowerCase()
@@ -3232,7 +3264,7 @@ function renderAdminPortalPage({
                 <div class="sn-table-wrap" id="sn-admin-products-catalogue-table">
                   <table class="sn-table sn-table-cards" id="sn-admin-products-table">
                     <thead>
-                      <tr><th>Photo</th><th>SKU, HSN &amp; Flags</th><th>Product Name &amp; Origin</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th><th>Status &amp; Quick Edit</th><th>Quick Change Photo</th></tr>
+                      <tr><th>Photo</th><th>SKU, HSN &amp; Flags</th><th>Product Name &amp; Origin</th><th>Pack Variants (100g / 250g / 500g / 1kg)</th><th>Status &amp; Quick Edit</th><th>Quick Change Photo ${renderImageSpecTooltip('product')}</th></tr>
                     </thead>
                     <tbody>
                       ${products.map(p => {
@@ -3353,10 +3385,11 @@ function renderAdminPortalPage({
                               </div>
                             </td>
                             <td data-label="Quick Change Photo">
-                              <form class="sn-admin-inline-prod-img-form sn-admin-file-action-group">
+                              <form class="sn-admin-inline-prod-img-form sn-admin-file-action-group" title="${escapeHtml(IMAGE_UPLOAD_SPECS.product.summary)}">
                                 <input type="hidden" name="productId" value="${p.id}" />
-                                <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input sn-file-input sn-file-input-sm" />
+                                <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required title="${escapeHtml(IMAGE_UPLOAD_SPECS.product.summary)}" class="sn-input sn-file-input sn-file-input-sm" />
                                 <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Change</button>
+                                ${renderImageSpecTooltip('product')}
                               </form>
                             </td>
                           </tr>
@@ -3391,8 +3424,8 @@ function renderAdminPortalPage({
                         <input type="text" name="subtitle" required placeholder="e.g. Wood-Pressed Wooden Ghani Oils &amp; A2 Ghee" class="sn-input" />
                       </div>
                       <div>
-                        <label style="font-size:0.75rem;font-weight:600;">Category Banner Image (JPEG/PNG/WebP)</label>
-                        <input type="file" name="categoryImageFile" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input" />
+                        <label style="font-size:0.75rem;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;"><span>Category Banner Image (JPEG/PNG/WebP)</span> ${renderImageSpecTooltip('category')}</label>
+                        <input type="file" name="categoryImageFile" accept="image/jpeg,image/png,image/webp" title="${escapeHtml(IMAGE_UPLOAD_SPECS.category.summary)}" class="sn-input sn-file-input" />
                       </div>
                     </div>
                     <div class="sn-form-row-1-action" style="gap:12px;">
@@ -3407,7 +3440,7 @@ function renderAdminPortalPage({
                   <div class="sn-table-wrap">
                     <table class="sn-table sn-table-cards" id="sn-admin-categories-table">
                       <thead>
-                        <tr><th>Photo</th><th>Category Name &amp; Slug</th><th>Subtitle &amp; Description</th><th>Status &amp; Edit</th><th>Change Category Image</th></tr>
+                        <tr><th>Photo</th><th>Category Name &amp; Slug</th><th>Subtitle &amp; Description</th><th>Status &amp; Edit</th><th>Change Category Image ${renderImageSpecTooltip('category')}</th></tr>
                       </thead>
                       <tbody>
                         ${categories.map(c => `
@@ -3452,10 +3485,11 @@ function renderAdminPortalPage({
                               </div>
                             </td>
                             <td data-label="Update Banner Photo">
-                              <form class="sn-admin-cat-img-form sn-admin-file-action-group">
+                              <form class="sn-admin-cat-img-form sn-admin-file-action-group" title="${escapeHtml(IMAGE_UPLOAD_SPECS.category.summary)}">
                                 <input type="hidden" name="categoryId" value="${c.id}" />
-                                <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input sn-file-input sn-file-input-sm" />
+                                <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required title="${escapeHtml(IMAGE_UPLOAD_SPECS.category.summary)}" class="sn-input sn-file-input sn-file-input-sm" />
                                 <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Update Photo</button>
+                                ${renderImageSpecTooltip('category')}
                               </form>
                             </td>
                           </tr>
@@ -3595,10 +3629,10 @@ function renderAdminPortalPage({
 
                         <div class="sn-card" style="background-color:var(--sn-bg-parchment);padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
                           <div>
-                            <strong style="font-size:0.8rem;color:var(--sn-bg-forest);">🖼️ Primary Storefront Product Photo (JPEG / PNG / WebP)</strong>
+                            <strong style="font-size:0.8rem;color:var(--sn-bg-forest);display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;"><span>🖼️ Primary Storefront Product Photo (JPEG / PNG / WebP)</span> ${renderImageSpecTooltip('product')}</strong>
                             <div style="font-size:0.73rem;color:var(--sn-text-secondary);">Select an image file here to set or replace the primary product photo when you click Save below (or leave blank to keep current / category default).</div>
                           </div>
-                          <input type="file" name="productImageFile" id="sn-edit-prod-photo-file" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input sn-file-input-sm" style="max-width:280px;" />
+                          <input type="file" name="productImageFile" id="sn-edit-prod-photo-file" accept="image/jpeg,image/png,image/webp" title="${escapeHtml(IMAGE_UPLOAD_SPECS.product.summary)}" class="sn-input sn-file-input sn-file-input-sm" style="max-width:280px;" />
                         </div>
                       </div>
 
@@ -3856,8 +3890,9 @@ function renderAdminPortalPage({
                     <!-- Integrated Primary Photo & FSSAI Back-Label Gallery Uploader inside the Modal (Shown on Tab 1 Core Info) -->
                     <form id="sn-admin-image-upload-form" style="padding-top:14px;border-top:1px dashed var(--sn-border-strong);">
                       <input type="hidden" name="productId" id="sn-upload-prod-select" value="${products[0] ? products[0].id : 1}" />
-                      <div style="font-family:var(--sn-font-serif);font-weight:700;font-size:0.95rem;color:var(--sn-bg-forest);margin-bottom:8px;">
-                        📸 Upload Primary Photo or Add FSSAI Nutrition Label to Gallery
+                      <div style="font-family:var(--sn-font-serif);font-weight:700;font-size:0.95rem;color:var(--sn-bg-forest);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                        <span>📸 Upload Primary Photo or Add FSSAI Nutrition Label to Gallery</span>
+                        ${renderImageSpecTooltip('product')}
                       </div>
                       <div class="sn-grid-3" style="gap:10px;align-items:end;">
                         <div>
@@ -3872,9 +3907,9 @@ function renderAdminPortalPage({
                           <input type="text" name="caption" value="Front Pack / FSSAI Nutrition Label" class="sn-input" />
                         </div>
                         <div>
-                          <label style="font-size:0.73rem;font-weight:600;display:block;margin-bottom:3px;">Image File (JPEG/PNG/WebP) *</label>
+                          <label style="font-size:0.73rem;font-weight:600;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;"><span>Image File (JPEG/PNG/WebP) *</span> ${renderImageSpecTooltip('product')}</label>
                           <div class="sn-admin-file-action-group">
-                            <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required class="sn-input sn-file-input sn-file-input-sm" />
+                            <input type="file" name="imageFile" accept="image/jpeg,image/png,image/webp" required title="${escapeHtml(IMAGE_UPLOAD_SPECS.product.summary)}" class="sn-input sn-file-input sn-file-input-sm" />
                             <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm">Upload</button>
                           </div>
                         </div>
@@ -3927,8 +3962,8 @@ function renderAdminPortalPage({
                       </div>
 
                       <div style="margin-bottom:16px;">
-                        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:4px;">Replace Category Banner Image (Optional JPEG/PNG/WebP)</label>
-                        <input type="file" name="categoryImageFile" id="sn-edit-cat-file" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input" />
+                        <label style="font-size:0.75rem;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;"><span>Replace Category Banner Image (Optional JPEG/PNG/WebP)</span> ${renderImageSpecTooltip('category')}</label>
+                        <input type="file" name="categoryImageFile" id="sn-edit-cat-file" accept="image/jpeg,image/png,image/webp" title="${escapeHtml(IMAGE_UPLOAD_SPECS.category.summary)}" class="sn-input sn-file-input" />
                       </div>
 
                       <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;">
@@ -4990,17 +5025,17 @@ function renderAdminPortalPage({
                       />
                       <div style="flex:1;min-width:240px;">
                         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
-                          <strong style="font-size:0.84rem;color:var(--sn-bg-forest);">🖼️ Homepage Hero Right Visual Image (Upload New Photo or Edit Path)</strong>
+                          <strong style="font-size:0.84rem;color:var(--sn-bg-forest);display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;"><span>🖼️ Homepage Hero Right Visual Image (Upload New Photo or Edit Path)</span> ${renderImageSpecTooltip('hero')}</strong>
                           <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-admin-hero-img-reset-btn" style="padding:3px 10px;font-size:0.72rem;">↺ Reset to Default Pouch Spread</button>
                         </div>
                         <div class="sn-grid-2" style="gap:10px;align-items:end;">
                           <div>
-                            <label for="sn-admin-hero-img-file" style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Upload New Hero Image (JPEG / PNG / WebP)</label>
-                            <input type="file" name="heroImageFile" id="sn-admin-hero-img-file" accept="image/jpeg,image/png,image/webp" class="sn-input sn-file-input sn-file-input-sm" />
+                            <label for="sn-admin-hero-img-file" style="font-size:0.72rem;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;"><span>Upload New Hero Image (JPEG / PNG / WebP)</span> ${renderImageSpecTooltip('hero')}</label>
+                            <input type="file" name="heroImageFile" id="sn-admin-hero-img-file" accept="image/jpeg,image/png,image/webp" title="${escapeHtml(IMAGE_UPLOAD_SPECS.hero.summary)}" class="sn-input sn-file-input sn-file-input-sm" />
                           </div>
                           <div>
-                            <label for="sn-admin-hero-img-url" style="font-size:0.72rem;font-weight:700;display:block;margin-bottom:3px;">Active Hero Image Path *</label>
-                            <input type="text" name="heroImageUrl" id="sn-admin-hero-img-url" required value="${escapeHtml(contentAndSeo.homepage.heroImageUrl || '/images/hero-pouch-spread.jpg')}" class="sn-input" style="font-family:var(--sn-font-mono);font-size:0.78rem;" />
+                            <label for="sn-admin-hero-img-url" style="font-size:0.72rem;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;"><span>Active Hero Image Path *</span> ${renderImageSpecTooltip('hero')}</label>
+                            <input type="text" name="heroImageUrl" id="sn-admin-hero-img-url" required value="${escapeHtml(contentAndSeo.homepage.heroImageUrl || '/images/hero-pouch-spread.jpg')}" title="${escapeHtml(IMAGE_UPLOAD_SPECS.hero.summary)}" class="sn-input" style="font-family:var(--sn-font-mono);font-size:0.78rem;" />
                           </div>
                         </div>
                       </div>
@@ -5143,8 +5178,8 @@ function renderAdminPortalPage({
                       </select>
                     </div>
                     <div>
-                      <label for="sn-seo-og-image" style="font-size:0.73rem;font-weight:700;display:block;margin-bottom:3px;">OpenGraph Social Share Image Path (<code>og:image</code>) *</label>
-                      <input type="text" name="ogImagePath" id="sn-seo-og-image" required value="${escapeHtml(contentAndSeo.seoRoutes['/'].ogImagePath)}" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                      <label for="sn-seo-og-image" style="font-size:0.73rem;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;"><span>OpenGraph Social Share Image Path (<code>og:image</code>) *</span> ${renderImageSpecTooltip('opengraph')}</label>
+                      <input type="text" name="ogImagePath" id="sn-seo-og-image" required value="${escapeHtml(contentAndSeo.seoRoutes['/'].ogImagePath)}" title="${escapeHtml(IMAGE_UPLOAD_SPECS.opengraph.summary)}" class="sn-input" style="font-family:var(--sn-font-mono);" />
                     </div>
                   </div>
 
