@@ -9,6 +9,14 @@
 }
 
 @font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400 700;
+  font-display: block;
+  src: url('./fonts/lora-latin-italic-var.woff2') format('woff2');
+}
+
+@font-face {
   font-family: 'Poppins';
   font-style: normal;
   font-weight: 400;
@@ -122,8 +130,10 @@ h1,
   font-family: var(--sn-font-serif);
   font-style: italic;
   font-weight: 700;
+  font-synthesis: none;
   color: var(--sn-heading-navy);
-  letter-spacing: -0.015em;
+  letter-spacing: -0.008em;
+  word-spacing: -0.055em;
   line-height: 1.14;
 }
 
@@ -131,8 +141,10 @@ h2 {
   font-family: var(--sn-font-serif);
   font-style: italic;
   font-weight: 700;
+  font-synthesis: none;
   color: var(--sn-heading-navy);
-  letter-spacing: -0.015em;
+  letter-spacing: -0.008em;
+  word-spacing: -0.05em;
   line-height: 1.18;
 }
 
@@ -140,8 +152,10 @@ h3,
 h4 {
   font-family: var(--sn-font-serif);
   font-weight: 700;
+  font-synthesis: none;
   color: var(--sn-heading-navy);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.006em;
+  word-spacing: -0.04em;
   line-height: 1.26;
 }
 
@@ -724,10 +738,12 @@ img {
 .sn-hero-display-title {
   font-family: var(--sn-font-serif);
   font-style: italic;
+  font-synthesis: none;
   font-size: clamp(2.2rem, 3.65vw, 3.3rem);
   font-weight: 700;
   line-height: 1.12;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.008em;
+  word-spacing: -0.055em;
   color: #111A4D;
   margin: 0 0 16px;
 }
@@ -740,7 +756,7 @@ img {
   display: inline-flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 12px;
 }
 
 .sn-hero-title-swoosh {
@@ -791,10 +807,12 @@ img {
   z-index: 1;
   font-family: var(--sn-font-serif);
   font-style: italic;
+  font-synthesis: none;
   font-weight: 700;
   font-size: clamp(1.2rem, 1.85vw, 1.5rem);
   color: #111A4D;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.005em;
+  word-spacing: -0.04em;
 }
 
 .sn-hero-pack-row {
@@ -929,11 +947,13 @@ img {
 .sn-section-head h1 {
   font-family: var(--sn-font-serif);
   font-style: italic;
+  font-synthesis: none;
   font-weight: 700;
   font-size: clamp(1.9rem, 3vw, 2.65rem);
   color: var(--sn-heading-navy);
   margin: 4px 0 0;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.008em;
+  word-spacing: -0.055em;
   line-height: 1.14;
   position: relative;
   padding-bottom: 10px;
@@ -953,22 +973,26 @@ img {
 .sn-section-head h2 {
   font-family: var(--sn-font-serif);
   font-style: italic;
+  font-synthesis: none;
   font-weight: 700;
   font-size: clamp(1.7rem, 2.55vw, 2.25rem);
   color: var(--sn-heading-navy);
   margin: 4px 0 0;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.008em;
+  word-spacing: -0.05em;
   line-height: 1.16;
 }
 
 .sn-page-h1 {
   font-family: var(--sn-font-serif);
   font-style: italic;
+  font-synthesis: none;
   font-weight: 700;
   font-size: clamp(1.95rem, 3vw, 2.6rem);
   color: var(--sn-heading-navy);
   margin: 0 0 22px;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.008em;
+  word-spacing: -0.055em;
   line-height: 1.14;
   position: relative;
 }
@@ -976,42 +1000,50 @@ img {
 .sn-pdp-title {
   font-family: var(--sn-font-serif);
   font-style: italic;
+  font-synthesis: none;
   font-weight: 700;
   font-size: clamp(1.85rem, 2.85vw, 2.5rem);
   color: var(--sn-heading-navy);
   margin: 0 0 12px;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.008em;
+  word-spacing: -0.055em;
   line-height: 1.15;
 }
 
 .sn-invoice-h1 {
   font-family: var(--sn-font-serif);
   font-style: italic;
+  font-synthesis: none;
   font-weight: 700;
   font-size: 1.8rem;
   color: var(--sn-heading-navy);
   margin: 0;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.008em;
+  word-spacing: -0.05em;
 }
 
 .sn-admin-login-h1 {
   font-family: var(--sn-font-serif);
   font-style: italic;
+  font-synthesis: none;
   font-weight: 700;
   font-size: 1.85rem;
   color: var(--sn-heading-navy);
   margin: 0 0 8px;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.008em;
+  word-spacing: -0.05em;
 }
 
 .sn-admin-banner-h1 {
   font-family: var(--sn-font-serif);
   font-style: italic;
+  font-synthesis: none;
   font-weight: 700;
   font-size: 1.5rem;
   color: #FFFFFF;
   margin: 0;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.006em;
+  word-spacing: -0.045em;
 }
 
 .sn-category-grid {

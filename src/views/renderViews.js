@@ -374,6 +374,7 @@ function renderShell({
   <link rel="preload" href="${basePath}/assets/fonts/poppins-latin-600.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="${basePath}/assets/fonts/poppins-latin-700.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="${basePath}/assets/fonts/lora-latin-var.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="${basePath}/assets/fonts/lora-latin-italic-var.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="${basePath}/assets/sasya-core.css?v=${APP_VERSION}" />
   <script type="application/ld+json">${JSON.stringify(schemaGraph)}</script>
 </head>
