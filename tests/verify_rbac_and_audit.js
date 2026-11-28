@@ -516,7 +516,8 @@ function runVerifyRbacAndAudit() {
     renderCheckoutPage,
     renderTrackOrderPage,
     renderCustomerAccountPage,
-    renderStaticInfoPage
+    renderStaticInfoPage,
+    renderAdminPortalPage
   } = require('../src/views/renderViews');
   const { buildOrganizationNode } = require('../src/core/content/schemaBuilder');
 
@@ -609,13 +610,36 @@ function runVerifyRbacAndAudit() {
     } else {
       db.prepare("DELETE FROM store_settings WHERE key = 'support_email'").run();
     }
+
+    // 15d. Verify v4.1.0 4-Chart Interactive Inventory Analytics Dashboard in Admin Module 4
+    const adminHtml = renderAdminPortalPage({
+      activeAdminUser: superAdmin,
+      orders: allOrders,
+      orderItems: allOrderItems,
+      payments: db.prepare('SELECT * FROM payments ORDER BY id DESC').all(),
+      products: activeProducts,
+      variants: activeVariants,
+      categories: activeCategories,
+      movements: db.prepare('SELECT * FROM inventory_movements ORDER BY id DESC LIMIT 20').all(),
+      auditLogs: db.prepare('SELECT * FROM audit_logs ORDER BY id DESC LIMIT 20').all(),
+      notifLogs: db.prepare('SELECT * FROM notification_logs ORDER BY id DESC LIMIT 20').all(),
+      staffUsers: db.prepare("SELECT * FROM users WHERE role != 'CUSTOMER' ORDER BY id").all(),
+      customerUsers,
+      customerAddresses,
+      settings: db.prepare('SELECT * FROM store_settings').all(),
+      vaultStatus: []
+    });
+    assert(adminHtml.includes('id="sn-inv-chart-health-card"'), 'Admin Module 4 must render Chart 1: SKU Stock Health Donut');
+    assert(adminHtml.includes('id="sn-inv-chart-distribution-card"'), 'Admin Module 4 must render Chart 2: Stock by Category & Pack Size');
+    assert(adminHtml.includes('id="sn-inv-chart-priority-card"'), 'Admin Module 4 must render Chart 3: Top Restock Priority SKUs');
+    assert(adminHtml.includes('id="sn-inv-heatmap-card"'), 'Admin Module 4 must render Chart 4: 22-Product x 4-Pack Stock Heatmap Matrix');
   } finally {
     // Clean up Section 15 test mutations
     db.prepare("DELETE FROM store_settings WHERE key IN ('content_homepage_json', 'content_pages_json')").run();
     db.prepare("DELETE FROM audit_logs WHERE action IN ('HOMEPAGE_CONTENT_UPDATED', 'INFO_PAGE_CONTENT_UPDATED')").run();
   }
 
-  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Fail-Closed Production Go-Live Guardrail, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager, v2.5.0 Adversarial Edge-Case Guards, v2.7.0 FSSAI Nutrition + Per-Weight Discounts, v3.4.0 4,500-Attack Hardening, v4.0.0 Full Storefront Editability & immutable audit_logs');
+  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Fail-Closed Production Go-Live Guardrail, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager, v2.5.0 Adversarial Edge-Case Guards, v2.7.0 FSSAI Nutrition + Per-Weight Discounts, v3.4.0 4,500-Attack Hardening, v4.0.0 Full Storefront Editability, v4.1.0 4-Chart Inventory Analytics Suite & immutable audit_logs');
 }
 
 if (require.main === module) {

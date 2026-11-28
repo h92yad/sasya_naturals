@@ -3483,3 +3483,341 @@ nav[id] {
   display: block;
 }
 
+/* v4.1.0: Admin Module 4 Visual Inventory Analytics Dashboard (4-Chart Suite) */
+.sn-inv-charts-grid {
+  display: grid;
+  grid-template-columns: 1.05fr 1.15fr 1.1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.sn-inv-chart-card {
+  background-color: var(--sn-bg-surface);
+  border: 1px solid var(--sn-border-warm);
+  border-radius: var(--sn-radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 2px 8px rgba(17, 26, 77, 0.04);
+}
+
+.sn-inv-chart-title {
+  font-family: var(--sn-font-serif);
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--sn-bg-forest);
+  margin: 0 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sn-inv-chart-sub {
+  font-size: 0.74rem;
+  color: var(--sn-text-secondary);
+  margin: 0 0 10px;
+}
+
+.sn-inv-donut-layout {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.sn-inv-donut-svg-wrap {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+}
+
+.sn-inv-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.sn-inv-donut-pct {
+  font-family: var(--sn-font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--sn-bg-forest);
+  line-height: 1.1;
+}
+
+.sn-inv-donut-lbl {
+  font-family: var(--sn-font-mono);
+  font-size: 0.62rem;
+  color: var(--sn-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sn-inv-tier-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.sn-inv-tier-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--sn-border-warm);
+  background-color: var(--sn-bg-parchment);
+  font-family: var(--sn-font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--sn-text-primary);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+  text-align: left;
+}
+
+.sn-inv-tier-btn:hover,
+.sn-inv-tier-btn.sn-active {
+  border-color: var(--sn-bg-forest);
+  background-color: #F3E8C8;
+  transform: translateX(2px);
+}
+
+.sn-inv-tier-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.sn-inv-mini-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--sn-border-warm);
+}
+
+.sn-inv-mini-kpi {
+  background-color: var(--sn-bg-parchment);
+  border-radius: 6px;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.sn-inv-mini-kpi-lbl {
+  display: block;
+  font-family: var(--sn-font-mono);
+  font-size: 0.62rem;
+  color: var(--sn-text-muted);
+  text-transform: uppercase;
+}
+
+.sn-inv-mini-kpi-val {
+  font-family: var(--sn-font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--sn-bg-forest);
+}
+
+.sn-inv-bar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.sn-inv-bar-row {
+  padding: 6px 8px;
+  border-radius: 6px;
+  background-color: var(--sn-bg-parchment);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.sn-inv-bar-row:hover,
+.sn-inv-bar-row.sn-active {
+  border-color: var(--sn-bg-forest);
+  background-color: #F3E8C8;
+}
+
+.sn-inv-bar-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.75rem;
+  margin-bottom: 4px;
+}
+
+.sn-inv-stacked-track {
+  height: 8px;
+  width: 100%;
+  background-color: rgba(17, 26, 77, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  display: flex;
+}
+
+.sn-inv-stacked-seg {
+  height: 100%;
+  transition: width 0.25s ease;
+}
+
+.sn-inv-pack-bars-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--sn-border-warm);
+}
+
+.sn-inv-priority-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sn-inv-priority-item {
+  padding: 5px 8px;
+  border-radius: 6px;
+  background-color: var(--sn-bg-parchment);
+  border: 1px solid var(--sn-border-warm);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.sn-inv-priority-item:hover {
+  border-color: var(--sn-bg-forest);
+  background-color: #F3E8C8;
+}
+
+.sn-inv-bullet-track {
+  position: relative;
+  height: 7px;
+  width: 100%;
+  background-color: rgba(17, 26, 77, 0.1);
+  border-radius: 999px;
+  overflow: visible;
+  margin-top: 4px;
+}
+
+.sn-inv-bullet-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.sn-inv-bullet-marker {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background-color: var(--sn-bg-forest);
+  border-radius: 1px;
+}
+
+/* Chart 4: 22-Product x 4-Pack Stock Heatmap Matrix */
+.sn-inv-heatmap-card {
+  background-color: var(--sn-bg-surface);
+  border: 1px solid var(--sn-border-warm);
+  border-radius: var(--sn-radius-md);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.sn-inv-heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.sn-inv-heatmap-prod {
+  display: grid;
+  grid-template-columns: 1.35fr repeat(4, 1fr);
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background-color: var(--sn-bg-parchment);
+  border: 1px solid var(--sn-border-warm);
+  font-size: 0.73rem;
+}
+
+.sn-inv-heatmap-prod-name {
+  font-weight: 700;
+  color: var(--sn-bg-forest);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 4px;
+}
+
+.sn-inv-heatmap-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 2px;
+  border-radius: 4px;
+  font-family: var(--sn-font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.15;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.sn-inv-heatmap-cell:hover {
+  transform: scale(1.06);
+  border-color: var(--sn-bg-forest);
+  box-shadow: 0 2px 6px rgba(17, 26, 77, 0.18);
+}
+
+.sn-inv-heatmap-cell-pack {
+  font-size: 0.56rem;
+  font-weight: 500;
+  opacity: 0.82;
+}
+
+.sn-heatmap-healthy {
+  background-color: rgba(30, 107, 58, 0.15);
+  color: #14532D;
+}
+
+.sn-heatmap-watch {
+  background-color: rgba(229, 184, 59, 0.28);
+  color: #78350F;
+}
+
+.sn-heatmap-low {
+  background-color: rgba(200, 90, 23, 0.22);
+  color: #9A3412;
+}
+
+.sn-heatmap-out {
+  background-color: rgba(180, 35, 24, 0.22);
+  color: #991B1B;
+}
+
+@media (max-width: 1120px) {
+  .sn-inv-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+

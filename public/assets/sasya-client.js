@@ -1948,6 +1948,9 @@
           const threshEl = document.querySelector(`[data-inv-threshold-cell="${variantId}"]`);
           const rowEl = document.querySelector(`[data-inv-variant-row="${variantId}"]`);
           const isLow = qtyVal <= threshVal;
+          const tier = qtyVal <= 0
+            ? 'OUT'
+            : (qtyVal <= threshVal ? 'LOW' : (qtyVal <= Math.ceil(threshVal * 1.5) ? 'WATCH' : 'HEALTHY'));
           if (badgeEl) {
             badgeEl.textContent = `${qtyVal} packs`;
             badgeEl.className = `sn-status ${isLow ? 'sn-status-danger' : 'sn-status-paid'}`;
@@ -1957,6 +1960,12 @@
           }
           if (rowEl) {
             rowEl.setAttribute('data-inv-low', isLow ? '1' : '0');
+            rowEl.setAttribute('data-inv-stock-qty', String(qtyVal));
+            rowEl.setAttribute('data-inv-threshold', String(threshVal));
+            rowEl.setAttribute('data-inv-health-tier', tier);
+          }
+          if (typeof window.__snRefreshInventoryCharts === 'function') {
+            window.__snRefreshInventoryCharts();
           }
         };
 
@@ -3332,32 +3341,320 @@
     if (prodCatFilterEl) prodCatFilterEl.addEventListener('change', () => productsController.render(true));
     if (prodFlagFilterEl) prodFlagFilterEl.addEventListener('change', () => productsController.render(true));
 
-    // List 3: Tab 4 Inventory 88-Variant Stock Table (Search + Pack Size Filter + Low Stock Toggle + Pagination)
+    // List 3: Tab 4 Inventory 88-Variant Stock Table + 4-Chart Interactive Analytics Suite
     const invSearch = document.getElementById('sn-admin-inv-search');
+    const invCatFilter = document.getElementById('sn-admin-inv-cat-filter');
     const invPackFilter = document.getElementById('sn-admin-inv-pack-filter');
+    const invHealthFilter = document.getElementById('sn-admin-inv-health-filter');
     const invLowOnly = document.getElementById('sn-admin-inv-low-only');
+    const invResetBtn = document.getElementById('sn-admin-inv-reset-filters');
+
+    function syncInventoryChartActiveStates() {
+      const catVal = invCatFilter ? invCatFilter.value : 'all';
+      const packVal = invPackFilter ? invPackFilter.value : 'all';
+      const healthVal = invHealthFilter ? invHealthFilter.value : 'all';
+      document.querySelectorAll('[data-inv-chart-tier]').forEach(btn => {
+        btn.classList.toggle('sn-active', btn.getAttribute('data-inv-chart-tier') === healthVal);
+      });
+      document.querySelectorAll('[data-inv-chart-cat]').forEach(row => {
+        row.classList.toggle('sn-active', row.getAttribute('data-inv-chart-cat') === catVal);
+      });
+      document.querySelectorAll('[data-inv-chart-pack]').forEach(row => {
+        row.classList.toggle('sn-active', row.getAttribute('data-inv-chart-pack') === packVal);
+      });
+    }
+
     const inventoryController = createAdminListController({
       getItems: () => document.querySelectorAll('#sn-admin-inventory-table tbody tr'),
       matchItem: (tr) => {
         const q = (invSearch ? invSearch.value : '').trim().toLowerCase();
+        const catVal = invCatFilter ? invCatFilter.value : 'all';
         const packVal = invPackFilter ? invPackFilter.value : 'all';
+        const healthVal = invHealthFilter ? invHealthFilter.value : 'all';
         const lowOnly = invLowOnly ? invLowOnly.checked : false;
         const sku = tr.getAttribute('data-inv-sku') || '';
+        const catId = tr.getAttribute('data-inv-cat-id') || '';
         const isLow = tr.getAttribute('data-inv-low') === '1';
         const pack = tr.getAttribute('data-inv-pack') || '';
+        const tier = tr.getAttribute('data-inv-health-tier') || 'HEALTHY';
         const matchQ = !q || sku.includes(q) || tr.textContent.toLowerCase().includes(q);
+        const matchCat = catVal.toUpperCase() === 'ALL' || catId === catVal;
         const matchPack = packVal.toUpperCase() === 'ALL' || pack === packVal;
+        const matchHealth = healthVal.toUpperCase() === 'ALL' || tier === healthVal.toUpperCase();
         const matchLow = !lowOnly || isLow;
-        return matchQ && matchPack && matchLow;
+        return matchQ && matchCat && matchPack && matchHealth && matchLow;
       },
       countBadgeEl: document.getElementById('sn-admin-inv-count-badge'),
       paginationEl: document.getElementById('sn-admin-inventory-pagination'),
       defaultPageSize: 15,
       unitLabel: 'SKUs'
     });
-    if (invSearch) invSearch.addEventListener('input', () => inventoryController.render(true));
-    if (invPackFilter) invPackFilter.addEventListener('change', () => inventoryController.render(true));
-    if (invLowOnly) invLowOnly.addEventListener('change', () => inventoryController.render(true));
+
+    const triggerInvFilter = () => {
+      syncInventoryChartActiveStates();
+      inventoryController.render(true);
+    };
+    if (invSearch) invSearch.addEventListener('input', triggerInvFilter);
+    if (invCatFilter) invCatFilter.addEventListener('change', triggerInvFilter);
+    if (invPackFilter) invPackFilter.addEventListener('change', triggerInvFilter);
+    if (invHealthFilter) invHealthFilter.addEventListener('change', triggerInvFilter);
+    if (invLowOnly) invLowOnly.addEventListener('change', triggerInvFilter);
+    if (invResetBtn) {
+      invResetBtn.addEventListener('click', () => {
+        if (invSearch) invSearch.value = '';
+        if (invCatFilter) invCatFilter.value = 'all';
+        if (invPackFilter) invPackFilter.value = 'all';
+        if (invHealthFilter) invHealthFilter.value = 'all';
+        if (invLowOnly) invLowOnly.checked = false;
+        triggerInvFilter();
+      });
+    }
+
+    // Chart 1 Click-to-Filter: Donut Health Tiers
+    document.querySelectorAll('[data-inv-chart-tier]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!invHealthFilter) return;
+        const clickedTier = btn.getAttribute('data-inv-chart-tier') || 'all';
+        invHealthFilter.value = invHealthFilter.value === clickedTier ? 'all' : clickedTier;
+        if (invLowOnly) invLowOnly.checked = false;
+        triggerInvFilter();
+      });
+    });
+
+    // Chart 2 Click-to-Filter: Category Bars & Pack-Size Bars
+    document.querySelectorAll('[data-inv-chart-cat]').forEach(row => {
+      row.addEventListener('click', () => {
+        if (!invCatFilter) return;
+        const clickedCat = row.getAttribute('data-inv-chart-cat') || 'all';
+        invCatFilter.value = invCatFilter.value === clickedCat ? 'all' : clickedCat;
+        triggerInvFilter();
+      });
+    });
+    document.querySelectorAll('[data-inv-chart-pack]').forEach(row => {
+      row.addEventListener('click', () => {
+        if (!invPackFilter) return;
+        const clickedPack = row.getAttribute('data-inv-chart-pack') || 'all';
+        invPackFilter.value = invPackFilter.value === clickedPack ? 'all' : clickedPack;
+        triggerInvFilter();
+      });
+    });
+
+    // Chart 3 & Chart 4 Click-to-Jump & Focus Stock Input
+    function bindInventoryJumpHandler(rootEl = document) {
+      rootEl.querySelectorAll('[data-inv-jump-variant]').forEach(el => {
+        if (el.dataset.boundInvJump === 'true') return;
+        el.dataset.boundInvJump = 'true';
+        el.addEventListener('click', () => {
+          const varId = el.getAttribute('data-inv-jump-variant');
+          const skuCode = el.getAttribute('data-inv-jump-sku') || '';
+          if (invCatFilter) invCatFilter.value = 'all';
+          if (invPackFilter) invPackFilter.value = 'all';
+          if (invHealthFilter) invHealthFilter.value = 'all';
+          if (invLowOnly) invLowOnly.checked = false;
+          if (invSearch) invSearch.value = skuCode;
+          triggerInvFilter();
+          const targetRow = document.querySelector(`[data-inv-variant-row="${varId}"]`);
+          if (targetRow) {
+            targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const qtyInput = targetRow.querySelector('input[name="newStockQty"]');
+            if (qtyInput) {
+              qtyInput.focus();
+              qtyInput.select();
+            }
+          }
+        });
+      });
+    }
+    bindInventoryJumpHandler(document);
+
+    // Chart 4: Show / Hide 22x4 Heatmap Matrix Toggle
+    const toggleHeatmapBtn = document.getElementById('sn-inv-toggle-heatmap-btn');
+    const heatmapGrid = document.getElementById('sn-inv-heatmap-grid');
+    if (toggleHeatmapBtn && heatmapGrid) {
+      toggleHeatmapBtn.addEventListener('click', () => {
+        const isHidden = heatmapGrid.style.display === 'none';
+        heatmapGrid.style.display = isHidden ? 'grid' : 'none';
+        toggleHeatmapBtn.textContent = isHidden ? '− Hide Heatmap' : '+ Show 22×4 Heatmap';
+      });
+    }
+
+    // Live Recalculation of all 4 Inventory Charts when stock/thresholds change in DOM
+    window.__snRefreshInventoryCharts = function refreshInventoryAnalyticsChartsFromDom() {
+      const rows = Array.from(document.querySelectorAll('#sn-admin-inventory-table tbody tr'));
+      if (rows.length === 0) return;
+
+      let healthyCount = 0;
+      let watchCount = 0;
+      let lowCount = 0;
+      let outCount = 0;
+      let totalPacks = 0;
+      let totalWeightGrams = 0;
+      let totalValuePaise = 0;
+
+      const catMap = new Map();
+      const packMap = new Map();
+      const allItems = [];
+
+      for (const tr of rows) {
+        const id = Number(tr.getAttribute('data-inv-variant-row') || 0);
+        const skuCode = tr.getAttribute('data-inv-sku-code') || '';
+        const prodName = tr.getAttribute('data-inv-prod-name') || '';
+        const catId = tr.getAttribute('data-inv-cat-id') || '1';
+        const packLabel = tr.getAttribute('data-inv-pack') || '100 g';
+        const weightGrams = Number(tr.getAttribute('data-inv-weight-grams') || 100);
+        const sellPaise = Number(tr.getAttribute('data-inv-sell-paise') || 0);
+        const qty = Number(tr.getAttribute('data-inv-stock-qty') || 0);
+        const thresh = Math.max(1, Number(tr.getAttribute('data-inv-threshold') || 10));
+        const tier = tr.getAttribute('data-inv-health-tier') || 'HEALTHY';
+
+        if (tier === 'HEALTHY') healthyCount++;
+        else if (tier === 'WATCH') watchCount++;
+        else if (tier === 'LOW') lowCount++;
+        else outCount++;
+
+        totalPacks += qty;
+        totalWeightGrams += qty * weightGrams;
+        totalValuePaise += qty * sellPaise;
+
+        if (!catMap.has(catId)) {
+          catMap.set(catId, { packs: 0, weightGrams: 0, valuePaise: 0, skuCount: 0, h: 0, w: 0, l: 0 });
+        }
+        const cs = catMap.get(catId);
+        cs.packs += qty;
+        cs.weightGrams += qty * weightGrams;
+        cs.valuePaise += qty * sellPaise;
+        cs.skuCount += 1;
+        if (tier === 'HEALTHY') cs.h += 1;
+        else if (tier === 'WATCH') cs.w += 1;
+        else cs.l += 1;
+
+        if (!packMap.has(packLabel)) {
+          packMap.set(packLabel, { packs: 0, lowOrOut: 0 });
+        }
+        const ps = packMap.get(packLabel);
+        ps.packs += qty;
+        if (tier === 'LOW' || tier === 'OUT') ps.lowOrOut += 1;
+
+        // Update Chart 4 Heatmap cell for this variant
+        const heatCell = document.querySelector(`[data-inv-heatmap-cell="${id}"]`);
+        const heatQty = document.querySelector(`[data-inv-heatmap-qty="${id}"]`);
+        if (heatQty) heatQty.textContent = String(qty);
+        if (heatCell) {
+          heatCell.classList.remove('sn-heatmap-healthy', 'sn-heatmap-watch', 'sn-heatmap-low', 'sn-heatmap-out');
+          const cls = tier === 'OUT'
+            ? 'sn-heatmap-out'
+            : (tier === 'LOW' ? 'sn-heatmap-low' : (tier === 'WATCH' ? 'sn-heatmap-watch' : 'sn-heatmap-healthy'));
+          heatCell.classList.add(cls);
+        }
+
+        allItems.push({ id, skuCode, prodName, qty, thresh, tier, ratio: qty / thresh });
+      }
+
+      // Update Chart 1 Donut & KPIs
+      const tot = Math.max(1, rows.length);
+      const C = 276.46;
+      const hLen = (healthyCount / tot) * C;
+      const wLen = (watchCount / tot) * C;
+      const lLen = (lowCount / tot) * C;
+      const oLen = (outCount / tot) * C;
+
+      const segH = document.getElementById('sn-inv-donut-seg-healthy');
+      const segW = document.getElementById('sn-inv-donut-seg-watch');
+      const segL = document.getElementById('sn-inv-donut-seg-low');
+      const segO = document.getElementById('sn-inv-donut-seg-out');
+      if (segH) segH.setAttribute('stroke-dasharray', `${hLen.toFixed(2)} ${C}`);
+      if (segW) {
+        segW.setAttribute('stroke-dasharray', `${wLen.toFixed(2)} ${C}`);
+        segW.setAttribute('stroke-dashoffset', `${(-hLen).toFixed(2)}`);
+      }
+      if (segL) {
+        segL.setAttribute('stroke-dasharray', `${lLen.toFixed(2)} ${C}`);
+        segL.setAttribute('stroke-dashoffset', `${(-(hLen + wLen)).toFixed(2)}`);
+      }
+      if (segO) {
+        segO.setAttribute('stroke-dasharray', `${oLen.toFixed(2)} ${C}`);
+        segO.setAttribute('stroke-dashoffset', `${(-(hLen + wLen + lLen)).toFixed(2)}`);
+      }
+      const pctEl = document.getElementById('sn-inv-donut-pct');
+      if (pctEl) pctEl.textContent = `${Math.round((healthyCount / tot) * 100)}%`;
+
+      const cH = document.getElementById('sn-inv-tier-count-healthy');
+      const cW = document.getElementById('sn-inv-tier-count-watch');
+      const cL = document.getElementById('sn-inv-tier-count-low');
+      const cO = document.getElementById('sn-inv-tier-count-out');
+      if (cH) cH.textContent = String(healthyCount);
+      if (cW) cW.textContent = String(watchCount);
+      if (cL) cL.textContent = String(lowCount);
+      if (cO) cO.textContent = String(outCount);
+
+      const kPacks = document.getElementById('sn-inv-kpi-packs');
+      const kWeight = document.getElementById('sn-inv-kpi-weight');
+      const kVal = document.getElementById('sn-inv-kpi-value');
+      if (kPacks) kPacks.textContent = totalPacks.toLocaleString('en-IN');
+      if (kWeight) kWeight.textContent = `${(totalWeightGrams / 1000).toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg`;
+      if (kVal) kVal.textContent = formatInr(totalValuePaise);
+
+      // Update Chart 2 Category & Pack Bars
+      for (const [catId, cs] of catMap.entries()) {
+        const sumEl = document.querySelector(`[data-inv-cat-summary="${catId}"]`);
+        if (sumEl) {
+          sumEl.innerHTML = `<strong>${cs.packs.toLocaleString('en-IN')}</strong> packs • ${(cs.weightGrams / 1000).toFixed(1)} kg • ${formatInr(cs.valuePaise)}`;
+        }
+        const cTot = Math.max(1, cs.skuCount);
+        const hPct = Math.round((cs.h / cTot) * 100);
+        const wPct = Math.round((cs.w / cTot) * 100);
+        const lPct = Math.max(0, 100 - hPct - wPct);
+        const sH = document.querySelector(`[data-inv-cat-seg-h="${catId}"]`);
+        const sW = document.querySelector(`[data-inv-cat-seg-w="${catId}"]`);
+        const sL = document.querySelector(`[data-inv-cat-seg-l="${catId}"]`);
+        if (sH) sH.style.width = `${hPct}%`;
+        if (sW) sW.style.width = `${wPct}%`;
+        if (sL) sL.style.width = `${lPct}%`;
+      }
+
+      for (const [packLabel, ps] of packMap.entries()) {
+        const sharePct = totalPacks > 0 ? Math.round((ps.packs / totalPacks) * 100) : 0;
+        const pSum = document.querySelector(`[data-inv-pack-summary="${packLabel}"]`);
+        const pBar = document.querySelector(`[data-inv-pack-bar="${packLabel}"]`);
+        if (pSum) pSum.innerHTML = `<strong>${ps.packs.toLocaleString('en-IN')}</strong> (${sharePct}%)`;
+        if (pBar) {
+          pBar.style.width = `${Math.min(100, Math.max(12, sharePct * 2.2))}%`;
+          pBar.style.background = ps.lowOrOut > 0 ? '#C85A17' : 'var(--sn-bg-forest)';
+        }
+      }
+
+      // Update Chart 3 Top Restock Priority SKUs
+      const priorityListEl = document.getElementById('sn-inv-priority-bars-list');
+      if (priorityListEl) {
+        const topUrgent = allItems
+          .sort((a, b) => (a.ratio - b.ratio) || (a.qty - b.qty) || (a.id - b.id))
+          .slice(0, 6);
+        priorityListEl.innerHTML = topUrgent.map(v => {
+          const maxScale = Math.max(v.thresh * 3, v.qty, 30);
+          const fillPct = Math.min(100, Math.round((v.qty / maxScale) * 100));
+          const threshMarkerPct = Math.min(96, Math.round((v.thresh / maxScale) * 100));
+          const barColor = v.tier === 'OUT' ? '#B42318' : (v.tier === 'LOW' ? '#C85A17' : (v.tier === 'WATCH' ? '#D99B1A' : '#1E6B3A'));
+          return `
+            <div class="sn-inv-priority-item" data-inv-jump-variant="${v.id}" data-inv-jump-sku="${escapeHtmlClient(v.skuCode)}" title="Click to jump to ${escapeHtmlClient(v.skuCode)} (${escapeHtmlClient(v.prodName)}) and focus stock input">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:0.73rem;">
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  <strong style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${escapeHtmlClient(v.skuCode)}</strong>
+                  <span style="color:var(--sn-text-secondary);"> • ${escapeHtmlClient(v.prodName)}</span>
+                </span>
+                <span style="font-family:var(--sn-font-mono);font-size:0.7rem;font-weight:700;color:${barColor};white-space:nowrap;">${v.qty} / &le;${v.thresh}</span>
+              </div>
+              <div class="sn-inv-bullet-track">
+                <div class="sn-inv-bullet-fill" style="width:${fillPct}%;background:${barColor};"></div>
+                <div class="sn-inv-bullet-marker" style="left:${threshMarkerPct}%;" title="Alert Threshold: ${v.thresh} packs"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+        bindInventoryJumpHandler(priorityListEl);
+      }
+
+      inventoryController.render(false);
+    };
 
     // List 4: Tab 4 Stock Movement Ledger (Pagination)
     createAdminListController({
