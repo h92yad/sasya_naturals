@@ -1421,6 +1421,17 @@ function renderCatalogPage({
   const totalCount = totalMatchingCount !== null ? totalMatchingCount : products.length;
   const hasActiveFilters = Boolean(searchQuery || tagFilter !== 'all' || maxPriceInr !== 'all' || packFilter !== 'all' || sortBy !== 'featured');
 
+  const MAX_VISIBLE_CAT_PILLS = 6;
+  const activeInOverflow =
+    Boolean(activeCategory) &&
+    categories.findIndex(c => c.slug === activeCategory.slug) >= MAX_VISIBLE_CAT_PILLS;
+  const visibleCatThreshold = activeInOverflow ? MAX_VISIBLE_CAT_PILLS - 1 : MAX_VISIBLE_CAT_PILLS;
+  const isCatOverflowItem = (c, idx) =>
+    categories.length > MAX_VISIBLE_CAT_PILLS &&
+    idx >= visibleCatThreshold &&
+    (!activeCategory || activeCategory.slug !== c.slug);
+  const overflowCatCount = categories.filter((c, idx) => isCatOverflowItem(c, idx)).length;
+
   const bodyHtml = `
     <section class="sn-section">
       <div class="sn-container">
@@ -1435,23 +1446,41 @@ function renderCatalogPage({
         </div>
 
         <div id="catalogue-filters">
-          <form class="sn-filter-bar" method="GET" action="${basePath}${canonicalPath}" id="catalog-filter-form" style="flex-direction:column;align-items:stretch;gap:12px;">
-            <div class="sn-catalog-top-strip">
-              <div class="sn-catalog-pill-rail" id="sn-catalog-pill-rail" role="navigation" aria-label="Category &amp; Quick Filter Pills">
-                <a href="${basePath}/shop" class="sn-btn ${!activeCategory ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">All Catalogue</a>
-                ${categories.map(c => `
-                  <a href="${basePath}/category/${escapeHtml(c.slug)}" class="sn-btn ${activeCategory && activeCategory.slug === c.slug ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">${escapeHtml(c.name)}</a>
-                `).join('')}
-                <span class="sn-catalog-pill-divider" aria-hidden="true">|</span>
-                <a href="${basePath}${canonicalPath}?tag=bestseller${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${maxPriceInr !== 'all' ? `&maxPrice=${encodeURIComponent(maxPriceInr)}` : ''}${packFilter !== 'all' ? `&pack=${encodeURIComponent(packFilter)}` : ''}" class="sn-btn ${tagFilter === 'bestseller' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">★ Bestsellers</a>
-                <a href="${basePath}${canonicalPath}?tag=new_arrival${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${maxPriceInr !== 'all' ? `&maxPrice=${encodeURIComponent(maxPriceInr)}` : ''}${packFilter !== 'all' ? `&pack=${encodeURIComponent(packFilter)}` : ''}" class="sn-btn ${tagFilter === 'new_arrival' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">New Harvests</a>
-                <a href="${basePath}${canonicalPath}?maxPrice=250${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${tagFilter !== 'all' ? `&tag=${encodeURIComponent(tagFilter)}` : ''}${packFilter !== 'all' ? `&pack=${encodeURIComponent(packFilter)}` : ''}" class="sn-btn ${String(maxPriceInr) === '250' ? 'sn-btn-primary' : 'sn-btn-outline'} sn-btn-sm">Under ₹250</a>
+          <form class="sn-filter-bar" method="GET" action="${basePath}${canonicalPath}" id="catalog-filter-form">
+            <div class="sn-catalog-category-tier">
+              <div class="sn-catalog-tier-head">
+                <span class="sn-catalog-tier-label">Pantry Collections (${categories.length})</span>
+                <span class="sn-catalog-harvest-badge">
+                  Showing ${products.length} of ${totalCount} Harvests
+                </span>
               </div>
-              <span class="sn-catalog-harvest-badge">
-                Showing ${products.length} of ${totalCount} Harvests
-              </span>
+              <div class="sn-catalog-pill-rail" id="sn-catalog-pill-rail" role="navigation" aria-label="Pantry Category Collections">
+                <a href="${basePath}/shop" class="sn-btn ${!activeCategory ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm">All Catalogue</a>
+                ${categories.map((c, idx) => {
+                  const isOverflow = isCatOverflowItem(c, idx);
+                  const isActive = Boolean(activeCategory && activeCategory.slug === c.slug);
+                  return `
+                  <a href="${basePath}/category/${escapeHtml(c.slug)}" class="sn-btn ${isActive ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm${isOverflow ? ' sn-catalog-cat-overflow-hidden' : ''}"${isOverflow ? ' data-catalog-cat-overflow="true"' : ''}>${escapeHtml(c.name)}</a>
+                `;
+                }).join('')}
+                ${overflowCatCount > 0 ? `
+                <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-catalog-more-cats-btn" id="sn-catalog-more-cats-btn" data-overflow-count="${overflowCatCount}" aria-expanded="false">+${overflowCatCount} More ${overflowCatCount === 1 ? 'Collection' : 'Collections'} &#9662;</button>
+                ` : ''}
+              </div>
             </div>
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%;">
+
+            <div class="sn-catalog-quick-strip" role="navigation" aria-label="Quick Filter Presets">
+              <span class="sn-catalog-quick-label">Quick Filters:</span>
+              <div class="sn-catalog-quick-chips">
+                <a href="${basePath}${canonicalPath}?tag=bestseller${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${maxPriceInr !== 'all' ? `&maxPrice=${encodeURIComponent(maxPriceInr)}` : ''}${packFilter !== 'all' ? `&pack=${encodeURIComponent(packFilter)}` : ''}" class="sn-catalog-quick-chip ${tagFilter === 'bestseller' ? 'sn-active' : ''}">★ Bestsellers</a>
+                <a href="${basePath}${canonicalPath}?tag=new_arrival${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${maxPriceInr !== 'all' ? `&maxPrice=${encodeURIComponent(maxPriceInr)}` : ''}${packFilter !== 'all' ? `&pack=${encodeURIComponent(packFilter)}` : ''}" class="sn-catalog-quick-chip ${tagFilter === 'new_arrival' ? 'sn-active' : ''}">New Harvests</a>
+                <a href="${basePath}${canonicalPath}?maxPrice=250${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${tagFilter !== 'all' ? `&tag=${encodeURIComponent(tagFilter)}` : ''}${packFilter !== 'all' ? `&pack=${encodeURIComponent(packFilter)}` : ''}" class="sn-catalog-quick-chip ${String(maxPriceInr) === '250' ? 'sn-active' : ''}">Under ₹250</a>
+                <a href="${basePath}${canonicalPath}?tag=in_stock${searchQuery ? `&q=${encodeURIComponent(searchQuery)}` : ''}${sortBy !== 'featured' ? `&sort=${encodeURIComponent(sortBy)}` : ''}${maxPriceInr !== 'all' ? `&maxPrice=${encodeURIComponent(maxPriceInr)}` : ''}${packFilter !== 'all' ? `&pack=${encodeURIComponent(packFilter)}` : ''}" class="sn-catalog-quick-chip ${tagFilter === 'in_stock' ? 'sn-active' : ''}">✓ In Stock Only</a>
+                ${hasActiveFilters ? `<a href="${basePath}${canonicalPath}" class="sn-catalog-quick-chip sn-quick-chip-reset">✕ Clear Filters</a>` : ''}
+              </div>
+            </div>
+
+            <div class="sn-catalog-controls-grid">
               <input type="search" name="q" value="${escapeHtml(searchQuery)}" placeholder="Search almonds, ragi, cloves..." class="sn-input" style="flex:1.5 1 190px;" id="catalog-search-input" />
               <select class="sn-select" style="flex:1 1 165px;" id="catalog-category-jump-select" aria-label="Jump to Category" data-category-jump-select>
                 <option value="${basePath}/shop" ${!activeCategory ? 'selected' : ''}>Category: All (${categories.length})</option>

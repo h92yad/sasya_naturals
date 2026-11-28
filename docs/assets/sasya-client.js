@@ -5767,6 +5767,23 @@
       });
     });
 
+    const moreCatsBtn = document.getElementById('sn-catalog-more-cats-btn');
+    if (moreCatsBtn) {
+      moreCatsBtn.addEventListener('click', () => {
+        const overflowPills = document.querySelectorAll('[data-catalog-cat-overflow="true"]');
+        const isExpanded = moreCatsBtn.getAttribute('aria-expanded') === 'true';
+        const nextExpanded = !isExpanded;
+        overflowPills.forEach(el => {
+          el.classList.toggle('sn-catalog-cat-overflow-hidden', !nextExpanded);
+        });
+        moreCatsBtn.setAttribute('aria-expanded', nextExpanded ? 'true' : 'false');
+        const count = Number(moreCatsBtn.getAttribute('data-overflow-count')) || overflowPills.length;
+        moreCatsBtn.innerHTML = nextExpanded
+          ? 'Show Fewer Collections &#9652;'
+          : `+${count} More ${count === 1 ? 'Collection' : 'Collections'} &#9662;`;
+      });
+    }
+
     if (!IS_STATIC_SHOWCASE) return;
 
     function applyStaticFilters() {
@@ -5899,13 +5916,13 @@
 
     const pillRail = document.getElementById('sn-catalog-pill-rail');
     if (pillRail) {
-      const divider = pillRail.querySelector('.sn-catalog-pill-divider');
+      const moreBtn = document.getElementById('sn-catalog-more-cats-btn');
       const pill = document.createElement('a');
       pill.href = `${BASE_PATH}/shop`;
       pill.className = 'sn-btn sn-btn-outline sn-btn-sm';
       pill.textContent = cat.name;
-      if (divider) {
-        pillRail.insertBefore(pill, divider);
+      if (moreBtn) {
+        pillRail.insertBefore(pill, moreBtn);
       } else {
         pillRail.appendChild(pill);
       }

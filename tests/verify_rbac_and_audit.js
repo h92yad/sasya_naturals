@@ -680,6 +680,41 @@ function runVerifyRbacAndAudit() {
     });
     assert(!homeWithoutTestimonials.includes('id="customer-testimonials"'), 'Homepage must hide #customer-testimonials section when testimonialsEnabled is 0');
     assert(!homeWithoutTestimonials.includes('href="#customer-testimonials"'), 'Homepage jump bar must omit #customer-testimonials bookmark when disabled');
+
+    // 15f. Verify v4.3.0 Catalog Filter Bar UI/UX Redesign (Zero Vertical '|' Divider + Priority+ Category Overflow)
+    const shopDefaultHtml = renderCatalogPage({
+      categories: activeCategories,
+      products: activeProducts,
+      variants: activeVariants
+    });
+    assert(!shopDefaultHtml.includes('sn-catalog-pill-divider'), '/shop filter bar must not render vertical pipe divider');
+    assert(shopDefaultHtml.includes('class="sn-catalog-category-tier"'), '/shop filter bar must render dedicated Category Collections tier');
+    assert(shopDefaultHtml.includes('class="sn-catalog-quick-strip"'), '/shop filter bar must render dedicated Quick Filters chip strip');
+
+    const mock8Categories = Array.from({ length: 8 }, (_, idx) => ({
+      id: idx + 1,
+      slug: `cat-${idx + 1}`,
+      name: `Collection ${idx + 1}`,
+      subtitle: 'Farm Direct',
+      description: 'Farm direct collection'
+    }));
+    const shop8CatsHtml = renderCatalogPage({
+      categories: mock8Categories,
+      products: activeProducts,
+      variants: activeVariants
+    });
+    assert(shop8CatsHtml.includes('id="sn-catalog-more-cats-btn"'), '/shop with >6 categories must render Priority+ +N More Collections button');
+    assert(shop8CatsHtml.includes('data-overflow-count="2"'), '/shop with 8 categories must fold 2 overflow categories into +2 More Collections');
+    const shop8CatsActive8Html = renderCatalogPage({
+      categories: mock8Categories,
+      activeCategory: mock8Categories[7],
+      products: activeProducts,
+      variants: activeVariants
+    });
+    assert(
+      shop8CatsActive8Html.includes('href="/category/cat-8" class="sn-btn sn-btn-forest sn-btn-sm"'),
+      'When activeCategory is #8, it must remain visible outside overflow'
+    );
   } finally {
     // Clean up Section 15 test mutations
     db.prepare("DELETE FROM store_settings WHERE key IN ('content_homepage_json', 'content_pages_json')").run();
