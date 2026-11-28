@@ -3628,7 +3628,7 @@
       if (priorityListEl) {
         const topUrgent = allItems
           .sort((a, b) => (a.ratio - b.ratio) || (a.qty - b.qty) || (a.id - b.id))
-          .slice(0, 6);
+          .slice(0, 4);
         priorityListEl.innerHTML = topUrgent.map(v => {
           const maxScale = Math.max(v.thresh * 3, v.qty, 30);
           const fillPct = Math.min(100, Math.round((v.qty / maxScale) * 100));
@@ -3636,12 +3636,12 @@
           const barColor = v.tier === 'OUT' ? '#B42318' : (v.tier === 'LOW' ? '#C85A17' : (v.tier === 'WATCH' ? '#D99B1A' : '#1E6B3A'));
           return `
             <div class="sn-inv-priority-item" data-inv-jump-variant="${v.id}" data-inv-jump-sku="${escapeHtmlClient(v.skuCode)}" title="Click to jump to ${escapeHtmlClient(v.skuCode)} (${escapeHtmlClient(v.prodName)}) and focus stock input">
-              <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:0.73rem;">
-                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              <div class="sn-inv-priority-head">
+                <span class="sn-inv-priority-label">
                   <strong style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${escapeHtmlClient(v.skuCode)}</strong>
                   <span style="color:var(--sn-text-secondary);"> • ${escapeHtmlClient(v.prodName)}</span>
                 </span>
-                <span style="font-family:var(--sn-font-mono);font-size:0.7rem;font-weight:700;color:${barColor};white-space:nowrap;">${v.qty} / &le;${v.thresh}</span>
+                <span style="font-family:var(--sn-font-mono);font-size:0.71rem;font-weight:700;color:${barColor};white-space:nowrap;">${v.qty} / &le;${v.thresh}</span>
               </div>
               <div class="sn-inv-bullet-track">
                 <div class="sn-inv-bullet-fill" style="width:${fillPct}%;background:${barColor};"></div>

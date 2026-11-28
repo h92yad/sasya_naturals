@@ -191,210 +191,233 @@ function renderInventoryAnalyticsCharts({ variants = [], products = [], categori
     maximumFractionDigits: 1
   });
 
-  // Top 8 Restock Priority SKUs (lowest ratio = qty / thresh, then lowest qty)
+  // Top 4 Restock Priority SKUs (lowest ratio = qty / thresh, then lowest qty)
   const prioritySkus = [...enrichedVariants]
     .sort((a, b) => (a.ratio - b.ratio) || (a.qty - b.qty) || (a.id - b.id))
-    .slice(0, 6);
+    .slice(0, 4);
 
   return `
-    <!-- v4.1.0: 4-Chart Interactive Inventory Analytics Dashboard -->
-    <div class="sn-inv-charts-grid" id="sn-inv-analytics-dashboard">
-      <!-- Chart 1: SKU Stock Health Donut & Warehouse Valuation KPIs -->
-      <div class="sn-inv-chart-card" id="sn-inv-chart-health-card">
-        <div>
-          <div class="sn-inv-chart-title">
-            <span>1. SKU Stock Health Donut</span>
-            <span style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">${variants.length} SKUs</span>
-          </div>
-          <p class="sn-inv-chart-sub">Click any health tier below to filter the table.</p>
+    <!-- v4.1.1: Restructured 3-Tier Inventory Analytics Dashboard -->
+    <div id="sn-inv-analytics-dashboard">
+      <!-- Tier 1: Full-Width 4-Tile Warehouse Summary Strip -->
+      <div class="sn-inv-kpi-strip">
+        <div class="sn-inv-kpi-tile">
+          <span class="sn-inv-kpi-tile-lbl">Active Warehouse SKUs</span>
+          <span class="sn-inv-kpi-tile-val">${variants.length} SKUs</span>
+          <span class="sn-inv-kpi-tile-sub">${products.length} Products &times; 4 Pack Sizes</span>
+        </div>
+        <div class="sn-inv-kpi-tile" style="border-left-color:#1E6B3A;">
+          <span class="sn-inv-kpi-tile-lbl">Total Warehouse Packs</span>
+          <span class="sn-inv-kpi-tile-val" id="sn-inv-kpi-packs">${totalPacks.toLocaleString('en-IN')}</span>
+          <span class="sn-inv-kpi-tile-sub">Sealed Barrier Pouches in Stock</span>
+        </div>
+        <div class="sn-inv-kpi-tile" style="border-left-color:#D99B1A;">
+          <span class="sn-inv-kpi-tile-lbl">Total Net Pantry Weight</span>
+          <span class="sn-inv-kpi-tile-val" id="sn-inv-kpi-weight">${totalWeightKg} kg</span>
+          <span class="sn-inv-kpi-tile-sub">Combined Net Harvest Weight</span>
+        </div>
+        <div class="sn-inv-kpi-tile" style="border-left-color:#8C520A;">
+          <span class="sn-inv-kpi-tile-lbl">Total Retail Stock Value</span>
+          <span class="sn-inv-kpi-tile-val" id="sn-inv-kpi-value">${formatInr(totalValuePaise)}</span>
+          <span class="sn-inv-kpi-tile-sub">At Active Storefront Selling Prices</span>
+        </div>
+      </div>
 
-          <div class="sn-inv-donut-layout">
-            <div class="sn-inv-donut-svg-wrap">
-              <svg viewBox="0 0 112 112" width="112" height="112" style="transform:rotate(-90deg);" aria-label="SKU Stock Health Donut Chart">
-                <circle cx="56" cy="56" r="44" fill="none" stroke="rgba(17,26,77,0.08)" stroke-width="14"></circle>
-                <circle id="sn-inv-donut-seg-healthy" cx="56" cy="56" r="44" fill="none" stroke="#1E6B3A" stroke-width="14" stroke-dasharray="${hLen.toFixed(2)} ${C}" stroke-dashoffset="0"></circle>
-                <circle id="sn-inv-donut-seg-watch" cx="56" cy="56" r="44" fill="none" stroke="#E5B83B" stroke-width="14" stroke-dasharray="${wLen.toFixed(2)} ${C}" stroke-dashoffset="${(-hLen).toFixed(2)}"></circle>
-                <circle id="sn-inv-donut-seg-low" cx="56" cy="56" r="44" fill="none" stroke="#C85A17" stroke-width="14" stroke-dasharray="${lLen.toFixed(2)} ${C}" stroke-dashoffset="${(-(hLen + wLen)).toFixed(2)}"></circle>
-                <circle id="sn-inv-donut-seg-out" cx="56" cy="56" r="44" fill="none" stroke="#B42318" stroke-width="14" stroke-dasharray="${oLen.toFixed(2)} ${C}" stroke-dashoffset="${(-(hLen + wLen + lLen)).toFixed(2)}"></circle>
-              </svg>
-              <div class="sn-inv-donut-center">
-                <span class="sn-inv-donut-pct" id="sn-inv-donut-pct">${healthyPct}%</span>
-                <span class="sn-inv-donut-lbl">Healthy</span>
+      <!-- Tier 2: Symmetrical 2-Column Bento Analytics Grid (50% / 50% width, minmax(0, 1fr)) -->
+      <div class="sn-inv-bento-grid">
+        <!-- Left Bento Box: Chart 1 (SKU Stock Health Donut & 2x2 Tiers) + Pack-Size Distribution -->
+        <div class="sn-inv-chart-card" id="sn-inv-chart-health-card">
+          <div class="sn-inv-card-section">
+            <div class="sn-inv-chart-header">
+              <h3 class="sn-inv-chart-title">1. SKU Stock Health Breakdown</h3>
+              <span class="sn-inv-chart-badge">Click Tier to Filter</span>
+            </div>
+            <p class="sn-inv-chart-sub">Distribution of all ${variants.length} SKUs relative to their minimum alert threshold.</p>
+
+            <div class="sn-inv-donut-layout">
+              <div class="sn-inv-donut-svg-wrap">
+                <svg viewBox="0 0 112 112" width="108" height="108" style="transform:rotate(-90deg);" aria-label="SKU Stock Health Donut Chart">
+                  <circle cx="56" cy="56" r="44" fill="none" stroke="rgba(17,26,77,0.08)" stroke-width="14"></circle>
+                  <circle id="sn-inv-donut-seg-healthy" cx="56" cy="56" r="44" fill="none" stroke="#1E6B3A" stroke-width="14" stroke-dasharray="${hLen.toFixed(2)} ${C}" stroke-dashoffset="0"></circle>
+                  <circle id="sn-inv-donut-seg-watch" cx="56" cy="56" r="44" fill="none" stroke="#E5B83B" stroke-width="14" stroke-dasharray="${wLen.toFixed(2)} ${C}" stroke-dashoffset="${(-hLen).toFixed(2)}"></circle>
+                  <circle id="sn-inv-donut-seg-low" cx="56" cy="56" r="44" fill="none" stroke="#C85A17" stroke-width="14" stroke-dasharray="${lLen.toFixed(2)} ${C}" stroke-dashoffset="${(-(hLen + wLen)).toFixed(2)}"></circle>
+                  <circle id="sn-inv-donut-seg-out" cx="56" cy="56" r="44" fill="none" stroke="#B42318" stroke-width="14" stroke-dasharray="${oLen.toFixed(2)} ${C}" stroke-dashoffset="${(-(hLen + wLen + lLen)).toFixed(2)}"></circle>
+                </svg>
+                <div class="sn-inv-donut-center">
+                  <span class="sn-inv-donut-pct" id="sn-inv-donut-pct">${healthyPct}%</span>
+                  <span class="sn-inv-donut-lbl">Healthy</span>
+                </div>
+              </div>
+
+              <div class="sn-inv-tier-legend">
+                <button type="button" class="sn-inv-tier-btn" data-inv-chart-tier="HEALTHY" title="Filter table to Healthy SKUs (> 1.5x threshold)">
+                  <div class="sn-inv-tier-btn-top">
+                    <span class="sn-inv-tier-name"><span class="sn-inv-tier-dot" style="background:#1E6B3A;"></span>Healthy</span>
+                    <strong id="sn-inv-tier-count-healthy" style="font-family:var(--sn-font-mono);font-size:0.92rem;color:#1E6B3A;">${healthyCount}</strong>
+                  </div>
+                  <span class="sn-inv-tier-rule">Stock &gt; 1.5&times; Min Alert</span>
+                </button>
+                <button type="button" class="sn-inv-tier-btn" data-inv-chart-tier="WATCH" title="Filter table to Watchlist SKUs (1.0x - 1.5x threshold)">
+                  <div class="sn-inv-tier-btn-top">
+                    <span class="sn-inv-tier-name"><span class="sn-inv-tier-dot" style="background:#D99B1A;"></span>Watchlist</span>
+                    <strong id="sn-inv-tier-count-watch" style="font-family:var(--sn-font-mono);font-size:0.92rem;color:#92400E;">${watchCount}</strong>
+                  </div>
+                  <span class="sn-inv-tier-rule">1.0&times; to 1.5&times; Min Alert</span>
+                </button>
+                <button type="button" class="sn-inv-tier-btn" data-inv-chart-tier="LOW" title="Filter table to Low-Stock SKUs (<= threshold)">
+                  <div class="sn-inv-tier-btn-top">
+                    <span class="sn-inv-tier-name"><span class="sn-inv-tier-dot" style="background:#C85A17;"></span>Low Stock</span>
+                    <strong id="sn-inv-tier-count-low" style="font-family:var(--sn-font-mono);font-size:0.92rem;color:#C85A17;">${lowCount}</strong>
+                  </div>
+                  <span class="sn-inv-tier-rule">Stock &le; Min Alert</span>
+                </button>
+                <button type="button" class="sn-inv-tier-btn" data-inv-chart-tier="OUT" title="Filter table to Out-of-Stock SKUs (0 packs)">
+                  <div class="sn-inv-tier-btn-top">
+                    <span class="sn-inv-tier-name"><span class="sn-inv-tier-dot" style="background:#B42318;"></span>Out of Stock</span>
+                    <strong id="sn-inv-tier-count-out" style="font-family:var(--sn-font-mono);font-size:0.92rem;color:#B42318;">${outCount}</strong>
+                  </div>
+                  <span class="sn-inv-tier-rule">0 Packs Remaining</span>
+                </button>
               </div>
             </div>
+          </div>
 
-            <div class="sn-inv-tier-legend">
-              <button type="button" class="sn-inv-tier-btn" data-inv-chart-tier="HEALTHY" title="Filter table to Healthy SKUs (> 1.5x threshold)">
-                <span style="display:inline-flex;align-items:center;gap:6px;"><span class="sn-inv-tier-dot" style="background:#1E6B3A;"></span>Healthy (&gt;1.5&times;)</span>
-                <strong id="sn-inv-tier-count-healthy" style="font-family:var(--sn-font-mono);color:#1E6B3A;">${healthyCount}</strong>
-              </button>
-              <button type="button" class="sn-inv-tier-btn" data-inv-chart-tier="WATCH" title="Filter table to Watchlist SKUs (1.0x - 1.5x threshold)">
-                <span style="display:inline-flex;align-items:center;gap:6px;"><span class="sn-inv-tier-dot" style="background:#D99B1A;"></span>Watchlist (&le;1.5&times;)</span>
-                <strong id="sn-inv-tier-count-watch" style="font-family:var(--sn-font-mono);color:#92400E;">${watchCount}</strong>
-              </button>
-              <button type="button" class="sn-inv-tier-btn" data-inv-chart-tier="LOW" title="Filter table to Low-Stock SKUs (<= threshold)">
-                <span style="display:inline-flex;align-items:center;gap:6px;"><span class="sn-inv-tier-dot" style="background:#C85A17;"></span>Low Stock (&le;Min)</span>
-                <strong id="sn-inv-tier-count-low" style="font-family:var(--sn-font-mono);color:#C85A17;">${lowCount}</strong>
-              </button>
-              <button type="button" class="sn-inv-tier-btn" data-inv-chart-tier="OUT" title="Filter table to Out-of-Stock SKUs (0 packs)">
-                <span style="display:inline-flex;align-items:center;gap:6px;"><span class="sn-inv-tier-dot" style="background:#B42318;"></span>Out of Stock (0)</span>
-                <strong id="sn-inv-tier-count-out" style="font-family:var(--sn-font-mono);color:#B42318;">${outCount}</strong>
-              </button>
+          <div class="sn-inv-card-divider">
+            <div class="sn-inv-chart-header" style="margin-bottom:6px;">
+              <h3 class="sn-inv-chart-title" style="font-size:0.88rem;">Stock by Pack Weight (100 g • 250 g • 500 g • 1 kg)</h3>
+              <span class="sn-inv-chart-badge">Click Pack to Filter</span>
+            </div>
+            <div class="sn-inv-pack-bars-grid" id="sn-inv-pack-bars-group">
+              ${Array.from(packStatsMap.values()).map(ps => {
+                const sharePct = totalPacks > 0 ? Math.round((ps.packs / totalPacks) * 100) : 0;
+                return `
+                  <div class="sn-inv-bar-row" data-inv-chart-pack="${escapeHtml(ps.label)}" title="Click to filter table to ${escapeHtml(ps.label)} packs">
+                    <div class="sn-inv-bar-meta" style="margin-bottom:4px;">
+                      <strong style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${escapeHtml(ps.label)}</strong>
+                      <span style="font-family:var(--sn-font-mono);font-size:0.71rem;" data-inv-pack-summary="${escapeHtml(ps.label)}"><strong>${ps.packs.toLocaleString('en-IN')}</strong> packs (${sharePct}%)</span>
+                    </div>
+                    <div class="sn-inv-stacked-track" style="height:6px;">
+                      <div class="sn-inv-stacked-seg" data-inv-pack-bar="${escapeHtml(ps.label)}" style="width:${Math.min(100, Math.max(14, sharePct * 2.2))}%;background:${ps.lowOrOutSkus > 0 ? '#C85A17' : 'var(--sn-bg-forest)'};"></div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
             </div>
           </div>
         </div>
 
-        <div class="sn-inv-mini-kpis">
-          <div class="sn-inv-mini-kpi">
-            <span class="sn-inv-mini-kpi-lbl">Total Packs</span>
-            <span class="sn-inv-mini-kpi-val" id="sn-inv-kpi-packs">${totalPacks.toLocaleString('en-IN')}</span>
+        <!-- Right Bento Box: Chart 2 (Category Stock Distribution) + Chart 3 (Top Restock Priority SKUs) -->
+        <div class="sn-inv-chart-card" id="sn-inv-chart-distribution-card">
+          <div class="sn-inv-card-section">
+            <div class="sn-inv-chart-header">
+              <h3 class="sn-inv-chart-title">2. Stock &amp; Valuation by Category</h3>
+              <span class="sn-inv-chart-badge">Click Category to Filter</span>
+            </div>
+            <p class="sn-inv-chart-sub">Stacked SKU health bar (Green Healthy / Gold Watch / Red Low) &amp; category totals.</p>
+
+            <div class="sn-inv-bar-group" id="sn-inv-cat-bars-group">
+              ${Array.from(catStatsMap.values()).map(cs => {
+                const tot = Math.max(1, cs.skuCount);
+                const hPct = Math.round((cs.healthySkus / tot) * 100);
+                const wPct = Math.round((cs.watchSkus / tot) * 100);
+                const lPct = Math.max(0, 100 - hPct - wPct);
+                const kg = (cs.weightGrams / 1000).toFixed(1);
+                return `
+                  <div class="sn-inv-bar-row" data-inv-chart-cat="${cs.id}" title="Click to filter inventory table to ${escapeHtml(cs.name)}">
+                    <div class="sn-inv-bar-meta">
+                      <strong style="color:var(--sn-bg-forest);white-space:nowrap;">${escapeHtml(cs.name)} <span style="font-weight:500;color:var(--sn-text-muted);font-size:0.71rem;">(${cs.skuCount} SKUs)</span></strong>
+                      <span style="font-family:var(--sn-font-mono);font-size:0.72rem;white-space:nowrap;" data-inv-cat-summary="${cs.id}"><strong>${cs.packs.toLocaleString('en-IN')}</strong> packs • ${kg} kg • ${formatInr(cs.valuePaise)}</span>
+                    </div>
+                    <div class="sn-inv-stacked-track">
+                      <div class="sn-inv-stacked-seg" data-inv-cat-seg-h="${cs.id}" style="width:${hPct}%;background:#1E6B3A;" title="Healthy: ${cs.healthySkus} SKUs"></div>
+                      <div class="sn-inv-stacked-seg" data-inv-cat-seg-w="${cs.id}" style="width:${wPct}%;background:#E5B83B;" title="Watchlist: ${cs.watchSkus} SKUs"></div>
+                      <div class="sn-inv-stacked-seg" data-inv-cat-seg-l="${cs.id}" style="width:${lPct}%;background:#B42318;" title="Low / Out: ${cs.lowOrOutSkus} SKUs"></div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
           </div>
-          <div class="sn-inv-mini-kpi">
-            <span class="sn-inv-mini-kpi-lbl">Net Weight</span>
-            <span class="sn-inv-mini-kpi-val" id="sn-inv-kpi-weight">${totalWeightKg} kg</span>
-          </div>
-          <div class="sn-inv-mini-kpi">
-            <span class="sn-inv-mini-kpi-lbl">Stock Value</span>
-            <span class="sn-inv-mini-kpi-val" id="sn-inv-kpi-value">${formatInr(totalValuePaise)}</span>
+
+          <div class="sn-inv-card-divider" id="sn-inv-chart-priority-card">
+            <div class="sn-inv-chart-header" style="margin-bottom:6px;">
+              <h3 class="sn-inv-chart-title" style="font-size:0.88rem;">3. Top Restock Priority SKUs (Stock vs. Min Alert)</h3>
+              <span class="sn-inv-chart-badge">Click to Restock</span>
+            </div>
+            <div class="sn-inv-priority-list" id="sn-inv-priority-bars-list">
+              ${prioritySkus.map(v => {
+                const maxScale = Math.max(v.thresh * 3, v.qty, 30);
+                const fillPct = Math.min(100, Math.round((v.qty / maxScale) * 100));
+                const threshMarkerPct = Math.min(96, Math.round((v.thresh / maxScale) * 100));
+                const barColor = v.tier === 'OUT' ? '#B42318' : (v.tier === 'LOW' ? '#C85A17' : (v.tier === 'WATCH' ? '#D99B1A' : '#1E6B3A'));
+                return `
+                  <div class="sn-inv-priority-item" data-inv-jump-variant="${v.id}" data-inv-jump-sku="${escapeHtml(v.sku)}" title="Click to jump to ${escapeHtml(v.sku)} (${escapeHtml(v.prodName)}) and focus stock input">
+                    <div class="sn-inv-priority-head">
+                      <span class="sn-inv-priority-label">
+                        <strong style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${escapeHtml(v.sku)}</strong>
+                        <span style="color:var(--sn-text-secondary);"> • ${escapeHtml(v.prodName)}</span>
+                      </span>
+                      <span style="font-family:var(--sn-font-mono);font-size:0.71rem;font-weight:700;color:${barColor};white-space:nowrap;">${v.qty} / &le;${v.thresh}</span>
+                    </div>
+                    <div class="sn-inv-bullet-track">
+                      <div class="sn-inv-bullet-fill" style="width:${fillPct}%;background:${barColor};"></div>
+                      <div class="sn-inv-bullet-marker" style="left:${threshMarkerPct}%;" title="Alert Threshold: ${v.thresh} packs"></div>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Chart 2: Category & Pack-Size Stock Distribution (Stacked Horizontal Bar Chart) -->
-      <div class="sn-inv-chart-card" id="sn-inv-chart-distribution-card">
-        <div>
-          <div class="sn-inv-chart-title">
-            <span>2. Stock by Category &amp; Pack Size</span>
-            <span style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">Click to Filter</span>
+      <!-- Tier 3: Full-Width Collapsible Product x 4-Pack Stock Heatmap Matrix -->
+      <div class="sn-inv-heatmap-card" id="sn-inv-heatmap-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div>
+            <h3 class="sn-inv-chart-title" style="margin:0;">4. All ${products.length}-Product &times; 4-Pack Stock Heatmap Matrix (100g | 250g | 500g | 1kg)</h3>
+            <span style="font-size:0.74rem;color:var(--sn-text-secondary);">Color-coded warehouse matrix across all ${variants.length} pack variants. Click any cell to jump directly to its stock input below.</span>
           </div>
-          <p class="sn-inv-chart-sub">Stacked health bars (Green Healthy / Gold Watch / Red Low) &amp; pack volume.</p>
-
-          <div class="sn-inv-bar-group" id="sn-inv-cat-bars-group">
-            ${Array.from(catStatsMap.values()).map(cs => {
-              const tot = Math.max(1, cs.skuCount);
-              const hPct = Math.round((cs.healthySkus / tot) * 100);
-              const wPct = Math.round((cs.watchSkus / tot) * 100);
-              const lPct = Math.max(0, 100 - hPct - wPct);
-              const kg = (cs.weightGrams / 1000).toFixed(1);
-              return `
-                <div class="sn-inv-bar-row" data-inv-chart-cat="${cs.id}" title="Click to filter inventory table to ${escapeHtml(cs.name)}">
-                  <div class="sn-inv-bar-meta">
-                    <strong style="color:var(--sn-bg-forest);">${escapeHtml(cs.name)} <span style="font-weight:500;color:var(--sn-text-muted);font-size:0.7rem;">(${cs.skuCount} SKUs)</span></strong>
-                    <span style="font-family:var(--sn-font-mono);font-size:0.72rem;" data-inv-cat-summary="${cs.id}"><strong>${cs.packs.toLocaleString('en-IN')}</strong> packs • ${kg} kg • ${formatInr(cs.valuePaise)}</span>
-                  </div>
-                  <div class="sn-inv-stacked-track">
-                    <div class="sn-inv-stacked-seg" data-inv-cat-seg-h="${cs.id}" style="width:${hPct}%;background:#1E6B3A;" title="Healthy: ${cs.healthySkus} SKUs"></div>
-                    <div class="sn-inv-stacked-seg" data-inv-cat-seg-w="${cs.id}" style="width:${wPct}%;background:#E5B83B;" title="Watchlist: ${cs.watchSkus} SKUs"></div>
-                    <div class="sn-inv-stacked-seg" data-inv-cat-seg-l="${cs.id}" style="width:${lPct}%;background:#B42318;" title="Low / Out: ${cs.lowOrOutSkus} SKUs"></div>
-                  </div>
-                </div>
-              `;
-            }).join('')}
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-family:var(--sn-font-mono);font-size:0.68rem;display:inline-flex;align-items:center;gap:4px;"><span class="sn-inv-tier-dot" style="background:#1E6B3A;"></span>Healthy</span>
+            <span style="font-family:var(--sn-font-mono);font-size:0.68rem;display:inline-flex;align-items:center;gap:4px;"><span class="sn-inv-tier-dot" style="background:#D99B1A;"></span>Watch</span>
+            <span style="font-family:var(--sn-font-mono);font-size:0.68rem;display:inline-flex;align-items:center;gap:4px;"><span class="sn-inv-tier-dot" style="background:#C85A17;"></span>Low</span>
+            <span style="font-family:var(--sn-font-mono);font-size:0.68rem;display:inline-flex;align-items:center;gap:4px;"><span class="sn-inv-tier-dot" style="background:#B42318;"></span>Out</span>
+            <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-inv-toggle-heatmap-btn" style="padding:3px 10px;font-size:0.72rem;">− Hide Heatmap</button>
           </div>
         </div>
 
-        <div class="sn-inv-pack-bars-grid" id="sn-inv-pack-bars-group">
-          ${Array.from(packStatsMap.values()).map(ps => {
-            const sharePct = totalPacks > 0 ? Math.round((ps.packs / totalPacks) * 100) : 0;
+        <div class="sn-inv-heatmap-grid" id="sn-inv-heatmap-grid">
+          ${products.map(p => {
+            const pVars = enrichedVariants
+              .filter(v => Number(v.product_id) === Number(p.id))
+              .sort((a, b) => Number(a.weight_grams) - Number(b.weight_grams));
             return `
-              <div class="sn-inv-bar-row" data-inv-chart-pack="${escapeHtml(ps.label)}" title="Click to filter table to ${escapeHtml(ps.label)} packs">
-                <div class="sn-inv-bar-meta" style="margin-bottom:3px;">
-                  <strong style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${escapeHtml(ps.label)}</strong>
-                  <span style="font-family:var(--sn-font-mono);font-size:0.7rem;" data-inv-pack-summary="${escapeHtml(ps.label)}"><strong>${ps.packs.toLocaleString('en-IN')}</strong> (${sharePct}%)</span>
-                </div>
-                <div class="sn-inv-stacked-track" style="height:6px;">
-                  <div class="sn-inv-stacked-seg" data-inv-pack-bar="${escapeHtml(ps.label)}" style="width:${Math.min(100, Math.max(12, sharePct * 2.2))}%;background:${ps.lowOrOutSkus > 0 ? '#C85A17' : 'var(--sn-bg-forest)'};"></div>
-                </div>
+              <div class="sn-inv-heatmap-prod">
+                <div class="sn-inv-heatmap-prod-name" title="${escapeHtml(p.name)} (${escapeHtml(p.sku_base)})">${escapeHtml(p.name)}</div>
+                ${pVars.map(v => {
+                  const cellCls = v.tier === 'OUT'
+                    ? 'sn-heatmap-out'
+                    : (v.tier === 'LOW' ? 'sn-heatmap-low' : (v.tier === 'WATCH' ? 'sn-heatmap-watch' : 'sn-heatmap-healthy'));
+                  const shortPack = v.weight_grams === 1000 ? '1kg' : `${v.weight_grams}g`;
+                  return `
+                    <button
+                      type="button"
+                      class="sn-inv-heatmap-cell ${cellCls}"
+                      data-inv-heatmap-cell="${v.id}"
+                      data-inv-jump-variant="${v.id}"
+                      data-inv-jump-sku="${escapeHtml(v.sku)}"
+                      title="${escapeHtml(v.sku)} • ${escapeHtml(p.name)} (${escapeHtml(v.pack_label)}): ${v.qty} packs in stock (Alert threshold <= ${v.thresh})"
+                    >
+                      <span data-inv-heatmap-qty="${v.id}">${v.qty}</span>
+                      <span class="sn-inv-heatmap-cell-pack">${shortPack}</span>
+                    </button>
+                  `;
+                }).join('')}
               </div>
             `;
           }).join('')}
         </div>
-      </div>
-
-      <!-- Chart 3: Top Restock Priority Bullet Chart (Stock vs. Alert Threshold) -->
-      <div class="sn-inv-chart-card" id="sn-inv-chart-priority-card">
-        <div>
-          <div class="sn-inv-chart-title">
-            <span>3. Top Restock Priority SKUs</span>
-            <span style="font-family:var(--sn-font-mono);font-size:0.7rem;color:var(--sn-text-muted);">Stock vs. Min Alert</span>
-          </div>
-          <p class="sn-inv-chart-sub">Lowest stock-to-threshold SKUs. Click any bar to jump &amp; restock.</p>
-
-          <div class="sn-inv-priority-list" id="sn-inv-priority-bars-list">
-            ${prioritySkus.map(v => {
-              const maxScale = Math.max(v.thresh * 3, v.qty, 30);
-              const fillPct = Math.min(100, Math.round((v.qty / maxScale) * 100));
-              const threshMarkerPct = Math.min(96, Math.round((v.thresh / maxScale) * 100));
-              const barColor = v.tier === 'OUT' ? '#B42318' : (v.tier === 'LOW' ? '#C85A17' : (v.tier === 'WATCH' ? '#D99B1A' : '#1E6B3A'));
-              return `
-                <div class="sn-inv-priority-item" data-inv-jump-variant="${v.id}" data-inv-jump-sku="${escapeHtml(v.sku)}" title="Click to jump to ${escapeHtml(v.sku)} (${escapeHtml(v.prodName)}) and focus stock input">
-                  <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:0.73rem;">
-                    <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                      <strong style="font-family:var(--sn-font-mono);color:var(--sn-bg-forest);">${escapeHtml(v.sku)}</strong>
-                      <span style="color:var(--sn-text-secondary);"> • ${escapeHtml(v.prodName)}</span>
-                    </span>
-                    <span style="font-family:var(--sn-font-mono);font-size:0.7rem;font-weight:700;color:${barColor};white-space:nowrap;">${v.qty} / &le;${v.thresh}</span>
-                  </div>
-                  <div class="sn-inv-bullet-track">
-                    <div class="sn-inv-bullet-fill" style="width:${fillPct}%;background:${barColor};"></div>
-                    <div class="sn-inv-bullet-marker" style="left:${threshMarkerPct}%;" title="Alert Threshold: ${v.thresh} packs"></div>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Chart 4: 22-Product x 4-Pack (100g / 250g / 500g / 1kg) Color-Coded Stock Heatmap Matrix -->
-    <div class="sn-inv-heatmap-card" id="sn-inv-heatmap-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
-        <div>
-          <div class="sn-inv-chart-title" style="margin:0;">
-            <span>4. All ${products.length}-Product &times; 4-Pack Stock Heatmap Matrix (100g | 250g | 500g | 1kg)</span>
-          </div>
-          <span style="font-size:0.74rem;color:var(--sn-text-secondary);">Color-coded warehouse matrix across all ${variants.length} pack variants. Click any cell to jump directly to its stock input below.</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <span style="font-family:var(--sn-font-mono);font-size:0.68rem;display:inline-flex;align-items:center;gap:4px;"><span class="sn-inv-tier-dot" style="background:#1E6B3A;"></span>Healthy</span>
-          <span style="font-family:var(--sn-font-mono);font-size:0.68rem;display:inline-flex;align-items:center;gap:4px;"><span class="sn-inv-tier-dot" style="background:#D99B1A;"></span>Watch</span>
-          <span style="font-family:var(--sn-font-mono);font-size:0.68rem;display:inline-flex;align-items:center;gap:4px;"><span class="sn-inv-tier-dot" style="background:#C85A17;"></span>Low</span>
-          <span style="font-family:var(--sn-font-mono);font-size:0.68rem;display:inline-flex;align-items:center;gap:4px;"><span class="sn-inv-tier-dot" style="background:#B42318;"></span>Out</span>
-          <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-inv-toggle-heatmap-btn" style="padding:3px 10px;font-size:0.72rem;">− Hide Heatmap</button>
-        </div>
-      </div>
-
-      <div class="sn-inv-heatmap-grid" id="sn-inv-heatmap-grid">
-        ${products.map(p => {
-          const pVars = enrichedVariants
-            .filter(v => Number(v.product_id) === Number(p.id))
-            .sort((a, b) => Number(a.weight_grams) - Number(b.weight_grams));
-          return `
-            <div class="sn-inv-heatmap-prod">
-              <div class="sn-inv-heatmap-prod-name" title="${escapeHtml(p.name)} (${escapeHtml(p.sku_base)})">${escapeHtml(p.name)}</div>
-              ${pVars.map(v => {
-                const cellCls = v.tier === 'OUT'
-                  ? 'sn-heatmap-out'
-                  : (v.tier === 'LOW' ? 'sn-heatmap-low' : (v.tier === 'WATCH' ? 'sn-heatmap-watch' : 'sn-heatmap-healthy'));
-                const shortPack = v.weight_grams === 1000 ? '1kg' : `${v.weight_grams}g`;
-                return `
-                  <button
-                    type="button"
-                    class="sn-inv-heatmap-cell ${cellCls}"
-                    data-inv-heatmap-cell="${v.id}"
-                    data-inv-jump-variant="${v.id}"
-                    data-inv-jump-sku="${escapeHtml(v.sku)}"
-                    title="${escapeHtml(v.sku)} • ${escapeHtml(p.name)} (${escapeHtml(v.pack_label)}): ${v.qty} packs in stock (Alert threshold <= ${v.thresh})"
-                  >
-                    <span data-inv-heatmap-qty="${v.id}">${v.qty}</span>
-                    <span class="sn-inv-heatmap-cell-pack">${shortPack}</span>
-                  </button>
-                `;
-              }).join('')}
-            </div>
-          `;
-        }).join('')}
       </div>
     </div>
   `;
