@@ -1060,7 +1060,8 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
     ? `${escapeHtml(convMatch[1])}<strong>${escapeHtml(convMatch[2])}</strong>`
     : escapeHtml(rawPackText).replace(/(\b\d+\s*(?:g|kg)\b)/gi, '<strong>$1</strong>');
 
-  const heroImgSrc = `${basePath}${escapeHtml(hp.heroImageUrl || '/images/hero-pouch-spread.jpg')}`;
+  const rawHeroUrl = hp.heroImageUrl || '/images/hero-pouch-spread.jpg';
+  const heroImgSrc = `${basePath}${escapeHtml(rawHeroUrl)}${rawHeroUrl === '/images/hero-pouch-spread.jpg' ? `?v=${APP_VERSION}` : ''}`;
 
   const bodyHtml = `
     <section class="sn-hero" id="hero-banner">
