@@ -4304,7 +4304,505 @@ nav[id] {
   }
 }
 
+/* ==========================================================================
+   v4.4.0: Lean Mobile UX Overhaul (320px – 640px Viewports)
+   ========================================================================== */
+.sn-hero-mobile-actions,
+.sn-mobile-filter-toggle,
+.sn-pdp-sticky-bar,
+.sn-mobile-table-hint,
+.sn-account-guest-tabs {
+  display: none !important;
+}
 
+.sn-catalog-search-row,
+.sn-catalog-advanced-selects {
+  display: contents;
+}
 
+.sn-account-auth-layout {
+  display: flex;
+  flex-direction: column;
+}
 
+@media (max-width: 960px) {
+  .sn-admin-role-wrap {
+    min-width: 0 !important;
+  }
 
+  button,
+  a.sn-btn,
+  .sn-btn,
+  .sn-btn-sm,
+  .sn-pack-pill,
+  .sn-admin-menu button,
+  .sn-testimonials-nav-btn {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  /* F-01 & F-02: Compact Topbar & >= 44x44px Global Header Touch Targets */
+  .sn-topbar {
+    padding: 4px 0;
+    font-size: 0.71rem;
+    line-height: 1.3;
+    text-align: center;
+  }
+  .sn-topbar-inner {
+    justify-content: center;
+  }
+  .sn-brand {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  #header-account-btn,
+  #header-cart-btn,
+  #mobile-menu-btn {
+    min-height: 44px !important;
+    min-width: 44px !important;
+  }
+
+  /* F-04: Compact Slide-Over Cart Drawer & Separated Delete Control */
+  .sn-drawer-foot {
+    padding: 8px 12px;
+  }
+  .sn-cart-promo-strip {
+    padding: 4px 8px !important;
+    font-size: 0.67rem !important;
+    margin-bottom: 6px !important;
+  }
+  .sn-cart-step-btn {
+    min-width: 40px !important;
+    min-height: 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+  }
+  .sn-cart-item-controls [data-cart-remove] {
+    margin-left: 6px !important;
+  }
+  .sn-cart-foot-actions .sn-btn {
+    min-height: 44px !important;
+  }
+
+  /* Homepage Hero Mobile Adaptation (Option A: Compact Copy + Primary CTA + Pouch Visual + Swipeable 5-Region Strip) */
+  .sn-hero {
+    padding: 12px 0 14px;
+  }
+  .sn-hero-grid {
+    gap: 10px;
+  }
+  .sn-hero-copy {
+    padding: 2px 0 4px;
+  }
+  .sn-hero-pill-eyebrow {
+    font-size: 0.66rem;
+    padding: 4px 12px;
+    margin-bottom: 8px;
+  }
+  .sn-hero h1,
+  .sn-hero-display-title {
+    font-size: clamp(1.58rem, 6.2vw, 2.05rem);
+    line-height: 1.12;
+    margin-bottom: 8px;
+  }
+  .sn-hero-title-swoosh {
+    width: 96px;
+    height: 16px;
+    margin-top: 2px;
+  }
+  .sn-hero-lead {
+    font-size: 0.9rem;
+    line-height: 1.38;
+    margin-bottom: 10px;
+  }
+  .sn-hero-body-text {
+    display: none !important;
+  }
+  .sn-hero-mobile-actions {
+    display: grid !important;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 8px;
+    margin-bottom: 10px;
+    width: 100%;
+  }
+  .sn-hero-mobile-actions .sn-btn {
+    width: 100%;
+    min-height: 44px !important;
+    padding: 8px 10px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+  .sn-hero-brush-ribbon {
+    padding: 4px 18px 6px 14px;
+    margin-bottom: 6px;
+  }
+  .sn-hero-brush-text {
+    font-size: 0.95rem;
+  }
+  .sn-hero-pack-row {
+    gap: 8px;
+  }
+  .sn-hero-pack-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .sn-hero-pack-text {
+    font-size: 0.78rem;
+    line-height: 1.3;
+  }
+  .sn-hero-visual {
+    margin-top: 2px;
+  }
+  .sn-hero-pouch-img {
+    max-height: 185px;
+    width: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+  }
+  .sn-hero-origins-bar {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    gap: 8px !important;
+    padding: 8px 10px !important;
+    margin-top: 8px !important;
+    border-radius: 14px !important;
+  }
+  .sn-hero-origins-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .sn-hero-origin-item {
+    flex: 0 0 auto !important;
+    scroll-snap-align: start;
+    background-color: rgba(255, 253, 248, 0.88);
+    border: 1px solid var(--sn-border-warm) !important;
+    border-radius: 10px;
+    padding: 6px 10px !important;
+    gap: 8px !important;
+  }
+  .sn-hero-origin-icon {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  .sn-hero-origin-copy strong {
+    font-size: 0.8rem !important;
+  }
+  .sn-hero-origin-copy span {
+    font-size: 0.69rem !important;
+    white-space: nowrap;
+  }
+
+  /* F-05 & F-06: Fix 320px Product Grid Overflow & Compact Product Card Density */
+  .sn-product-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 14px;
+  }
+  .sn-product-media {
+    height: 165px;
+  }
+  .sn-product-content {
+    padding: 12px 14px 14px;
+  }
+  .sn-product-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+  }
+  .sn-product-card .sn-pack-selector {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+    margin-bottom: 10px;
+  }
+  .sn-product-card .sn-pack-pill {
+    padding: 4px 2px;
+    font-size: 0.72rem;
+    min-height: 44px !important;
+    min-width: 0 !important;
+  }
+
+  /* F-07: Compact Testimonials Card on Mobile */
+  .sn-testimonial-card {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  .sn-testimonial-quote {
+    font-size: 0.84rem;
+    line-height: 1.5;
+  }
+
+  /* F-08: Compact Shop & Category Filter Bar (1-Row Swipeable Pills + Collapsible Advanced Dropdowns) */
+  .sn-section-head {
+    margin-bottom: 14px;
+    gap: 10px;
+  }
+  .sn-filter-bar {
+    padding: 10px 12px;
+    margin-bottom: 16px;
+    gap: 8px;
+  }
+  .sn-catalog-category-tier {
+    padding-bottom: 8px;
+    gap: 6px;
+  }
+  .sn-catalog-pill-rail {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 6px;
+    padding-bottom: 2px;
+  }
+  .sn-catalog-pill-rail::-webkit-scrollbar {
+    display: none;
+  }
+  .sn-catalog-quick-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 8px;
+    gap: 6px;
+  }
+  .sn-catalog-quick-strip::-webkit-scrollbar {
+    display: none;
+  }
+  .sn-catalog-quick-label {
+    display: none;
+  }
+  .sn-catalog-quick-chips {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .sn-catalog-quick-chip {
+    min-height: 40px !important;
+    padding: 6px 12px;
+    flex-shrink: 0;
+  }
+  .sn-catalog-controls-grid {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .sn-catalog-search-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    width: 100%;
+    align-items: center;
+  }
+  .sn-mobile-filter-toggle {
+    display: inline-flex !important;
+    white-space: nowrap;
+    padding: 8px 12px;
+  }
+  .sn-catalog-advanced-selects {
+    display: none !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    padding-top: 8px;
+    border-top: 1px dashed var(--sn-border-warm);
+  }
+  .sn-catalog-advanced-selects.sn-filters-open {
+    display: grid !important;
+  }
+  .sn-catalog-advanced-selects #catalog-search-btn,
+  .sn-catalog-advanced-selects #catalog-reset-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  /* F-09, F-10, F-11: PDP Uncropped Gallery, Above-the-Fold Buy Box Order & Sticky Bottom Bar */
+  .sn-pdp-gallery #sn-pdp-main-img {
+    height: 225px !important;
+    object-fit: cover;
+  }
+  .sn-pdp-info-col {
+    display: flex;
+    flex-direction: column;
+  }
+  .sn-pdp-info-col > .sn-eyebrow-pill {
+    order: 0;
+    align-self: flex-start;
+  }
+  .sn-pdp-info-col > .sn-pdp-title {
+    order: 1;
+  }
+  .sn-pdp-info-col > .sn-pdp-meta-strip {
+    order: 2;
+    margin-bottom: 10px !important;
+    gap: 8px 12px !important;
+  }
+  .sn-pdp-info-col > #pack-variants {
+    order: 3;
+    margin-bottom: 16px !important;
+  }
+  .sn-pdp-info-col > .sn-pdp-story-desc {
+    order: 4;
+    font-size: 0.92rem !important;
+    margin-bottom: 14px !important;
+  }
+  .sn-pdp-info-col > .sn-pdp-spec-card {
+    order: 5;
+    margin-top: 4px !important;
+  }
+  body:has(.sn-pdp-sticky-bar) {
+    padding-bottom: 68px;
+  }
+  .sn-pdp-sticky-bar {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 115;
+    background-color: rgba(255, 253, 248, 0.98);
+    backdrop-filter: blur(8px);
+    border-top: 1.5px solid var(--sn-border-strong);
+    box-shadow: 0 -6px 20px rgba(17, 26, 77, 0.14);
+    padding: 8px 14px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .sn-pdp-sticky-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .sn-pdp-sticky-pack {
+    font-family: var(--sn-font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--sn-accent-terracotta);
+    line-height: 1.1;
+  }
+  .sn-pdp-sticky-price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .sn-pdp-sticky-price {
+    font-family: var(--sn-font-mono);
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: var(--sn-bg-forest);
+  }
+  .sn-pdp-sticky-tax {
+    font-size: 0.65rem;
+    color: var(--sn-text-muted);
+  }
+  .sn-pdp-sticky-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .sn-pdp-sticky-actions .sn-btn {
+    padding: 8px 12px !important;
+    font-size: 0.78rem !important;
+    min-height: 44px !important;
+    white-space: nowrap;
+  }
+
+  /* F-12 & F-13: Checkout Page Order Summary & Coupons Above Address Form on Mobile */
+  .sn-checkout-layout .sn-checkout-sidebar {
+    order: -1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .sn-checkout-layout .sn-checkout-sidebar #order-summary {
+    order: -1;
+  }
+  .sn-checkout-layout .sn-checkout-sidebar #promotional-coupons {
+    margin-bottom: 0 !important;
+  }
+
+  /* F-14: Customer Account Mobile Auth Tabs & Order History Priority */
+  .sn-account-guest-tabs {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .sn-account-guest-grid[data-active-auth-tab="signin"] .sn-account-guest-pane-register {
+    display: none !important;
+  }
+  .sn-account-guest-grid[data-active-auth-tab="register"] .sn-account-guest-pane-signin {
+    display: none !important;
+  }
+  .sn-account-auth-layout .sn-account-orders-card {
+    order: -1;
+    margin-bottom: 18px;
+  }
+
+  /* F-16 & F-17: Track Order Full-Width Inputs & GST Invoice Swipe Hint */
+  #track-order-input,
+  #track-order-contact-input,
+  #track-order-submit-btn {
+    max-width: 100% !important;
+    width: 100% !important;
+    flex: 1 1 100% !important;
+  }
+  .sn-mobile-table-hint {
+    display: block !important;
+    font-family: var(--sn-font-mono);
+    font-size: 0.72rem;
+    color: var(--sn-text-secondary);
+    background-color: var(--sn-bg-parchment);
+    border: 1px dashed var(--sn-border-strong);
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-top: 12px;
+    text-align: center;
+  }
+
+  /* F-18: Compact Horizontal Swipeable Admin KPI Strip */
+  .sn-kpi-grid {
+    display: flex !important;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    gap: 8px;
+    padding-bottom: 4px;
+    margin-bottom: 10px;
+  }
+  .sn-kpi-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .sn-kpi-card {
+    flex: 0 0 146px;
+    display: block !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .sn-pdp-cta-row {
+    grid-template-columns: 1fr !important;
+  }
+  .sn-pdp-cta-row .sn-qty-stepper {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .sn-pdp-cta-row .sn-qty-step-btn {
+    width: 44px;
+  }
+  .sn-pdp-cta-row .sn-qty-stepper input.sn-input {
+    flex: 1;
+  }
+  .sn-inv-heatmap-prod {
+    grid-template-columns: minmax(0, 1fr) repeat(4, 36px);
+  }
+}

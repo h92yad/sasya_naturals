@@ -551,10 +551,12 @@
   function setPdpButtonsServiceable(isDeliverable, reason = '') {
     const addBtn = document.getElementById('pdp-add-to-cart-btn');
     const buyBtn = document.getElementById('pdp-buy-now-btn');
+    const stickyAddBtn = document.getElementById('pdp-sticky-add-btn');
+    const stickyBuyBtn = document.getElementById('pdp-sticky-buy-btn');
     const activePill = document.querySelector('#pack-variants [data-variant-pill].sn-active');
     const activeStock = activePill ? Number(activePill.getAttribute('data-stock')) : 1;
     const canBuy = isDeliverable && activeStock > 0;
-    [addBtn, buyBtn].forEach(btn => {
+    [addBtn, buyBtn, stickyAddBtn, stickyBuyBtn].forEach(btn => {
       if (!btn) return;
       btn.disabled = !canBuy;
       btn.style.opacity = canBuy ? '1' : '0.55';
@@ -682,11 +684,16 @@
         if (cartDrawer && cartDrawer.classList.contains('sn-open')) {
           cartDrawer.classList.remove('sn-open');
         }
-        const mobileNav = document.getElementById('sn-mobile-nav-drawer');
-        const mobileToggle = document.getElementById('sn-mobile-menu-btn');
-        if (mobileNav && mobileNav.classList.contains('sn-open')) {
-          mobileNav.classList.remove('sn-open');
-          if (mobileToggle) mobileToggle.setAttribute('aria-expanded', 'false');
+        const mobileNav = document.getElementById('sn-main-nav');
+        const mobileToggle = document.getElementById('mobile-menu-btn');
+        if (mobileNav && mobileNav.classList.contains('sn-nav-open')) {
+          mobileNav.classList.remove('sn-nav-open');
+          if (mobileToggle) {
+            mobileToggle.setAttribute('aria-expanded', 'false');
+            mobileToggle.textContent = '☰';
+            mobileToggle.classList.remove('sn-btn-forest');
+            mobileToggle.classList.add('sn-btn-outline');
+          }
         }
         ['sn-admin-product-modal-overlay', 'sn-admin-user-modal-overlay', 'sn-admin-address-modal-overlay', 'sn-admin-create-order-modal'].forEach(modId => {
           const modEl = document.getElementById(modId);
@@ -722,6 +729,47 @@
           mobileMenuBtn.classList.toggle('sn-btn-forest', isOpen);
           mobileMenuBtn.classList.toggle('sn-btn-outline', !isOpen);
         }
+        return;
+      }
+
+      const openNavEl = document.querySelector('.sn-nav.sn-nav-open');
+      if (openNavEl && !e.target.closest('#site-header')) {
+        openNavEl.classList.remove('sn-nav-open');
+        const mobBtn = document.getElementById('mobile-menu-btn');
+        if (mobBtn) {
+          mobBtn.setAttribute('aria-expanded', 'false');
+          mobBtn.textContent = '☰';
+          mobBtn.classList.remove('sn-btn-forest');
+          mobBtn.classList.add('sn-btn-outline');
+        }
+      }
+
+      const toggleCatalogFiltersBtn = e.target.closest('[data-toggle-catalog-filters]');
+      if (toggleCatalogFiltersBtn) {
+        const advSelects = document.getElementById('sn-catalog-advanced-selects');
+        if (advSelects) {
+          const isOpen = advSelects.classList.toggle('sn-filters-open');
+          toggleCatalogFiltersBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+          toggleCatalogFiltersBtn.classList.toggle('sn-btn-forest', isOpen);
+          toggleCatalogFiltersBtn.classList.toggle('sn-btn-outline', !isOpen);
+        }
+        return;
+      }
+
+      const accountAuthTabBtn = e.target.closest('[data-account-auth-tab]');
+      if (accountAuthTabBtn) {
+        const tabMode = accountAuthTabBtn.getAttribute('data-account-auth-tab') || 'signin';
+        const guestGrid = document.getElementById('sn-customer-guest-auth-sections');
+        if (guestGrid) {
+          guestGrid.setAttribute('data-active-auth-tab', tabMode);
+        }
+        document.querySelectorAll('[data-account-auth-tab]').forEach(btn => {
+          const active = btn.getAttribute('data-account-auth-tab') === tabMode;
+          btn.classList.toggle('sn-active', active);
+          btn.classList.toggle('sn-btn-forest', active);
+          btn.classList.toggle('sn-btn-outline', !active);
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
         return;
       }
 
@@ -810,6 +858,28 @@
           buyNowBtn.setAttribute('data-pack-label', packLabel);
           buyNowBtn.setAttribute('data-stock', String(stock));
           buyNowBtn.disabled = stock <= 0;
+        }
+        if (container.id === 'product') {
+          const stickyPrice = document.querySelector('[data-sticky-pdp-price]');
+          const stickyPack = document.querySelector('[data-sticky-pdp-pack]');
+          const stickyAdd = document.getElementById('pdp-sticky-add-btn');
+          const stickyBuy = document.getElementById('pdp-sticky-buy-btn');
+          if (stickyPrice) stickyPrice.textContent = formatInr(pricePaise);
+          if (stickyPack) stickyPack.textContent = `${packLabel} Pack`;
+          if (stickyAdd) {
+            stickyAdd.setAttribute('data-variant-id', variantId);
+            stickyAdd.setAttribute('data-pack-label', packLabel);
+            stickyAdd.setAttribute('data-stock', String(stock));
+            stickyAdd.disabled = stock <= 0;
+            stickyAdd.textContent = stock > 0 ? 'Add to Basket' : 'Out of Stock';
+            stickyAdd.setAttribute('data-orig-label', stock > 0 ? 'Add to Basket' : 'Out of Stock');
+          }
+          if (stickyBuy) {
+            stickyBuy.setAttribute('data-variant-id', variantId);
+            stickyBuy.setAttribute('data-pack-label', packLabel);
+            stickyBuy.setAttribute('data-stock', String(stock));
+            stickyBuy.disabled = stock <= 0;
+          }
         }
         return;
       }
@@ -1051,6 +1121,7 @@
           submitOrderBtn.disabled = hasBlockingPinIssue;
           submitOrderBtn.style.opacity = hasBlockingPinIssue ? '0.55' : '1';
           submitOrderBtn.style.cursor = hasBlockingPinIssue ? 'not-allowed' : '';
+          submitOrderBtn.innerHTML = `Place Order &amp; Complete Payment (${formatInr(p.totalPaise)}) &rarr;`;
         }
 
         let pinRestrictionAlertHtml = '';
@@ -1088,8 +1159,8 @@
           <div style="display:flex;flex-direction:column;gap:10px;">
             ${pinRestrictionAlertHtml}
             ${p.lineItems.map(item => `
-              <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.86rem;border-bottom:1px dashed var(--sn-border-warm);padding-bottom:8px;gap:8px;${item.deliverablePrepaid === false ? 'background-color:var(--sn-status-danger-bg);padding:6px 8px;border-radius:6px;' : ''}">
-                <div style="flex:1;">
+              <div class="sn-checkout-summary-item" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;font-size:0.86rem;border-bottom:1px dashed var(--sn-border-warm);padding-bottom:8px;gap:8px;${item.deliverablePrepaid === false ? 'background-color:var(--sn-status-danger-bg);padding:6px 8px;border-radius:6px;' : ''}">
+                <div style="flex:1;min-width:165px;">
                   <strong>${item.productName}</strong> (${item.packLabel}) &times; ${item.quantity}
                   <div style="font-family:var(--sn-font-mono);font-size:0.72rem;color:var(--sn-text-muted);">SKU: ${item.sku} | GST ${item.gstPercent}%</div>
                   ${item.deliverablePrepaid === false ? `
@@ -1102,10 +1173,11 @@
                     </div>
                   ` : '')}
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;">
-                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" style="min-height:36px;padding:4px 10px;" data-cart-qty="${item.variantId}" data-delta="-1">-</button>
-                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" style="min-height:36px;padding:4px 10px;" data-cart-qty="${item.variantId}" data-delta="1">+</button>
-                  <span style="font-family:var(--sn-font-mono);font-weight:600;min-width:54px;text-align:right;">${formatInr(item.lineTotalPaise)}</span>
+                <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-cart-step-btn" data-cart-qty="${item.variantId}" data-delta="-1" aria-label="Decrease quantity">&minus;</button>
+                  <span style="font-family:var(--sn-font-mono);font-size:0.8rem;font-weight:700;min-width:18px;text-align:center;">${item.quantity}</span>
+                  <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-cart-step-btn" data-cart-qty="${item.variantId}" data-delta="1" aria-label="Increase quantity">+</button>
+                  <span style="font-family:var(--sn-font-mono);font-weight:700;min-width:58px;text-align:right;color:var(--sn-bg-forest);">${formatInr(item.lineTotalPaise)}</span>
                 </div>
               </div>
             `).join('')}
@@ -5425,6 +5497,7 @@
     if (!accRoot) return;
 
     const guestAuthSections = document.getElementById('sn-customer-guest-auth-sections');
+    const guestTabs = document.getElementById('sn-account-guest-tabs');
     const authSections = document.getElementById('sn-customer-authenticated-sections');
     const toggleAuthBtn = document.getElementById('sn-customer-toggle-auth-btn');
     const logoutBtn = document.getElementById('sn-customer-logout-btn');
@@ -5433,6 +5506,7 @@
       toggleAuthBtn.addEventListener('click', () => {
         const isHidden = guestAuthSections.style.display === 'none';
         guestAuthSections.style.display = isHidden ? 'grid' : 'none';
+        if (guestTabs) guestTabs.style.display = isHidden ? '' : 'none';
         toggleAuthBtn.textContent = isHidden ? 'Hide Sign-In Forms' : 'Switch Account';
       });
     }
@@ -5451,7 +5525,8 @@
             badge.textContent = `Signed In: ${email}`;
           }
           if (guestAuthSections) guestAuthSections.style.display = 'none';
-          if (authSections) authSections.style.display = 'block';
+          if (guestTabs) guestTabs.style.display = 'none';
+          if (authSections) authSections.style.display = 'flex';
           if (toggleAuthBtn) {
             toggleAuthBtn.style.display = 'inline-flex';
             toggleAuthBtn.textContent = 'Switch Account';
@@ -5488,7 +5563,8 @@
             badge.textContent = `Signed In: ${payload.email}`;
           }
           if (guestAuthSections) guestAuthSections.style.display = 'none';
-          if (authSections) authSections.style.display = 'block';
+          if (guestTabs) guestTabs.style.display = 'none';
+          if (authSections) authSections.style.display = 'flex';
           if (toggleAuthBtn) {
             toggleAuthBtn.style.display = 'inline-flex';
             toggleAuthBtn.textContent = 'Switch Account';
@@ -5528,6 +5604,7 @@
             badge.textContent = 'Logged Out • Please Sign In or Register';
           }
           if (guestAuthSections) guestAuthSections.style.display = 'grid';
+          if (guestTabs) guestTabs.style.display = '';
           if (authSections) authSections.style.display = 'none';
           if (toggleAuthBtn) toggleAuthBtn.style.display = 'none';
           logoutBtn.style.display = 'none';
@@ -6089,6 +6166,27 @@
     sectionEl.addEventListener('mouseleave', startAutoSlide);
     sectionEl.addEventListener('focusin', stopAutoSlide);
     sectionEl.addEventListener('focusout', startAutoSlide);
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    sliderViewport.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        stopAutoSlide();
+      }
+    }, { passive: true });
+
+    sliderViewport.addEventListener('touchend', (e) => {
+      if (e.changedTouches && e.changedTouches.length === 1) {
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+          goToSlide(dx < 0 ? activeSlide + 1 : activeSlide - 1);
+        }
+        startAutoSlide();
+      }
+    }, { passive: true });
 
     startAutoSlide();
   }

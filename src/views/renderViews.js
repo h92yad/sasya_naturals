@@ -1088,6 +1088,10 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
             <p class="sn-hero-lead">
               ${escapeHtml(hp.heroLead)}
             </p>
+            <div class="sn-hero-mobile-actions">
+              <a href="${basePath}/shop" class="sn-btn sn-btn-forest sn-btn-sm sn-hero-mobile-cta">Shop All Harvests &rarr;</a>
+              <a href="#pantry-categories" class="sn-btn sn-btn-outline sn-btn-sm sn-hero-mobile-cta-alt">Explore Categories</a>
+            </div>
             <p class="sn-hero-body-text">
               ${escapeHtml(hp.heroBodyText || '')}
             </p>
@@ -1481,40 +1485,51 @@ function renderCatalogPage({
             </div>
 
             <div class="sn-catalog-controls-grid">
-              <input type="search" name="q" value="${escapeHtml(searchQuery)}" placeholder="Search almonds, ragi, cloves..." class="sn-input" style="flex:1.5 1 190px;" id="catalog-search-input" />
-              <select class="sn-select" style="flex:1 1 165px;" id="catalog-category-jump-select" aria-label="Jump to Category" data-category-jump-select>
-                <option value="${basePath}/shop" ${!activeCategory ? 'selected' : ''}>Category: All (${categories.length})</option>
-                ${categories.map(c => `
-                  <option value="${basePath}/category/${escapeHtml(c.slug)}" ${activeCategory && activeCategory.slug === c.slug ? 'selected' : ''}>Category: ${escapeHtml(c.name)}</option>
-                `).join('')}
-              </select>
-              <select name="tag" class="sn-select" style="flex:1 1 145px;" id="catalog-tag-select">
-                <option value="all" ${tagFilter === 'all' ? 'selected' : ''}>Filter: All Items</option>
-                <option value="bestseller" ${tagFilter === 'bestseller' ? 'selected' : ''}>Bestsellers Only</option>
-                <option value="featured" ${tagFilter === 'featured' ? 'selected' : ''}>Featured Only</option>
-                <option value="new_arrival" ${tagFilter === 'new_arrival' ? 'selected' : ''}>New Harvests</option>
-                <option value="in_stock" ${tagFilter === 'in_stock' ? 'selected' : ''}>In Stock Only</option>
-              </select>
-              <select name="maxPrice" class="sn-select" style="flex:1 1 155px;" id="catalog-price-select">
-                <option value="all" ${maxPriceInr === 'all' ? 'selected' : ''}>Starting Price: Any</option>
-                <option value="150" ${String(maxPriceInr) === '150' ? 'selected' : ''}>Starts Under ₹150</option>
-                <option value="250" ${String(maxPriceInr) === '250' ? 'selected' : ''}>Starts Under ₹250</option>
-                <option value="500" ${String(maxPriceInr) === '500' ? 'selected' : ''}>Starts Under ₹500</option>
-              </select>
-              <select name="pack" class="sn-select" style="flex:0.9 1 130px;" id="catalog-pack-select">
-                <option value="all" ${packFilter === 'all' ? 'selected' : ''}>Pack: All Sizes</option>
-                <option value="100 g" ${packFilter === '100 g' ? 'selected' : ''}>100 g Pack</option>
-                <option value="250 g" ${packFilter === '250 g' ? 'selected' : ''}>250 g Pack</option>
-                <option value="500 g" ${packFilter === '500 g' ? 'selected' : ''}>500 g Pack</option>
-                <option value="1 kg" ${packFilter === '1 kg' ? 'selected' : ''}>1 kg Pack</option>
-              </select>
-              <select name="sort" class="sn-select" style="flex:1 1 150px;" id="catalog-sort-select">
-                <option value="featured" ${sortBy === 'featured' ? 'selected' : ''}>Sort: Featured</option>
-                <option value="price_asc" ${sortBy === 'price_asc' ? 'selected' : ''}>Price: Low to High</option>
-                <option value="price_desc" ${sortBy === 'price_desc' ? 'selected' : ''}>Price: High to Low</option>
-              </select>
-              <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm" id="catalog-search-btn">Apply Filters</button>
-              ${hasActiveFilters ? `<a href="${basePath}${canonicalPath}" class="sn-btn sn-btn-outline sn-btn-sm" id="catalog-reset-btn">Reset</a>` : ''}
+              <div class="sn-catalog-search-row">
+                <input type="search" name="q" value="${escapeHtml(searchQuery)}" placeholder="Search almonds, ragi, cloves..." class="sn-input" style="flex:1.5 1 190px;" id="catalog-search-input" />
+                <button
+                  type="button"
+                  class="sn-btn ${hasActiveFilters ? 'sn-btn-forest' : 'sn-btn-outline'} sn-btn-sm sn-mobile-filter-toggle"
+                  id="sn-mobile-filter-toggle-btn"
+                  data-toggle-catalog-filters
+                  aria-expanded="${hasActiveFilters ? 'true' : 'false'}"
+                >⚙️ Filters &amp; Sort${hasActiveFilters ? ' • Active' : ''}</button>
+              </div>
+              <div class="sn-catalog-advanced-selects ${hasActiveFilters ? 'sn-filters-open' : ''}" id="sn-catalog-advanced-selects">
+                <select class="sn-select" style="flex:1 1 165px;" id="catalog-category-jump-select" aria-label="Jump to Category" data-category-jump-select>
+                  <option value="${basePath}/shop" ${!activeCategory ? 'selected' : ''}>Category: All (${categories.length})</option>
+                  ${categories.map(c => `
+                    <option value="${basePath}/category/${escapeHtml(c.slug)}" ${activeCategory && activeCategory.slug === c.slug ? 'selected' : ''}>Category: ${escapeHtml(c.name)}</option>
+                  `).join('')}
+                </select>
+                <select name="tag" class="sn-select" style="flex:1 1 145px;" id="catalog-tag-select">
+                  <option value="all" ${tagFilter === 'all' ? 'selected' : ''}>Filter: All Items</option>
+                  <option value="bestseller" ${tagFilter === 'bestseller' ? 'selected' : ''}>Bestsellers Only</option>
+                  <option value="featured" ${tagFilter === 'featured' ? 'selected' : ''}>Featured Only</option>
+                  <option value="new_arrival" ${tagFilter === 'new_arrival' ? 'selected' : ''}>New Harvests</option>
+                  <option value="in_stock" ${tagFilter === 'in_stock' ? 'selected' : ''}>In Stock Only</option>
+                </select>
+                <select name="maxPrice" class="sn-select" style="flex:1 1 155px;" id="catalog-price-select">
+                  <option value="all" ${maxPriceInr === 'all' ? 'selected' : ''}>Starting Price: Any</option>
+                  <option value="150" ${String(maxPriceInr) === '150' ? 'selected' : ''}>Starts Under ₹150</option>
+                  <option value="250" ${String(maxPriceInr) === '250' ? 'selected' : ''}>Starts Under ₹250</option>
+                  <option value="500" ${String(maxPriceInr) === '500' ? 'selected' : ''}>Starts Under ₹500</option>
+                </select>
+                <select name="pack" class="sn-select" style="flex:0.9 1 130px;" id="catalog-pack-select">
+                  <option value="all" ${packFilter === 'all' ? 'selected' : ''}>Pack: All Sizes</option>
+                  <option value="100 g" ${packFilter === '100 g' ? 'selected' : ''}>100 g Pack</option>
+                  <option value="250 g" ${packFilter === '250 g' ? 'selected' : ''}>250 g Pack</option>
+                  <option value="500 g" ${packFilter === '500 g' ? 'selected' : ''}>500 g Pack</option>
+                  <option value="1 kg" ${packFilter === '1 kg' ? 'selected' : ''}>1 kg Pack</option>
+                </select>
+                <select name="sort" class="sn-select" style="flex:1 1 150px;" id="catalog-sort-select">
+                  <option value="featured" ${sortBy === 'featured' ? 'selected' : ''}>Sort: Featured</option>
+                  <option value="price_asc" ${sortBy === 'price_asc' ? 'selected' : ''}>Price: Low to High</option>
+                  <option value="price_desc" ${sortBy === 'price_desc' ? 'selected' : ''}>Price: High to Low</option>
+                </select>
+                <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm" id="catalog-search-btn">Apply Filters</button>
+                ${hasActiveFilters ? `<a href="${basePath}${canonicalPath}" class="sn-btn sn-btn-outline sn-btn-sm" id="catalog-reset-btn">Reset</a>` : ''}
+              </div>
             </div>
           </form>
         </div>
@@ -1658,16 +1673,16 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
             ` : ''}
           </div>
 
-          <div>
+          <div class="sn-pdp-info-col">
             <span class="sn-eyebrow sn-eyebrow-pill">${escapeHtml(category.name)} • ${escapeHtml(product.origin_region)} • Batch ${escapeHtml(product.harvest_batch)}</span>
             <h1 class="sn-pdp-title">${escapeHtml(product.name)}</h1>
-            <div style="display:flex;align-items:center;gap:16px;font-family:var(--sn-font-mono);font-size:0.8rem;color:var(--sn-text-muted);margin-bottom:16px;flex-wrap:wrap;">
+            <div class="sn-pdp-meta-strip" style="display:flex;align-items:center;gap:16px;font-family:var(--sn-font-mono);font-size:0.8rem;color:var(--sn-text-muted);margin-bottom:16px;flex-wrap:wrap;">
               <span>SKU: <strong data-sku-display>${escapeHtml(defVar.sku)}</strong></span>
               <span>Rating: ★ ${Number(product.rating_value).toFixed(1)} (${product.review_count} verified buyers)</span>
               <span class="sn-status ${Number(defVar.stock_qty) > 0 ? 'sn-status-paid' : 'sn-status-danger'}" data-stock-display>${Number(defVar.stock_qty) > 0 ? `In Stock (${defVar.stock_qty} packs)` : 'Out of Stock'}</span>
             </div>
 
-            <p style="font-size:1rem;color:var(--sn-text-primary);margin-bottom:20px;">${escapeHtml(product.description)}</p>
+            <p class="sn-pdp-story-desc" style="font-size:1rem;color:var(--sn-text-primary);margin-bottom:20px;">${escapeHtml(product.description)}</p>
 
             <div class="sn-card" id="pack-variants" style="margin-bottom:24px;">
               <div style="font-family:var(--sn-font-mono);font-size:0.76rem;text-transform:uppercase;color:var(--sn-text-muted);margin-bottom:8px;">
@@ -1849,6 +1864,38 @@ function renderProductDetailPage({ product, category, variants, relatedProducts,
         </div>
       </div>
     </section>
+
+    <div class="sn-pdp-sticky-bar" id="sn-pdp-sticky-bar" data-product-container="${product.id}" aria-label="Quick Mobile Purchase Bar">
+      <div class="sn-pdp-sticky-meta">
+        <span class="sn-pdp-sticky-pack" data-sticky-pdp-pack>${escapeHtml(defVar.pack_label)} Pack</span>
+        <div class="sn-pdp-sticky-price-row">
+          <strong class="sn-pdp-sticky-price" data-sticky-pdp-price>${formatInr(defVar.selling_price_paise)}</strong>
+          <span class="sn-pdp-sticky-tax">Incl. GST</span>
+        </div>
+      </div>
+      <div class="sn-pdp-sticky-actions">
+        <button
+          type="button"
+          class="sn-btn sn-btn-primary sn-btn-sm"
+          id="pdp-sticky-add-btn"
+          data-add-to-cart
+          data-variant-id="${defVar.id}"
+          data-product-name="${escapeHtml(product.name)}"
+          data-pack-label="${escapeHtml(defVar.pack_label)}"
+          ${Number(defVar.stock_qty) > 0 ? '' : 'disabled'}
+        >${Number(defVar.stock_qty) > 0 ? 'Add to Basket' : 'Out of Stock'}</button>
+        <button
+          type="button"
+          class="sn-btn sn-btn-forest sn-btn-sm"
+          id="pdp-sticky-buy-btn"
+          data-buy-now
+          data-variant-id="${defVar.id}"
+          data-product-name="${escapeHtml(product.name)}"
+          data-pack-label="${escapeHtml(defVar.pack_label)}"
+          ${Number(defVar.stock_qty) > 0 ? '' : 'disabled'}
+        >Buy Now</button>
+      </div>
+    </div>
   `;
 
   return renderShell({
@@ -1926,7 +1973,7 @@ function renderCheckoutPage({
 
         <div id="sn-checkout-result" style="display:none;margin-bottom:28px;"></div>
 
-        <div class="sn-pdp-grid">
+        <div class="sn-pdp-grid sn-checkout-layout">
           <form class="sn-card" id="sn-checkout-form">
             <input type="hidden" name="userId" id="chk-user-id" value="${customer ? customer.id : ''}" />
             <h3 id="delivery-address" style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">1. Contact &amp; Indian Delivery Address${renderHeadingAnchor('delivery-address', 'Contact & Indian Delivery Address')}</h3>
@@ -2424,7 +2471,7 @@ function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, verifi
             </div>
           </div>
 
-          <div class="sn-grid-2" style="gap:20px;padding:18px 0;border-bottom:1px solid var(--sn-border-warm);font-size:0.86rem;">
+          <div class="sn-grid-2" style="gap:20px;padding:18px 0;border-bottom:1px solid var(--sn-border-warm);font-size:0.86rem;overflow-wrap:anywhere;">
             <div>
               <strong style="color:var(--sn-bg-forest);">Billed &amp; Shipped To:</strong><br/>
               <strong>${escapeHtml(order.customer_name)}</strong><br/>
@@ -2441,6 +2488,7 @@ function renderGstInvoicePage({ order, orderItems = [], settingsMap = {}, verifi
             </div>
           </div>
 
+          <div class="sn-mobile-table-hint sn-no-print">↔ Swipe table horizontally to inspect all 8 GST columns</div>
           <div class="sn-table-wrap" style="margin:20px 0;">
             <table class="sn-table">
               <thead>
@@ -2566,8 +2614,12 @@ function renderCustomerAccountPage({
         </div>
 
         <!-- Guest Sign-In, New Customer Registration & Forgot Password via 6-Digit OTP (Shown when Logged Out or Switching Account) -->
-        <div class="sn-pdp-grid" id="sn-customer-guest-auth-sections" style="display:${isSignedIn ? 'none' : 'grid'};margin-bottom:24px;">
-          <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="sn-account-guest-tabs" id="sn-account-guest-tabs" role="tablist" aria-label="Customer Account Authentication" style="${isSignedIn ? 'display:none;' : ''}">
+          <button type="button" class="sn-btn sn-btn-forest sn-btn-sm sn-active" data-account-auth-tab="signin" role="tab" aria-selected="true">Sign In</button>
+          <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-account-auth-tab="register" role="tab" aria-selected="false">Create Account</button>
+        </div>
+        <div class="sn-pdp-grid sn-account-guest-grid" id="sn-customer-guest-auth-sections" data-active-auth-tab="signin" style="display:${isSignedIn ? 'none' : 'grid'};margin-bottom:24px;">
+          <div class="sn-account-guest-pane-signin" style="display:flex;flex-direction:column;gap:16px;">
             <form class="sn-card" id="sn-customer-login-form" style="background-color:var(--sn-bg-parchment);">
               <h3 style="font-family:var(--sn-font-serif);margin:0 0 8px;color:var(--sn-bg-forest);">Customer Sign In</h3>
               <p style="font-size:0.82rem;color:var(--sn-text-secondary);margin:0 0 12px;">
@@ -2589,33 +2641,35 @@ function renderCustomerAccountPage({
               </div>
             </form>
 
-            <!-- Forgot Password / 6-Digit OTP Reset Card -->
-            <div class="sn-card" style="background-color:var(--sn-bg-mortar);">
-              <h3 style="font-family:var(--sn-font-serif);margin:0 0 6px;font-size:1.05rem;color:var(--sn-bg-forest);">Forgot Password? Reset via 6-Digit OTP</h3>
-              <form id="sn-customer-reset-otp-request-form" class="sn-form-row-1-action" style="margin-bottom:10px;">
-                <div>
-                  <label for="sn-reset-otp-email" style="font-size:0.74rem;font-weight:600;">Registered Email Address *</label>
-                  <input type="email" name="email" id="sn-reset-otp-email" required value="${escapeHtml(isShowcase ? activeCustomer.email : '')}" placeholder="you@example.com" class="sn-input" />
-                </div>
-                <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Send 6-Digit OTP</button>
-              </form>
+            <!-- Forgot Password / 6-Digit OTP Reset Card (Collapsible Disclosure on Mobile) -->
+            <details class="sn-card sn-forgot-pwd-details" style="background-color:var(--sn-bg-mortar);">
+              <summary style="font-family:var(--sn-font-serif);font-size:1.02rem;font-weight:700;color:var(--sn-bg-forest);cursor:pointer;">Forgot Password? Reset via 6-Digit OTP</summary>
+              <div style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--sn-border-warm);">
+                <form id="sn-customer-reset-otp-request-form" class="sn-form-row-1-action" style="margin-bottom:10px;">
+                  <div>
+                    <label for="sn-reset-otp-email" style="font-size:0.74rem;font-weight:600;">Registered Email Address *</label>
+                    <input type="email" name="email" id="sn-reset-otp-email" required value="${escapeHtml(isShowcase ? activeCustomer.email : '')}" placeholder="you@example.com" class="sn-input" />
+                  </div>
+                  <button type="submit" class="sn-btn sn-btn-outline sn-btn-sm">Send 6-Digit OTP</button>
+                </form>
 
-              <form id="sn-customer-reset-otp-confirm-form" class="sn-form-row-2-action">
-                <input type="hidden" name="email" id="sn-reset-confirm-email" value="${escapeHtml(isShowcase ? activeCustomer.email : '')}" />
-                <div>
-                  <label for="sn-reset-otp-code" style="font-size:0.74rem;font-weight:600;">6-Digit OTP Code *</label>
-                  <input type="text" name="otpCode" id="sn-reset-otp-code" required pattern="\\d{6}" placeholder="e.g. 482910" class="sn-input" style="font-family:var(--sn-font-mono);" />
-                </div>
-                <div>
-                  <label for="sn-reset-new-password" style="font-size:0.74rem;font-weight:600;">New Password (min 8 chars) *</label>
-                  <input type="password" name="newPassword" id="sn-reset-new-password" required minlength="8" placeholder="New password" class="sn-input" />
-                </div>
-                <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Verify OTP &amp; Reset</button>
-              </form>
-            </div>
+                <form id="sn-customer-reset-otp-confirm-form" class="sn-form-row-2-action">
+                  <input type="hidden" name="email" id="sn-reset-confirm-email" value="${escapeHtml(isShowcase ? activeCustomer.email : '')}" />
+                  <div>
+                    <label for="sn-reset-otp-code" style="font-size:0.74rem;font-weight:600;">6-Digit OTP Code *</label>
+                    <input type="text" name="otpCode" id="sn-reset-otp-code" required pattern="\\d{6}" placeholder="e.g. 482910" class="sn-input" style="font-family:var(--sn-font-mono);" />
+                  </div>
+                  <div>
+                    <label for="sn-reset-new-password" style="font-size:0.74rem;font-weight:600;">New Password (min 8 chars) *</label>
+                    <input type="password" name="newPassword" id="sn-reset-new-password" required minlength="8" placeholder="New password" class="sn-input" />
+                  </div>
+                  <button type="submit" class="sn-btn sn-btn-forest sn-btn-sm">Verify OTP &amp; Reset</button>
+                </form>
+              </div>
+            </details>
           </div>
 
-          <form class="sn-card" id="sn-customer-register-form" style="background-color:var(--sn-bg-parchment);">
+          <form class="sn-card sn-account-guest-pane-register" id="sn-customer-register-form" style="background-color:var(--sn-bg-parchment);">
             <h3 style="font-family:var(--sn-font-serif);margin:0 0 10px;color:var(--sn-bg-forest);">New Customer Registration</h3>
             <p style="font-size:0.82rem;color:var(--sn-text-secondary);margin:0 0 12px;">
               Create an account to save delivery addresses across India and link past guest checkout orders automatically.
@@ -2646,9 +2700,9 @@ function renderCustomerAccountPage({
 
         <!-- Authenticated Customer Sections (Rendered only when Signed In or in Static Showcase) -->
         ${(isSignedIn || isShowcase) ? `
-        <div id="sn-customer-authenticated-sections" style="display:${isSignedIn ? 'block' : 'none'};">
+        <div id="sn-customer-authenticated-sections" class="sn-account-auth-layout" style="display:${isSignedIn ? 'flex' : 'none'};">
           <!-- Profile Management, Change Password & Saved Delivery Addresses -->
-          <div class="sn-pdp-grid" style="margin-bottom:28px;">
+          <div class="sn-pdp-grid sn-account-profile-addr-grid" style="margin-bottom:28px;">
             <div style="display:flex;flex-direction:column;gap:16px;">
               <form class="sn-card" id="sn-customer-profile-form">
                 <h3 style="font-family:var(--sn-font-serif);margin:0 0 12px;color:var(--sn-bg-forest);">1. Customer Profile &amp; Contact Preferences</h3>
@@ -2759,7 +2813,7 @@ function renderCustomerAccountPage({
           </div>
 
           <!-- Customer Order History & GST Tax Invoices -->
-          <div class="sn-card">
+          <div class="sn-card sn-account-orders-card">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
               <div>
                 <h2 style="font-family:var(--sn-font-serif);margin:0;font-size:1.35rem;color:var(--sn-bg-forest);">3. My Order History, Courier Tracking &amp; GST Invoices</h2>
@@ -6297,10 +6351,10 @@ function renderStaticInfoPage({ slug, title, subtitle, paragraphs = [], basePath
         <h1 class="sn-page-h1">${escapeHtml(title)}</h1>
         ${slug === 'faq' ? `
           <div style="display:flex;flex-direction:column;gap:4px;">
-            ${parsedFaqBlocks.map(b => {
+            ${parsedFaqBlocks.map((b, idx) => {
               if (b.isFaq) {
                 return `
-                  <details class="sn-faq-item" id="${escapeHtml(b.id)}" open>
+                  <details class="sn-faq-item" id="${escapeHtml(b.id)}"${idx === 0 ? ' open' : ''}>
                     <summary>${escapeHtml(b.question)}${renderHeadingAnchor(b.id, b.question)}</summary>
                     <p>${escapeHtml(b.answer)}</p>
                   </details>
