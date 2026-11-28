@@ -4,6 +4,57 @@ const { getDb } = require('../../db/database');
 const { BRAND_NAME, BRAND_TAGLINE } = require('../../config/appConfig');
 const { lintContentText } = require('./contentLinter');
 
+const DEFAULT_TESTIMONIALS_LIST = [
+  {
+    name: 'Ananya Iyer',
+    location: 'Indiranagar, Bengaluru',
+    rating: '5.0',
+    product: 'Kashmiri Mamra Giri Almonds • 500 g Pack',
+    quote:
+      'The Mamra almonds have noticeably higher natural oil and crunch than supermarket packs. The resealable pouch keeps them crisp even during Bengaluru monsoons.'
+  },
+  {
+    name: 'Vikramaditya Rao',
+    location: 'Bandra West, Mumbai',
+    rating: '5.0',
+    product: 'Haveri Finger Millet (Ragi) • 1 kg Pack',
+    quote:
+      'Unpolished Haveri ragi and foxtail millet cook evenly without gritty husks. Having batch numbers and lab-tested nutrition on every pack gives complete peace of mind.'
+  },
+  {
+    name: 'Sneha Menon',
+    location: 'Jubilee Hills, Hyderabad',
+    rating: '4.9',
+    product: 'Meghalaya Lakadong Turmeric • 250 g Pack',
+    quote:
+      'Opening the Lakadong turmeric and Wayanad black pepper pouches fills the kitchen with aroma. You only need half a pinch compared to regular store-bought powders.'
+  },
+  {
+    name: 'Karthik Subramanian',
+    location: 'Adyar, Chennai',
+    rating: '5.0',
+    product: 'Goan W240 Whole Cashews • 500 g Pack',
+    quote:
+      'Large, uniform W240 cashew kernels with zero broken pieces at the bottom of the bag. They roast to a clean golden crunch for our festival sweets.'
+  },
+  {
+    name: 'Priya Deshmukh',
+    location: 'Kothrud, Pune',
+    rating: '4.9',
+    product: 'Chitradurga Foxtail Millet • 1 kg Pack',
+    quote:
+      'We switched our daily lunch from white rice to Sashya Naturals unpolished foxtail and little millet. The grains fluff up beautifully and keep you full all afternoon.'
+  },
+  {
+    name: 'Rohan Malhotra',
+    location: 'Vasant Kunj, New Delhi',
+    rating: '5.0',
+    product: 'Idukki 8mm Bold Green Cardamom • 100 g Pack',
+    quote:
+      'Every cardamom pod is deep green, plump, and packed with sticky black seeds inside. Two pods are enough to perfume an entire pot of masala chai.'
+  }
+];
+
 const DEFAULT_HOMEPAGE_CONTENT = {
   topbarBadge1: 'Unpolished Native Grains',
   topbarBadge2: 'Single-Origin Spices',
@@ -46,24 +97,22 @@ const DEFAULT_HOMEPAGE_CONTENT = {
   testimonialsEnabled: '1',
   testimonialsEyebrow: 'Verified Indian Households • Repeat Pantry Orders',
   testimonialsHeading: 'What Families Across India Say',
-  t1Name: 'Ananya Iyer',
-  t1Location: 'Indiranagar, Bengaluru',
-  t1Rating: '5.0',
-  t1Product: 'Kashmiri Mamra Giri Almonds • 500 g Pack',
-  t1Quote:
-    'The Mamra almonds have noticeably higher natural oil and crunch than supermarket packs. The resealable pouch keeps them crisp even during Bengaluru monsoons.',
-  t2Name: 'Vikramaditya Rao',
-  t2Location: 'Bandra West, Mumbai',
-  t2Rating: '5.0',
-  t2Product: 'Haveri Finger Millet (Ragi) • 1 kg Pack',
-  t2Quote:
-    'Unpolished Haveri ragi and foxtail millet cook evenly without gritty husks. Having batch numbers and lab-tested nutrition on every pack gives complete peace of mind.',
-  t3Name: 'Sneha Menon',
-  t3Location: 'Jubilee Hills, Hyderabad',
-  t3Rating: '4.9',
-  t3Product: 'Meghalaya Lakadong Turmeric • 250 g Pack',
-  t3Quote:
-    'Opening the Lakadong turmeric and Wayanad black pepper pouches fills the kitchen with aroma. You only need half a pinch compared to regular store-bought powders.',
+  t1Name: DEFAULT_TESTIMONIALS_LIST[0].name,
+  t1Location: DEFAULT_TESTIMONIALS_LIST[0].location,
+  t1Rating: DEFAULT_TESTIMONIALS_LIST[0].rating,
+  t1Product: DEFAULT_TESTIMONIALS_LIST[0].product,
+  t1Quote: DEFAULT_TESTIMONIALS_LIST[0].quote,
+  t2Name: DEFAULT_TESTIMONIALS_LIST[1].name,
+  t2Location: DEFAULT_TESTIMONIALS_LIST[1].location,
+  t2Rating: DEFAULT_TESTIMONIALS_LIST[1].rating,
+  t2Product: DEFAULT_TESTIMONIALS_LIST[1].product,
+  t2Quote: DEFAULT_TESTIMONIALS_LIST[1].quote,
+  t3Name: DEFAULT_TESTIMONIALS_LIST[2].name,
+  t3Location: DEFAULT_TESTIMONIALS_LIST[2].location,
+  t3Rating: DEFAULT_TESTIMONIALS_LIST[2].rating,
+  t3Product: DEFAULT_TESTIMONIALS_LIST[2].product,
+  t3Quote: DEFAULT_TESTIMONIALS_LIST[2].quote,
+  testimonialsList: DEFAULT_TESTIMONIALS_LIST,
   footerBlurb:
     'Direct-to-customer Indian pantry delivering unbleached dry fruits, rain-fed unpolished millets, and cold-milled heirloom spices in 100 g, 250 g, 500 g, and 1 kg packs.',
   footerSupportLine: 'Domain: sashyanaturals.com | Support: support@sashyanaturals.com',
@@ -237,6 +286,21 @@ const DEFAULT_HELLOBAR_CONFIG = {
   topbarBadge3: DEFAULT_HOMEPAGE_CONTENT.topbarBadge3
 };
 
+function normalizeTestimonialItem(raw = {}, fallback = DEFAULT_TESTIMONIALS_LIST[0]) {
+  const cleanDash = s => String(s ?? '').replace(/[\u2013\u2014]/g, '-').trim();
+  const parsedRating = Number(raw.rating ?? fallback.rating ?? 5.0);
+  const rating = Number.isFinite(parsedRating)
+    ? Math.min(5, Math.max(1, parsedRating)).toFixed(1)
+    : '5.0';
+  return {
+    name: cleanDash(raw.name || fallback.name || 'Verified Household Buyer'),
+    location: cleanDash(raw.location || fallback.location || 'Bengaluru, Karnataka'),
+    rating,
+    product: cleanDash(raw.product || fallback.product || 'Sashya Naturals Pantry Pack'),
+    quote: cleanDash(raw.quote || fallback.quote || '')
+  };
+}
+
 function getStorefrontContentAndSeo() {
   const db = getDb();
   const rows = db
@@ -264,6 +328,47 @@ function getStorefrontContentAndSeo() {
     ...DEFAULT_HOMEPAGE_CONTENT,
     ...savedHomepage
   };
+
+  if (Array.isArray(savedHomepage.testimonialsList) && savedHomepage.testimonialsList.length > 0) {
+    homepage.testimonialsList = savedHomepage.testimonialsList
+      .map((item, idx) => normalizeTestimonialItem(item, DEFAULT_TESTIMONIALS_LIST[idx % DEFAULT_TESTIMONIALS_LIST.length]))
+      .filter(item => item.name && item.quote);
+  } else {
+    homepage.testimonialsList = DEFAULT_TESTIMONIALS_LIST.map(item => ({ ...item }));
+    for (let i = 0; i < 3; i++) {
+      const pfx = `t${i + 1}`;
+      if (
+        savedHomepage[`${pfx}Name`] ||
+        savedHomepage[`${pfx}Location`] ||
+        savedHomepage[`${pfx}Rating`] ||
+        savedHomepage[`${pfx}Product`] ||
+        savedHomepage[`${pfx}Quote`]
+      ) {
+        homepage.testimonialsList[i] = normalizeTestimonialItem(
+          {
+            name: homepage[`${pfx}Name`],
+            location: homepage[`${pfx}Location`],
+            rating: homepage[`${pfx}Rating`],
+            product: homepage[`${pfx}Product`],
+            quote: homepage[`${pfx}Quote`]
+          },
+          DEFAULT_TESTIMONIALS_LIST[i]
+        );
+      }
+    }
+  }
+  if (!Array.isArray(homepage.testimonialsList) || homepage.testimonialsList.length === 0) {
+    homepage.testimonialsList = DEFAULT_TESTIMONIALS_LIST.map(item => ({ ...item }));
+  }
+  for (let i = 0; i < 3; i++) {
+    const item = homepage.testimonialsList[i] || DEFAULT_TESTIMONIALS_LIST[i];
+    const pfx = `t${i + 1}`;
+    homepage[`${pfx}Name`] = item.name;
+    homepage[`${pfx}Location`] = item.location;
+    homepage[`${pfx}Rating`] = item.rating;
+    homepage[`${pfx}Product`] = item.product;
+    homepage[`${pfx}Quote`] = item.quote;
+  }
 
   const savedHelloBar = safeParseJson(map.content_hellobar_json, {});
   const helloBar = {
@@ -429,9 +534,15 @@ function updateHelloBarConfig(payload = {}, actor = {}) {
 function updateHomepageContent(payload = {}, actor = {}) {
   const cleanDash = s => String(s ?? '').replace(/[\u2013\u2014]/g, '-').trim();
   const current = getStorefrontContentAndSeo().homepage;
-  const next = { ...current };
+  const next = {
+    ...current,
+    testimonialsList: Array.isArray(current.testimonialsList)
+      ? current.testimonialsList.map(item => ({ ...item }))
+      : DEFAULT_TESTIMONIALS_LIST.map(item => ({ ...item }))
+  };
 
   for (const key of Object.keys(DEFAULT_HOMEPAGE_CONTENT)) {
+    if (key === 'testimonialsList') continue;
     if (payload[key] !== undefined && cleanDash(payload[key]) !== '') {
       next[key] = cleanDash(payload[key]);
     }
@@ -443,13 +554,56 @@ function updateHomepageContent(payload = {}, actor = {}) {
       rawEnabled === false || rawEnabled === 0 || rawEnabled === '0' || rawEnabled === 'false' ? '0' : '1';
   }
 
-  for (const rKey of ['t1Rating', 't2Rating', 't3Rating']) {
-    if (next[rKey] !== undefined) {
-      const parsedRating = Number(next[rKey]);
-      next[rKey] = Number.isFinite(parsedRating)
-        ? Math.min(5, Math.max(1, parsedRating)).toFixed(1)
-        : '5.0';
+  let incomingList = null;
+  if (Array.isArray(payload.testimonialsList)) {
+    incomingList = payload.testimonialsList;
+  } else if (typeof payload.testimonialsJson === 'string' && payload.testimonialsJson.trim().startsWith('[')) {
+    incomingList = safeParseJson(payload.testimonialsJson, null);
+  } else if (typeof payload.testimonialsList === 'string' && payload.testimonialsList.trim().startsWith('[')) {
+    incomingList = safeParseJson(payload.testimonialsList, null);
+  }
+
+  if (Array.isArray(incomingList)) {
+    const normalizedList = incomingList
+      .map((item, idx) => normalizeTestimonialItem(item, DEFAULT_TESTIMONIALS_LIST[idx % DEFAULT_TESTIMONIALS_LIST.length]))
+      .filter(item => item.name && item.quote);
+    if (normalizedList.length === 0) {
+      throw new Error('At least one complete customer testimonial (name and review quote) is required.');
     }
+    next.testimonialsList = normalizedList;
+  } else {
+    for (let i = 0; i < 3; i++) {
+      const pfx = `t${i + 1}`;
+      const hasLegacyOverride =
+        payload[`${pfx}Name`] !== undefined ||
+        payload[`${pfx}Location`] !== undefined ||
+        payload[`${pfx}Rating`] !== undefined ||
+        payload[`${pfx}Product`] !== undefined ||
+        payload[`${pfx}Quote`] !== undefined;
+      if (hasLegacyOverride) {
+        const existingItem = next.testimonialsList[i] || DEFAULT_TESTIMONIALS_LIST[i];
+        next.testimonialsList[i] = normalizeTestimonialItem(
+          {
+            name: next[`${pfx}Name`] || existingItem.name,
+            location: next[`${pfx}Location`] || existingItem.location,
+            rating: next[`${pfx}Rating`] || existingItem.rating,
+            product: next[`${pfx}Product`] || existingItem.product,
+            quote: next[`${pfx}Quote`] || existingItem.quote
+          },
+          DEFAULT_TESTIMONIALS_LIST[i]
+        );
+      }
+    }
+  }
+
+  for (let i = 0; i < 3; i++) {
+    const item = next.testimonialsList[i] || DEFAULT_TESTIMONIALS_LIST[i];
+    const pfx = `t${i + 1}`;
+    next[`${pfx}Name`] = item.name;
+    next[`${pfx}Location`] = item.location;
+    next[`${pfx}Rating`] = item.rating;
+    next[`${pfx}Product`] = item.product;
+    next[`${pfx}Quote`] = item.quote;
   }
 
   if (next.heroImageUrl) {
@@ -460,7 +614,11 @@ function updateHomepageContent(payload = {}, actor = {}) {
     next.heroImageUrl = rawHeroImg.startsWith('/') ? rawHeroImg : `/${rawHeroImg}`;
   }
 
-  const combinedText = Object.values(next).join(' ');
+  const scalarValues = Object.entries(next)
+    .filter(([k, v]) => k !== 'testimonialsList' && typeof v === 'string')
+    .map(([, v]) => v);
+  const testimonialStrings = (next.testimonialsList || []).flatMap(t => [t.name, t.location, t.product, t.quote]);
+  const combinedText = [...scalarValues, ...testimonialStrings].filter(Boolean).join(' ');
   const lintCheck = lintContentText(combinedText, 'homepage_content');
   if (!lintCheck.valid) {
     throw new Error(lintCheck.issues.join(' '));

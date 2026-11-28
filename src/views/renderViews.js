@@ -992,38 +992,50 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
   const bestsellersSectionEyebrow = hp.homeBestsellersEyebrow || 'Most Reordered Across India';
   const bestsellersSectionHeading = hp.homeBestsellersHeading || 'Pantry Best Sellers';
 
-  const testimonialItems = [
-    {
-      idx: 1,
-      name: hp.t1Name || 'Ananya Iyer',
-      location: hp.t1Location || 'Indiranagar, Bengaluru',
-      rating: hp.t1Rating || '5.0',
-      product: hp.t1Product || 'Kashmiri Mamra Giri Almonds • 500 g Pack',
-      quote:
-        hp.t1Quote ||
-        'The Mamra almonds have noticeably higher natural oil and crunch than supermarket packs. The resealable pouch keeps them crisp even during Bengaluru monsoons.'
-    },
-    {
-      idx: 2,
-      name: hp.t2Name || 'Vikramaditya Rao',
-      location: hp.t2Location || 'Bandra West, Mumbai',
-      rating: hp.t2Rating || '5.0',
-      product: hp.t2Product || 'Haveri Finger Millet (Ragi) • 1 kg Pack',
-      quote:
-        hp.t2Quote ||
-        'Unpolished Haveri ragi and foxtail millet cook evenly without gritty husks. Having batch numbers and lab-tested nutrition on every pack gives complete peace of mind.'
-    },
-    {
-      idx: 3,
-      name: hp.t3Name || 'Sneha Menon',
-      location: hp.t3Location || 'Jubilee Hills, Hyderabad',
-      rating: hp.t3Rating || '4.9',
-      product: hp.t3Product || 'Meghalaya Lakadong Turmeric • 250 g Pack',
-      quote:
-        hp.t3Quote ||
-        'Opening the Lakadong turmeric and Wayanad black pepper pouches fills the kitchen with aroma. You only need half a pinch compared to regular store-bought powders.'
-    }
-  ];
+  const rawTestimonialList =
+    Array.isArray(hp.testimonialsList) && hp.testimonialsList.length > 0
+      ? hp.testimonialsList
+      : [
+          {
+            name: hp.t1Name || 'Ananya Iyer',
+            location: hp.t1Location || 'Indiranagar, Bengaluru',
+            rating: hp.t1Rating || '5.0',
+            product: hp.t1Product || 'Kashmiri Mamra Giri Almonds • 500 g Pack',
+            quote:
+              hp.t1Quote ||
+              'The Mamra almonds have noticeably higher natural oil and crunch than supermarket packs. The resealable pouch keeps them crisp even during Bengaluru monsoons.'
+          },
+          {
+            name: hp.t2Name || 'Vikramaditya Rao',
+            location: hp.t2Location || 'Bandra West, Mumbai',
+            rating: hp.t2Rating || '5.0',
+            product: hp.t2Product || 'Haveri Finger Millet (Ragi) • 1 kg Pack',
+            quote:
+              hp.t2Quote ||
+              'Unpolished Haveri ragi and foxtail millet cook evenly without gritty husks. Having batch numbers and lab-tested nutrition on every pack gives complete peace of mind.'
+          },
+          {
+            name: hp.t3Name || 'Sneha Menon',
+            location: hp.t3Location || 'Jubilee Hills, Hyderabad',
+            rating: hp.t3Rating || '4.9',
+            product: hp.t3Product || 'Meghalaya Lakadong Turmeric • 250 g Pack',
+            quote:
+              hp.t3Quote ||
+              'Opening the Lakadong turmeric and Wayanad black pepper pouches fills the kitchen with aroma. You only need half a pinch compared to regular store-bought powders.'
+          }
+        ];
+  const testimonialItems = rawTestimonialList.map((item, index) => ({
+    idx: index + 1,
+    name: item.name || 'Verified Household Buyer',
+    location: item.location || 'Bengaluru, Karnataka',
+    rating: item.rating || '5.0',
+    product: item.product || 'Sashya Naturals Pantry Pack',
+    quote: item.quote || ''
+  }));
+  const testimonialSlides = [];
+  for (let i = 0; i < testimonialItems.length; i += 3) {
+    testimonialSlides.push(testimonialItems.slice(i, i + 3));
+  }
   const avgTestimonialRating = (
     testimonialItems.reduce((acc, item) => acc + (Number(item.rating) || 5.0), 0) /
     Math.max(1, testimonialItems.length)
@@ -1258,51 +1270,78 @@ function renderHomePage({ categories, products, variants, basePath = '', staticS
             <span class="sn-eyebrow" id="home-testimonials-eyebrow">${escapeHtml(testimonialsSectionEyebrow)}</span>
             <h2>${escapeHtml(testimonialsSectionHeading)}${renderHeadingAnchor('customer-testimonials', testimonialsSectionHeading)}</h2>
           </div>
-          <div class="sn-testimonials-summary-badge" aria-label="Average Customer Rating">
-            <span class="sn-testimonial-stars" aria-hidden="true">★★★★★</span>
-            <strong>${escapeHtml(avgTestimonialRating)} / 5</strong>
-            <span class="sn-testimonials-summary-sep">•</span>
-            <span>✓ 100% Batch-Verified Buyers</span>
+          <div class="sn-testimonials-header-controls">
+            <div class="sn-testimonials-summary-badge" aria-label="Average Customer Rating">
+              <span class="sn-testimonial-stars" aria-hidden="true">★★★★★</span>
+              <strong>${escapeHtml(avgTestimonialRating)} / 5</strong>
+              <span class="sn-testimonials-summary-sep">•</span>
+              <span>✓ 100% Batch-Verified Buyers (${testimonialItems.length} Reviews)</span>
+            </div>
+            ${testimonialSlides.length > 1 ? `
+            <div class="sn-testimonials-slider-controls" id="sn-testimonials-slider-controls">
+              <button type="button" class="sn-testimonials-nav-btn" id="sn-testimonials-prev" aria-label="Previous 3 testimonials" title="Previous 3 testimonials">&larr;</button>
+              <span class="sn-testimonials-slide-counter" id="sn-testimonials-slide-counter">1 / ${testimonialSlides.length}</span>
+              <button type="button" class="sn-testimonials-nav-btn" id="sn-testimonials-next" aria-label="Next 3 testimonials" title="Next 3 testimonials">&rarr;</button>
+            </div>
+            ` : ''}
           </div>
         </div>
-        <div class="sn-testimonials-grid" id="home-testimonials-grid">
-          ${testimonialItems.map(item => {
-            const initials = String(item.name || 'SN')
-              .trim()
-              .split(/\s+/)
-              .filter(Boolean)
-              .slice(0, 2)
-              .map(part => part[0].toUpperCase())
-              .join('') || 'SN';
-            const numRating = Number(item.rating) || 5.0;
-            const formattedRating = numRating.toFixed(1);
-            return `
-            <article class="sn-testimonial-card" id="home-testimonial-card-${item.idx}">
-              <div class="sn-testimonial-top">
-                <div class="sn-testimonial-rating-pill" aria-label="Rated ${escapeHtml(formattedRating)} out of 5 stars">
-                  <span class="sn-testimonial-stars" aria-hidden="true">★★★★★</span>
-                  <span class="sn-testimonial-rating-num">${escapeHtml(formattedRating)}</span>
-                </div>
-                <span class="sn-testimonial-verified-badge">✓ Verified Buyer</span>
-              </div>
-              <div class="sn-testimonial-product-pill">
-                <span aria-hidden="true">📦</span>
-                <span>${escapeHtml(item.product)}</span>
-              </div>
-              <blockquote class="sn-testimonial-quote">
-                &ldquo;${escapeHtml(item.quote)}&rdquo;
-              </blockquote>
-              <div class="sn-testimonial-author">
-                <div class="sn-testimonial-avatar" aria-hidden="true">${escapeHtml(initials)}</div>
-                <div class="sn-testimonial-author-meta">
-                  <strong class="sn-testimonial-author-name">${escapeHtml(item.name)}</strong>
-                  <span class="sn-testimonial-author-loc">${escapeHtml(item.location)}</span>
-                </div>
-              </div>
-            </article>
-            `;
-          }).join('')}
+        <div class="sn-testimonials-slider-viewport" id="home-testimonials-slider" data-total-slides="${testimonialSlides.length}" data-total-cards="${testimonialItems.length}">
+          <div class="sn-testimonials-slider-track" id="home-testimonials-grid">
+            ${testimonialSlides.map((slideCards, slideIdx) => `
+            <div class="sn-testimonials-slide" data-testimonial-slide="${slideIdx}" aria-hidden="${slideIdx === 0 ? 'false' : 'true'}">
+              ${slideCards.map(item => {
+                const initials = String(item.name || 'SN')
+                  .trim()
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map(part => part[0].toUpperCase())
+                  .join('') || 'SN';
+                const numRating = Number(item.rating) || 5.0;
+                const formattedRating = numRating.toFixed(1);
+                return `
+                <article class="sn-testimonial-card" id="home-testimonial-card-${item.idx}">
+                  <div class="sn-testimonial-top">
+                    <div class="sn-testimonial-rating-pill" aria-label="Rated ${escapeHtml(formattedRating)} out of 5 stars">
+                      <span class="sn-testimonial-stars" aria-hidden="true">★★★★★</span>
+                      <span class="sn-testimonial-rating-num">${escapeHtml(formattedRating)}</span>
+                    </div>
+                    <span class="sn-testimonial-verified-badge">✓ Verified Buyer</span>
+                  </div>
+                  <div class="sn-testimonial-product-pill">
+                    <span aria-hidden="true">📦</span>
+                    <span>${escapeHtml(item.product)}</span>
+                  </div>
+                  <blockquote class="sn-testimonial-quote">
+                    &ldquo;${escapeHtml(item.quote)}&rdquo;
+                  </blockquote>
+                  <div class="sn-testimonial-author">
+                    <div class="sn-testimonial-avatar" aria-hidden="true">${escapeHtml(initials)}</div>
+                    <div class="sn-testimonial-author-meta">
+                      <strong class="sn-testimonial-author-name">${escapeHtml(item.name)}</strong>
+                      <span class="sn-testimonial-author-loc">${escapeHtml(item.location)}</span>
+                    </div>
+                  </div>
+                </article>
+                `;
+              }).join('')}
+            </div>
+            `).join('')}
+          </div>
         </div>
+        ${testimonialSlides.length > 1 ? `
+        <div class="sn-testimonials-dots-bar" id="sn-testimonials-dots" role="tablist" aria-label="Testimonials Slider Pages (3 per slide)">
+          ${testimonialSlides.map((_, slideIdx) => `
+          <button
+            type="button"
+            class="sn-testimonials-dot ${slideIdx === 0 ? 'sn-active' : ''}"
+            data-testimonial-dot="${slideIdx}"
+            aria-label="Show testimonials ${slideIdx * 3 + 1} to ${Math.min((slideIdx + 1) * 3, testimonialItems.length)}"
+          ></button>
+          `).join('')}
+        </div>
+        ` : ''}
       </div>
     </section>
     ` : ''}
@@ -5569,11 +5608,44 @@ function renderAdminPortalPage({
                     </div>
                   </div>
 
+                  ${(() => {
+                    const adminTestimonials =
+                      Array.isArray(contentAndSeo.homepage.testimonialsList) && contentAndSeo.homepage.testimonialsList.length > 0
+                        ? contentAndSeo.homepage.testimonialsList
+                        : [
+                            {
+                              name: contentAndSeo.homepage.t1Name || 'Ananya Iyer',
+                              location: contentAndSeo.homepage.t1Location || 'Indiranagar, Bengaluru',
+                              rating: contentAndSeo.homepage.t1Rating || '5.0',
+                              product: contentAndSeo.homepage.t1Product || 'Kashmiri Mamra Giri Almonds • 500 g Pack',
+                              quote: contentAndSeo.homepage.t1Quote || ''
+                            },
+                            {
+                              name: contentAndSeo.homepage.t2Name || 'Vikramaditya Rao',
+                              location: contentAndSeo.homepage.t2Location || 'Bandra West, Mumbai',
+                              rating: contentAndSeo.homepage.t2Rating || '5.0',
+                              product: contentAndSeo.homepage.t2Product || 'Haveri Finger Millet (Ragi) • 1 kg Pack',
+                              quote: contentAndSeo.homepage.t2Quote || ''
+                            },
+                            {
+                              name: contentAndSeo.homepage.t3Name || 'Sneha Menon',
+                              location: contentAndSeo.homepage.t3Location || 'Jubilee Hills, Hyderabad',
+                              rating: contentAndSeo.homepage.t3Rating || '4.9',
+                              product: contentAndSeo.homepage.t3Product || 'Meghalaya Lakadong Turmeric • 250 g Pack',
+                              quote: contentAndSeo.homepage.t3Quote || ''
+                            }
+                          ];
+                    const slidePagesCount = Math.max(1, Math.ceil(adminTestimonials.length / 3));
+                    return `
                   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 10px;">
-                    <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">3. Homepage Customer Testimonials Section (Above Footer)</h3>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                      <label for="sn-admin-testimonials-enabled" style="font-size:0.74rem;font-weight:700;color:var(--sn-bg-forest);">Section Visibility:</label>
-                      <select name="testimonialsEnabled" id="sn-admin-testimonials-enabled" class="sn-select" style="width:auto;min-width:230px;padding:5px 10px;font-size:0.78rem;">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                      <h3 style="font-family:var(--sn-font-serif);margin:0;font-size:1.1rem;color:var(--sn-bg-forest);">3. Homepage Customer Testimonials Carousel (3-at-a-Time Slider Above Footer)</h3>
+                      <span id="sn-admin-testimonials-count-badge" class="sn-status sn-status-paid" style="font-family:var(--sn-font-mono);font-size:0.72rem;">${adminTestimonials.length} Testimonials • ${slidePagesCount} Slider ${slidePagesCount === 1 ? 'Page' : 'Pages'} (3 per slide)</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                      <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" id="sn-admin-add-testimonial-btn" style="font-weight:700;">+ Add Testimonial Card</button>
+                      <label for="sn-admin-testimonials-enabled" style="font-size:0.74rem;font-weight:700;color:var(--sn-bg-forest);">Visibility:</label>
+                      <select name="testimonialsEnabled" id="sn-admin-testimonials-enabled" class="sn-select" style="width:auto;min-width:215px;padding:5px 10px;font-size:0.78rem;">
                         <option value="1" ${contentAndSeo.homepage.testimonialsEnabled === '0' || contentAndSeo.homepage.testimonialsEnabled === false ? '' : 'selected'}>✓ Shown on Homepage Above Footer (1)</option>
                         <option value="0" ${contentAndSeo.homepage.testimonialsEnabled === '0' || contentAndSeo.homepage.testimonialsEnabled === false ? 'selected' : ''}>Hidden from Homepage (0)</option>
                       </select>
@@ -5591,67 +5663,38 @@ function renderAdminPortalPage({
                     </div>
                   </div>
 
-                  <div class="sn-grid-3" style="gap:10px;margin-bottom:14px;">
-                    <div class="sn-card" style="padding:12px;background-color:var(--sn-bg-surface);">
-                      <strong style="display:block;font-size:0.8rem;color:var(--sn-bg-forest);margin-bottom:8px;">★ Testimonial Card 1 (Household Review)</strong>
+                  <div class="sn-grid-3" id="sn-admin-testimonials-list" style="gap:10px;margin-bottom:14px;">
+                    ${adminTestimonials.map((tItem, idx) => {
+                      const cardNum = idx + 1;
+                      const slideNum = Math.floor(idx / 3) + 1;
+                      return `
+                    <div class="sn-card sn-admin-testimonial-editor-card" data-testimonial-editor-card="${cardNum}" style="padding:12px;background-color:var(--sn-bg-surface);">
+                      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:8px;">
+                        <strong class="sn-admin-testimonial-card-title" style="font-size:0.79rem;color:var(--sn-bg-forest);">★ Testimonial #${cardNum} (Slide ${slideNum})</strong>
+                        <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-admin-remove-testimonial-btn" data-remove-testimonial-btn style="padding:2px 8px;font-size:0.68rem;color:#B42318;border-color:rgba(180,35,24,0.35);">✕ Remove</button>
+                      </div>
                       <div class="sn-grid-2" style="gap:6px;margin-bottom:6px;">
                         <div>
                           <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Customer Name *</label>
-                          <input type="text" name="t1Name" required value="${escapeHtml(contentAndSeo.homepage.t1Name || 'Ananya Iyer')}" class="sn-input" />
+                          <input type="text" name="t${cardNum}Name" data-t-field="name" required value="${escapeHtml(tItem.name || '')}" class="sn-input" />
                         </div>
                         <div>
                           <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Rating (1.0–5.0) *</label>
-                          <input type="text" name="t1Rating" required value="${escapeHtml(contentAndSeo.homepage.t1Rating || '5.0')}" class="sn-input" />
+                          <input type="text" name="t${cardNum}Rating" data-t-field="rating" required value="${escapeHtml(tItem.rating || '5.0')}" class="sn-input" />
                         </div>
                       </div>
                       <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">City &amp; Neighbourhood / State *</label>
-                      <input type="text" name="t1Location" required value="${escapeHtml(contentAndSeo.homepage.t1Location || 'Indiranagar, Bengaluru')}" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="t${cardNum}Location" data-t-field="location" required value="${escapeHtml(tItem.location || '')}" class="sn-input" style="margin-bottom:6px;" />
                       <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Purchased Product &amp; Pack Weight *</label>
-                      <input type="text" name="t1Product" required value="${escapeHtml(contentAndSeo.homepage.t1Product || 'Kashmiri Mamra Giri Almonds • 500 g Pack')}" class="sn-input" style="margin-bottom:6px;" />
+                      <input type="text" name="t${cardNum}Product" data-t-field="product" required value="${escapeHtml(tItem.product || '')}" class="sn-input" style="margin-bottom:6px;" />
                       <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Customer Review Quote (Humanizer-Checked) *</label>
-                      <textarea name="t1Quote" rows="3" required class="sn-textarea">${escapeHtml(contentAndSeo.homepage.t1Quote || '')}</textarea>
+                      <textarea name="t${cardNum}Quote" data-t-field="quote" rows="3" required class="sn-textarea">${escapeHtml(tItem.quote || '')}</textarea>
                     </div>
-
-                    <div class="sn-card" style="padding:12px;background-color:var(--sn-bg-surface);">
-                      <strong style="display:block;font-size:0.8rem;color:var(--sn-bg-forest);margin-bottom:8px;">★ Testimonial Card 2 (Household Review)</strong>
-                      <div class="sn-grid-2" style="gap:6px;margin-bottom:6px;">
-                        <div>
-                          <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Customer Name *</label>
-                          <input type="text" name="t2Name" required value="${escapeHtml(contentAndSeo.homepage.t2Name || 'Vikramaditya Rao')}" class="sn-input" />
-                        </div>
-                        <div>
-                          <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Rating (1.0–5.0) *</label>
-                          <input type="text" name="t2Rating" required value="${escapeHtml(contentAndSeo.homepage.t2Rating || '5.0')}" class="sn-input" />
-                        </div>
-                      </div>
-                      <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">City &amp; Neighbourhood / State *</label>
-                      <input type="text" name="t2Location" required value="${escapeHtml(contentAndSeo.homepage.t2Location || 'Bandra West, Mumbai')}" class="sn-input" style="margin-bottom:6px;" />
-                      <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Purchased Product &amp; Pack Weight *</label>
-                      <input type="text" name="t2Product" required value="${escapeHtml(contentAndSeo.homepage.t2Product || 'Haveri Finger Millet (Ragi) • 1 kg Pack')}" class="sn-input" style="margin-bottom:6px;" />
-                      <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Customer Review Quote (Humanizer-Checked) *</label>
-                      <textarea name="t2Quote" rows="3" required class="sn-textarea">${escapeHtml(contentAndSeo.homepage.t2Quote || '')}</textarea>
-                    </div>
-
-                    <div class="sn-card" style="padding:12px;background-color:var(--sn-bg-surface);">
-                      <strong style="display:block;font-size:0.8rem;color:var(--sn-bg-forest);margin-bottom:8px;">★ Testimonial Card 3 (Household Review)</strong>
-                      <div class="sn-grid-2" style="gap:6px;margin-bottom:6px;">
-                        <div>
-                          <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Customer Name *</label>
-                          <input type="text" name="t3Name" required value="${escapeHtml(contentAndSeo.homepage.t3Name || 'Sneha Menon')}" class="sn-input" />
-                        </div>
-                        <div>
-                          <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Rating (1.0–5.0) *</label>
-                          <input type="text" name="t3Rating" required value="${escapeHtml(contentAndSeo.homepage.t3Rating || '4.9')}" class="sn-input" />
-                        </div>
-                      </div>
-                      <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">City &amp; Neighbourhood / State *</label>
-                      <input type="text" name="t3Location" required value="${escapeHtml(contentAndSeo.homepage.t3Location || 'Jubilee Hills, Hyderabad')}" class="sn-input" style="margin-bottom:6px;" />
-                      <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Purchased Product &amp; Pack Weight *</label>
-                      <input type="text" name="t3Product" required value="${escapeHtml(contentAndSeo.homepage.t3Product || 'Meghalaya Lakadong Turmeric • 250 g Pack')}" class="sn-input" style="margin-bottom:6px;" />
-                      <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Customer Review Quote (Humanizer-Checked) *</label>
-                      <textarea name="t3Quote" rows="3" required class="sn-textarea">${escapeHtml(contentAndSeo.homepage.t3Quote || '')}</textarea>
-                    </div>
+                      `;
+                    }).join('')}
                   </div>
+                    `;
+                  })()}
 
                   <div style="display:flex;justify-content:flex-end;">
                     <button type="submit" class="sn-btn sn-btn-forest" id="sn-save-homepage-content-btn">Save Homepage Hero, Testimonials &amp; Global Shell Copy</button>

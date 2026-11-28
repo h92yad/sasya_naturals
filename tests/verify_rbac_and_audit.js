@@ -634,34 +634,43 @@ function runVerifyRbacAndAudit() {
     assert(adminHtml.includes('id="sn-inv-chart-priority-card"'), 'Admin Module 4 must render Chart 3: Top Restock Priority SKUs');
     assert(adminHtml.includes('id="sn-inv-heatmap-card"'), 'Admin Module 4 must render Chart 4: 22-Product x 4-Pack Stock Heatmap Matrix');
 
-    // 15e. Verify v4.2.0 Homepage Customer Testimonials Section (#customer-testimonials) & Admin Module 9.1 Editability
+    // 15e. Verify v4.2.1 Homepage Customer Testimonials 3-at-a-Time Slider & Dynamic Multi-Card Admin Addition
     assert(adminHtml.includes('name="testimonialsEnabled"'), 'Admin Module 9.1 must render testimonialsEnabled selector');
     assert(adminHtml.includes('name="testimonialsHeading"'), 'Admin Module 9.1 must render testimonialsHeading input');
-    assert(adminHtml.includes('name="t1Name"') && adminHtml.includes('name="t2Name"') && adminHtml.includes('name="t3Name"'), 'Admin Module 9.1 must render 3 testimonial card editors');
+    assert(adminHtml.includes('id="sn-admin-add-testimonial-btn"'), 'Admin Module 9.1 must render + Add Testimonial Card button');
+    assert(adminHtml.includes('id="sn-admin-testimonials-list"'), 'Admin Module 9.1 must render dynamic testimonials list container');
+
+    const defaultHomeHtml = renderHomePage({
+      categories: activeCategories,
+      products: activeProducts,
+      variants: activeVariants
+    });
+    assert(defaultHomeHtml.includes('data-total-slides="2" data-total-cards="6"'), 'Default homepage must group 6 testimonials into 2 slides of 3');
+    assert(defaultHomeHtml.includes('data-testimonial-slide="0"') && defaultHomeHtml.includes('data-testimonial-slide="1"'), 'Default homepage must render 2 3-card slider pages');
+    assert(defaultHomeHtml.includes('id="sn-testimonials-prev"') && defaultHomeHtml.includes('id="sn-testimonials-next"'), 'Default homepage must render Prev/Next slider buttons');
 
     updateHomepageContent({
       testimonialsEnabled: '1',
       testimonialsEyebrow: 'Custom Verified Household Eyebrow',
       testimonialsHeading: 'Custom Families Across India Heading',
-      t1Name: 'Meera Krishnan',
-      t1Location: 'Malleswaram, Bengaluru',
-      t1Rating: '5.0',
-      t1Product: 'Goan W240 Whole Cashews • 500 g Pack',
-      t1Quote: 'Crisp Goan cashews with zero broken pieces in the 500 g pouch.'
+      testimonialsList: [
+        { name: 'Meera Krishnan', location: 'Malleswaram, Bengaluru', rating: '5.0', product: 'Goan W240 Whole Cashews • 500 g Pack', quote: 'Crisp Goan cashews with zero broken pieces in the 500 g pouch.' },
+        { name: 'Arjun Nair', location: 'Panampilly Nagar, Kochi', rating: '5.0', product: 'Wayanad Black Pepper • 250 g Pack', quote: 'Bold Tellicherry peppercorns with strong piperine aroma.' },
+        { name: 'Divya Sharma', location: 'Civil Lines, Jaipur', rating: '4.9', product: 'Rajasthani Pearl Millet • 1 kg Pack', quote: 'Clean unpolished bajra that makes soft rotis every winter evening.' },
+        { name: 'Siddharth Joshi', location: 'koregaon Park, Pune', rating: '5.0', product: 'Kashmiri Mamra Almonds • 1 kg Pack', quote: 'Crunchy sweet Mamra almonds delivered in a sturdy resealable bag.' }
+      ]
     });
-    const homeWithTestimonials = renderHomePage({
+    const homeWith4Testimonials = renderHomePage({
       categories: activeCategories,
       products: activeProducts,
       variants: activeVariants
     });
-    assert(homeWithTestimonials.includes('id="customer-testimonials"'), 'Homepage must render #customer-testimonials section when enabled');
-    assert(homeWithTestimonials.includes('Custom Verified Household Eyebrow'), 'Homepage must render custom testimonialsEyebrow');
-    assert(homeWithTestimonials.includes('Custom Families Across India Heading'), 'Homepage must render custom testimonialsHeading');
-    assert(homeWithTestimonials.includes('Meera Krishnan'), 'Homepage must render custom t1Name');
-    assert(homeWithTestimonials.includes('Malleswaram, Bengaluru'), 'Homepage must render custom t1Location');
-    assert(homeWithTestimonials.includes('Goan W240 Whole Cashews • 500 g Pack'), 'Homepage must render custom t1Product');
-    assert(homeWithTestimonials.includes('Crisp Goan cashews with zero broken pieces in the 500 g pouch.'), 'Homepage must render custom t1Quote');
-    assert(homeWithTestimonials.includes('>MK<'), 'Homepage must compute 2-letter monogram initials MK for Meera Krishnan');
+    assert(homeWith4Testimonials.includes('id="customer-testimonials"'), 'Homepage must render #customer-testimonials section when enabled');
+    assert(homeWith4Testimonials.includes('data-total-slides="2" data-total-cards="4"'), '4 testimonials must be grouped into 2 slides (3 on slide 1, 1 on slide 2)');
+    assert(homeWith4Testimonials.includes('Custom Verified Household Eyebrow'), 'Homepage must render custom testimonialsEyebrow');
+    assert(homeWith4Testimonials.includes('Custom Families Across India Heading'), 'Homepage must render custom testimonialsHeading');
+    assert(homeWith4Testimonials.includes('Meera Krishnan') && homeWith4Testimonials.includes('Siddharth Joshi'), 'Homepage must render all added testimonials across slides');
+    assert(homeWith4Testimonials.includes('>MK<') && homeWith4Testimonials.includes('>SJ<'), 'Homepage must compute 2-letter monogram initials for each testimonial');
 
     updateHomepageContent({ testimonialsEnabled: '0' });
     const homeWithoutTestimonials = renderHomePage({

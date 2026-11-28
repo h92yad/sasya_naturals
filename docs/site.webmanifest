@@ -9,17 +9,17 @@
   "theme_color": "#212C64",
   "icons": [
     {
-      "src": "/sasya_naturals/images/favicon-32.png?v=4.2.0",
+      "src": "/sasya_naturals/images/favicon-32.png?v=4.2.1",
       "sizes": "32x32",
       "type": "image/png"
     },
     {
-      "src": "/sasya_naturals/images/apple-touch-icon.png?v=4.2.0",
+      "src": "/sasya_naturals/images/apple-touch-icon.png?v=4.2.1",
       "sizes": "180x180",
       "type": "image/png"
     },
     {
-      "src": "/sasya_naturals/images/favicon.webp?v=4.2.0",
+      "src": "/sasya_naturals/images/favicon.webp?v=4.2.1",
       "sizes": "192x192",
       "type": "image/webp"
     }

@@ -4664,6 +4664,91 @@
       });
     }
 
+    const adminTestimonialsListEl = document.getElementById('sn-admin-testimonials-list');
+    const adminAddTestimonialBtn = document.getElementById('sn-admin-add-testimonial-btn');
+    const adminTestimonialsCountBadge = document.getElementById('sn-admin-testimonials-count-badge');
+
+    function reindexAdminTestimonialCards() {
+      if (!adminTestimonialsListEl) return;
+      const cards = Array.from(adminTestimonialsListEl.querySelectorAll('.sn-admin-testimonial-editor-card'));
+      cards.forEach((card, idx) => {
+        const cardNum = idx + 1;
+        const slideNum = Math.floor(idx / 3) + 1;
+        card.setAttribute('data-testimonial-editor-card', String(cardNum));
+        const titleEl = card.querySelector('.sn-admin-testimonial-card-title');
+        if (titleEl) titleEl.textContent = `★ Testimonial #${cardNum} (Slide ${slideNum})`;
+        const nameInput = card.querySelector('[data-t-field="name"]');
+        const ratingInput = card.querySelector('[data-t-field="rating"]');
+        const locInput = card.querySelector('[data-t-field="location"]');
+        const prodInput = card.querySelector('[data-t-field="product"]');
+        const quoteInput = card.querySelector('[data-t-field="quote"]');
+        if (nameInput) nameInput.name = `t${cardNum}Name`;
+        if (ratingInput) ratingInput.name = `t${cardNum}Rating`;
+        if (locInput) locInput.name = `t${cardNum}Location`;
+        if (prodInput) prodInput.name = `t${cardNum}Product`;
+        if (quoteInput) quoteInput.name = `t${cardNum}Quote`;
+      });
+      if (adminTestimonialsCountBadge) {
+        const pages = Math.max(1, Math.ceil(cards.length / 3));
+        adminTestimonialsCountBadge.textContent = `${cards.length} Testimonials • ${pages} Slider ${pages === 1 ? 'Page' : 'Pages'} (3 per slide)`;
+      }
+    }
+
+    if (adminAddTestimonialBtn && adminTestimonialsListEl) {
+      adminAddTestimonialBtn.addEventListener('click', () => {
+        const currentCount = adminTestimonialsListEl.querySelectorAll('.sn-admin-testimonial-editor-card').length;
+        const nextNum = currentCount + 1;
+        const nextSlide = Math.floor(currentCount / 3) + 1;
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'sn-card sn-admin-testimonial-editor-card';
+        cardDiv.setAttribute('data-testimonial-editor-card', String(nextNum));
+        cardDiv.style.cssText = 'padding:12px;background-color:var(--sn-bg-surface);';
+        cardDiv.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:8px;">
+            <strong class="sn-admin-testimonial-card-title" style="font-size:0.79rem;color:var(--sn-bg-forest);">★ Testimonial #${nextNum} (Slide ${nextSlide})</strong>
+            <button type="button" class="sn-btn sn-btn-outline sn-btn-sm sn-admin-remove-testimonial-btn" data-remove-testimonial-btn style="padding:2px 8px;font-size:0.68rem;color:#B42318;border-color:rgba(180,35,24,0.35);">✕ Remove</button>
+          </div>
+          <div class="sn-grid-2" style="gap:6px;margin-bottom:6px;">
+            <div>
+              <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Customer Name *</label>
+              <input type="text" name="t${nextNum}Name" data-t-field="name" required placeholder="e.g. Meera Krishnan" class="sn-input" />
+            </div>
+            <div>
+              <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Rating (1.0–5.0) *</label>
+              <input type="text" name="t${nextNum}Rating" data-t-field="rating" required value="5.0" class="sn-input" />
+            </div>
+          </div>
+          <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">City &amp; Neighbourhood / State *</label>
+          <input type="text" name="t${nextNum}Location" data-t-field="location" required placeholder="e.g. Malleswaram, Bengaluru" class="sn-input" style="margin-bottom:6px;" />
+          <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Purchased Product &amp; Pack Weight *</label>
+          <input type="text" name="t${nextNum}Product" data-t-field="product" required placeholder="e.g. Kashmiri Snow-White Walnut Halves • 500 g Pack" class="sn-input" style="margin-bottom:6px;" />
+          <label style="font-size:0.7rem;font-weight:700;display:block;margin-bottom:2px;">Customer Review Quote (Humanizer-Checked) *</label>
+          <textarea name="t${nextNum}Quote" data-t-field="quote" rows="3" required placeholder="Enter customer feedback on product freshness, aroma, or packaging..." class="sn-textarea"></textarea>
+        `;
+        adminTestimonialsListEl.appendChild(cardDiv);
+        reindexAdminTestimonialCards();
+        const firstInput = cardDiv.querySelector('[data-t-field="name"]');
+        if (firstInput) firstInput.focus();
+        showToast(`Added Testimonial Card #${nextNum} (Slide ${nextSlide}). Fill in details and click Save below.`);
+      });
+
+      adminTestimonialsListEl.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('[data-remove-testimonial-btn]');
+        if (!removeBtn) return;
+        const cards = adminTestimonialsListEl.querySelectorAll('.sn-admin-testimonial-editor-card');
+        if (cards.length <= 1) {
+          showToast('At least 1 customer testimonial card is required.');
+          return;
+        }
+        const card = removeBtn.closest('.sn-admin-testimonial-editor-card');
+        if (card) {
+          card.remove();
+          reindexAdminTestimonialCards();
+          showToast('Removed testimonial card. Click Save below to apply changes.');
+        }
+      });
+    }
+
     if (homepageContentForm) {
       homepageContentForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -4672,6 +4757,19 @@
         const heroFile = fd.get('heroImageFile');
         const payload = Object.fromEntries(fd.entries());
         delete payload.heroImageFile;
+
+        if (adminTestimonialsListEl) {
+          const cards = Array.from(adminTestimonialsListEl.querySelectorAll('.sn-admin-testimonial-editor-card'));
+          payload.testimonialsList = cards
+            .map(card => ({
+              name: (card.querySelector('[data-t-field="name"]')?.value || '').trim(),
+              rating: (card.querySelector('[data-t-field="rating"]')?.value || '5.0').trim(),
+              location: (card.querySelector('[data-t-field="location"]')?.value || '').trim(),
+              product: (card.querySelector('[data-t-field="product"]')?.value || '').trim(),
+              quote: (card.querySelector('[data-t-field="quote"]')?.value || '').trim()
+            }))
+            .filter(item => item.name && item.quote);
+        }
 
         let heroImageBase64 = '';
         try {
@@ -4690,7 +4788,7 @@
           if (heroImageBase64 && heroImgPreview) {
             heroImgPreview.src = heroImageBase64;
           }
-          showToast('[Showcase Verified] Updated Homepage Hero (including Hero Image), Topbar & Global Footer Copy!');
+          showToast(`[Showcase Verified] Updated Homepage Hero, ${payload.testimonialsList ? payload.testimonialsList.length : 6} Testimonials & Global Footer Copy!`);
           return;
         }
 
@@ -4712,7 +4810,7 @@
           if (heroImgPreview) heroImgPreview.src = `${BASE_PATH}${data.homepage.heroImageUrl}`;
           if (heroImgFileInput) heroImgFileInput.value = '';
         }
-        showToast('Saved Homepage Hero (Image & Copy), Topbar & Global Footer!');
+        showToast(`Saved Homepage Hero, ${Array.isArray(data.homepage?.testimonialsList) ? data.homepage.testimonialsList.length : ''} Testimonials & Global Footer!`);
       });
     }
 
@@ -5903,9 +6001,85 @@
     }
   }
 
+  function initHomepageTestimonialsSlider() {
+    const sliderViewport = document.getElementById('home-testimonials-slider');
+    const sliderTrack = document.getElementById('home-testimonials-grid');
+    if (!sliderViewport || !sliderTrack) return;
+
+    const slides = Array.from(sliderTrack.querySelectorAll('[data-testimonial-slide]'));
+    const totalSlides = slides.length;
+    if (totalSlides <= 1) return;
+
+    const prevBtn = document.getElementById('sn-testimonials-prev');
+    const nextBtn = document.getElementById('sn-testimonials-next');
+    const counterEl = document.getElementById('sn-testimonials-slide-counter');
+    const dots = Array.from(document.querySelectorAll('[data-testimonial-dot]'));
+    let activeSlide = 0;
+    let autoSlideTimer = null;
+
+    function goToSlide(targetIdx) {
+      activeSlide = ((targetIdx % totalSlides) + totalSlides) % totalSlides;
+      sliderTrack.style.transform = `translateX(-${activeSlide * 100}%)`;
+      slides.forEach((slideEl, idx) => {
+        slideEl.setAttribute('aria-hidden', idx === activeSlide ? 'false' : 'true');
+      });
+      dots.forEach((dotEl, idx) => {
+        dotEl.classList.toggle('sn-active', idx === activeSlide);
+      });
+      if (counterEl) {
+        counterEl.textContent = `${activeSlide + 1} / ${totalSlides}`;
+      }
+    }
+
+    function startAutoSlide() {
+      stopAutoSlide();
+      autoSlideTimer = window.setInterval(() => {
+        goToSlide(activeSlide + 1);
+      }, 7000);
+    }
+
+    function stopAutoSlide() {
+      if (autoSlideTimer) {
+        window.clearInterval(autoSlideTimer);
+        autoSlideTimer = null;
+      }
+    }
+
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        goToSlide(activeSlide - 1);
+        startAutoSlide();
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        goToSlide(activeSlide + 1);
+        startAutoSlide();
+      });
+    }
+
+    dots.forEach(dotEl => {
+      dotEl.addEventListener('click', () => {
+        const idx = Number(dotEl.getAttribute('data-testimonial-dot')) || 0;
+        goToSlide(idx);
+        startAutoSlide();
+      });
+    });
+
+    const sectionEl = document.getElementById('customer-testimonials') || sliderViewport;
+    sectionEl.addEventListener('mouseenter', stopAutoSlide);
+    sectionEl.addEventListener('mouseleave', startAutoSlide);
+    sectionEl.addEventListener('focusin', stopAutoSlide);
+    sectionEl.addEventListener('focusout', startAutoSlide);
+
+    startAutoSlide();
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     updateCartBadges();
     bindGlobalListeners();
+    initHomepageTestimonialsSlider();
     initPdpGalleryAndShowcaseOverrides();
     initCatalogClientFilters();
     initCheckoutPage();
@@ -5916,3 +6090,4 @@
     window.addEventListener('hashchange', syncHashBookmarkState);
   });
 })();
+
