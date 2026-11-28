@@ -43,6 +43,27 @@ const DEFAULT_HOMEPAGE_CONTENT = {
   homeFeaturedHeading: 'Featured Harvests',
   homeBestsellersEyebrow: 'Most Reordered Across India',
   homeBestsellersHeading: 'Pantry Best Sellers',
+  testimonialsEnabled: '1',
+  testimonialsEyebrow: 'Verified Indian Households • Repeat Pantry Orders',
+  testimonialsHeading: 'What Families Across India Say',
+  t1Name: 'Ananya Iyer',
+  t1Location: 'Indiranagar, Bengaluru',
+  t1Rating: '5.0',
+  t1Product: 'Kashmiri Mamra Giri Almonds • 500 g Pack',
+  t1Quote:
+    'The Mamra almonds have noticeably higher natural oil and crunch than supermarket packs. The resealable pouch keeps them crisp even during Bengaluru monsoons.',
+  t2Name: 'Vikramaditya Rao',
+  t2Location: 'Bandra West, Mumbai',
+  t2Rating: '5.0',
+  t2Product: 'Haveri Finger Millet (Ragi) • 1 kg Pack',
+  t2Quote:
+    'Unpolished Haveri ragi and foxtail millet cook evenly without gritty husks. Having batch numbers and lab-tested nutrition on every pack gives complete peace of mind.',
+  t3Name: 'Sneha Menon',
+  t3Location: 'Jubilee Hills, Hyderabad',
+  t3Rating: '4.9',
+  t3Product: 'Meghalaya Lakadong Turmeric • 250 g Pack',
+  t3Quote:
+    'Opening the Lakadong turmeric and Wayanad black pepper pouches fills the kitchen with aroma. You only need half a pinch compared to regular store-bought powders.',
   footerBlurb:
     'Direct-to-customer Indian pantry delivering unbleached dry fruits, rain-fed unpolished millets, and cold-milled heirloom spices in 100 g, 250 g, 500 g, and 1 kg packs.',
   footerSupportLine: 'Domain: sashyanaturals.com | Support: support@sashyanaturals.com',
@@ -413,6 +434,21 @@ function updateHomepageContent(payload = {}, actor = {}) {
   for (const key of Object.keys(DEFAULT_HOMEPAGE_CONTENT)) {
     if (payload[key] !== undefined && cleanDash(payload[key]) !== '') {
       next[key] = cleanDash(payload[key]);
+    }
+  }
+
+  if (payload.testimonialsEnabled !== undefined) {
+    const rawEnabled = payload.testimonialsEnabled;
+    next.testimonialsEnabled =
+      rawEnabled === false || rawEnabled === 0 || rawEnabled === '0' || rawEnabled === 'false' ? '0' : '1';
+  }
+
+  for (const rKey of ['t1Rating', 't2Rating', 't3Rating']) {
+    if (next[rKey] !== undefined) {
+      const parsedRating = Number(next[rKey]);
+      next[rKey] = Number.isFinite(parsedRating)
+        ? Math.min(5, Math.max(1, parsedRating)).toFixed(1)
+        : '5.0';
     }
   }
 

@@ -633,13 +633,51 @@ function runVerifyRbacAndAudit() {
     assert(adminHtml.includes('id="sn-inv-chart-distribution-card"'), 'Admin Module 4 must render Chart 2: Stock by Category & Pack Size');
     assert(adminHtml.includes('id="sn-inv-chart-priority-card"'), 'Admin Module 4 must render Chart 3: Top Restock Priority SKUs');
     assert(adminHtml.includes('id="sn-inv-heatmap-card"'), 'Admin Module 4 must render Chart 4: 22-Product x 4-Pack Stock Heatmap Matrix');
+
+    // 15e. Verify v4.2.0 Homepage Customer Testimonials Section (#customer-testimonials) & Admin Module 9.1 Editability
+    assert(adminHtml.includes('name="testimonialsEnabled"'), 'Admin Module 9.1 must render testimonialsEnabled selector');
+    assert(adminHtml.includes('name="testimonialsHeading"'), 'Admin Module 9.1 must render testimonialsHeading input');
+    assert(adminHtml.includes('name="t1Name"') && adminHtml.includes('name="t2Name"') && adminHtml.includes('name="t3Name"'), 'Admin Module 9.1 must render 3 testimonial card editors');
+
+    updateHomepageContent({
+      testimonialsEnabled: '1',
+      testimonialsEyebrow: 'Custom Verified Household Eyebrow',
+      testimonialsHeading: 'Custom Families Across India Heading',
+      t1Name: 'Meera Krishnan',
+      t1Location: 'Malleswaram, Bengaluru',
+      t1Rating: '5.0',
+      t1Product: 'Goan W240 Whole Cashews • 500 g Pack',
+      t1Quote: 'Crisp Goan cashews with zero broken pieces in the 500 g pouch.'
+    });
+    const homeWithTestimonials = renderHomePage({
+      categories: activeCategories,
+      products: activeProducts,
+      variants: activeVariants
+    });
+    assert(homeWithTestimonials.includes('id="customer-testimonials"'), 'Homepage must render #customer-testimonials section when enabled');
+    assert(homeWithTestimonials.includes('Custom Verified Household Eyebrow'), 'Homepage must render custom testimonialsEyebrow');
+    assert(homeWithTestimonials.includes('Custom Families Across India Heading'), 'Homepage must render custom testimonialsHeading');
+    assert(homeWithTestimonials.includes('Meera Krishnan'), 'Homepage must render custom t1Name');
+    assert(homeWithTestimonials.includes('Malleswaram, Bengaluru'), 'Homepage must render custom t1Location');
+    assert(homeWithTestimonials.includes('Goan W240 Whole Cashews • 500 g Pack'), 'Homepage must render custom t1Product');
+    assert(homeWithTestimonials.includes('Crisp Goan cashews with zero broken pieces in the 500 g pouch.'), 'Homepage must render custom t1Quote');
+    assert(homeWithTestimonials.includes('>MK<'), 'Homepage must compute 2-letter monogram initials MK for Meera Krishnan');
+
+    updateHomepageContent({ testimonialsEnabled: '0' });
+    const homeWithoutTestimonials = renderHomePage({
+      categories: activeCategories,
+      products: activeProducts,
+      variants: activeVariants
+    });
+    assert(!homeWithoutTestimonials.includes('id="customer-testimonials"'), 'Homepage must hide #customer-testimonials section when testimonialsEnabled is 0');
+    assert(!homeWithoutTestimonials.includes('href="#customer-testimonials"'), 'Homepage jump bar must omit #customer-testimonials bookmark when disabled');
   } finally {
     // Clean up Section 15 test mutations
     db.prepare("DELETE FROM store_settings WHERE key IN ('content_homepage_json', 'content_pages_json')").run();
     db.prepare("DELETE FROM audit_logs WHERE action IN ('HOMEPAGE_CONTENT_UPDATED', 'INFO_PAGE_CONTENT_UPDATED')").run();
   }
 
-  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Fail-Closed Production Go-Live Guardrail, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager, v2.5.0 Adversarial Edge-Case Guards, v2.7.0 FSSAI Nutrition + Per-Weight Discounts, v3.4.0 4,500-Attack Hardening, v4.0.0 Full Storefront Editability, v4.1.0 4-Chart Inventory Analytics Suite & immutable audit_logs');
+  console.log('✓ [Suite 4/7: verify_rbac_and_audit] Verified 5 staff roles, Customer Account Auth + OTP Password Reset, Write-Only AES-256-GCM Credential Vault, Fail-Closed Production Go-Live Guardrail, Session Cookie Auth, Section 5.1 Reports Engine, Admin Manual Order + Auto-Invoice, Users CSV Export, Storefront Content/SEO Manager, v2.5.0 Adversarial Edge-Case Guards, v2.7.0 FSSAI Nutrition + Per-Weight Discounts, v3.4.0 4,500-Attack Hardening, v4.0.0 Full Storefront Editability, v4.1.0 4-Chart Inventory Analytics Suite, v4.2.0 Homepage Testimonials & immutable audit_logs');
 }
 
 if (require.main === module) {
